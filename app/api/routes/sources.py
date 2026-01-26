@@ -23,6 +23,7 @@ def list_source_paths() -> dict:
                 relative_path: Path = full_path.relative_to(SOURCES_ROOT)
                 file_paths.append(relative_path.as_posix())
 
+    # TODO: Return as data transfer object
     return {
         "source_paths": sorted(file_paths)
     }
@@ -32,6 +33,7 @@ def list_source_paths() -> dict:
 def get_source_file(source_path: str) -> dict:
     content: dict =  find_source_files_or_extract(source_path)
 
+    # TODO: Return as data transfer object
     return {
         "source_path": source_path,
         "files": content,
@@ -50,6 +52,7 @@ def analyze_source_file(source_path: str, request: AnalyzeRequest) -> dict:
         job_timeout=1800,
     )
 
+    # TODO: Return as data transfer object
     return {
         "ok": True,
         "job_id": job.id,

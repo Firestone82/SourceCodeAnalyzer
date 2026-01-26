@@ -2,6 +2,9 @@ import logging
 from pathlib import Path
 from typing import List
 
+from sqlalchemy import delete, select, Sequence
+from sqlalchemy.orm import Session
+
 from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import EmbeddedFile, ReviewResult
 from app.database.db import SessionLocal
@@ -54,11 +57,6 @@ def embed_text_files(source_path: str) -> List[EmbeddedFile]:
     return embedded
 
 
-from typing import List
-from sqlalchemy import delete, select, Sequence
-from sqlalchemy.orm import Session
-
-
 def delete_previous_submit(session: Session, source_path: str, prompt_name: str) -> None:
     submit_identifier_list: Sequence[int] = (
         session.execute(
@@ -82,7 +80,16 @@ def run_submit_analysis(source_path: str, prompt_name: str, model: str) -> None:
     session: Session = SessionLocal()
 
     # Detele previous analysis results for the same source_path and prompt_name if any
-    delete_previous_submit(session, source_path, prompt_name)
+    try:
+        delete_previous_submit(session, source_path, prompt_name)
+    except Exception:
+        logger.exception(
+            "Failed to delete previous analysis results for source_path='%s' and prompt_name='%s'",
+            source_path, prompt_name
+        )
+        session.rollback()
+        session.close()
+        raise
 
     try:
         system_prompt: str = find_prompt_file(prompt_name);

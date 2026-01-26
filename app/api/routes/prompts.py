@@ -18,6 +18,7 @@ def list_prompt_names() -> dict:
         relative_path: Path = path.relative_to(PROMPTS_ROOT)
         prompt_names.append(relative_path.as_posix())
 
+    # TODO: Return as data transfer object
     return {
         "prompt_names": sorted(prompt_names)
     }
@@ -27,6 +28,7 @@ def list_prompt_names() -> dict:
 def get_prompt_content(prompt_name: str) -> dict:
     content: str = find_prompt_file(prompt_name)
 
+    # TODO: Return as data transfer object
     return {
         "prompt_name": prompt_name,
         "content": content,
@@ -52,6 +54,7 @@ def analyze_sources_with_prompt(prompt_name: str, request: BatchAnalyzeRequest) 
             "source_path": source_path,
         })
 
+    # TODO: Return as data transfer object
     return {
         "ok": True,
         "model": request.model,

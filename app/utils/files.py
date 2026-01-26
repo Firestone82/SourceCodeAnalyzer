@@ -50,6 +50,7 @@ def find_source_files_or_extract(submit_source_path: str) -> dict[Path, str]:
 
     return files
 
+
 def find_prompt_file(prompt_name: str) -> str:
     prompt_path: Path = safe_join(PROMPTS_ROOT, f"{prompt_name}.txt")
 
