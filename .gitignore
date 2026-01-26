@@ -1,0 +1,14 @@
+data/
+dev.db
+.venv
+.venv-linux
+node_modules/
+dist/
+build/
+.env
+.DS_Store
+.vscode/
+.idea/
+*.log
+*.pyc
+__pycache__/
