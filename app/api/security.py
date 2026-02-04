@@ -1,4 +1,4 @@
-from fastapi import Depends, Header, HTTPException
+from fastapi import Header, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.database.db import get_database
@@ -6,14 +6,28 @@ from app.database.models import Rater
 
 
 def get_current_rater(
-        x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+        authorization: str | None = Header(default=None, alias="Authorization"),
         session: Session = Depends(get_database),
 ) -> Rater:
-    if x_api_key is None or len(x_api_key.strip()) == 0:
-        raise HTTPException(status_code=401, detail="Missing X-API-Key")
+    if authorization is None or len(authorization.strip()) == 0:
+        raise HTTPException(status_code=401, detail="Missing Authorization header")
 
-    key_hash: str = x_api_key.strip()
-    rater: Rater | None = session.query(Rater).filter(Rater.key == key_hash).one_or_none()
+    authorization_value: str = authorization.strip()
+
+    if not authorization_value.lower().startswith("x-api-key "):
+        raise HTTPException(status_code=401, detail="Invalid Authorization scheme")
+
+    api_key: str = authorization_value[10:].strip()
+
+    if len(api_key) == 0:
+        raise HTTPException(status_code=401, detail="Missing API key")
+
+    rater: Rater | None = (
+        session
+        .query(Rater)
+        .filter(Rater.key == api_key)
+        .one_or_none()
+    )
 
     if rater is None:
         raise HTTPException(status_code=401, detail="Invalid API key")

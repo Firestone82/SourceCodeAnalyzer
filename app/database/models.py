@@ -48,13 +48,18 @@ class Rater(Base):
 
 class IssueRating(Base):
     __tablename__ = "issue_rating"
-    __table_args__ = (UniqueConstraint("issue_id", "rater_id", name="uq_issue_rater"),)
+    __table_args__ = (
+        UniqueConstraint("issue_id", "rater_id", name="uq_issue_rater"),
+        UniqueConstraint("submit_id", "rater_id", name="uq_submit_rater"),
+    )
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    issue_id: Mapped[int] = mapped_column(ForeignKey("issue.id"), nullable=False)
+    issue_id: Mapped[int | None] = mapped_column(ForeignKey("issue.id"), nullable=True)
+    submit_id: Mapped[int | None] = mapped_column(ForeignKey("submit.id"), nullable=True)
     rater_id: Mapped[int] = mapped_column(ForeignKey("rater.id"), nullable=False)
     rating: Mapped[int] = mapped_column(Integer, nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
 
     issue: Mapped["Issue"] = relationship(back_populates="ratings")
+    submit: Mapped["Submit"] = relationship()
     rater: Mapped["Rater"] = relationship(back_populates="ratings")

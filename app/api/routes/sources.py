@@ -31,7 +31,7 @@ def list_source_paths() -> dict:
 
 @router.get("/{source_path:path}")
 def get_source_file(source_path: str) -> dict:
-    content: dict =  find_source_files_or_extract(source_path)
+    content: dict = find_source_files_or_extract(source_path)
 
     # TODO: Return as data transfer object
     return {

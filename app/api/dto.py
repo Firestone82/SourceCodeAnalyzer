@@ -9,3 +9,6 @@ class AnalyzeRequest(BaseModel):
 class BatchAnalyzeRequest(BaseModel):
     model: str = Field(min_length=1)
     sources: list[str] = Field(default_factory=list)
+
+class IssueRatingRequest(BaseModel):
+    rating: int
