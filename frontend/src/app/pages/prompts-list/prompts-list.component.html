@@ -5,6 +5,15 @@
         <div nz-typography nzType="secondary">Prompts</div>
         <div nz-typography>Browse available prompt templates.</div>
       </div>
+
+      <button
+        nz-button
+        nzType="primary"
+        [disabled]="!selectedPromptPath"
+        (click)="openReviewModal()"
+      >
+        Start review
+      </button>
     </div>
 
     @if (errorMessage) {
@@ -27,15 +36,16 @@
               </li>
             }
           </ul>
+
+          <div class="mt-3 flex justify-center">
+            <nz-pagination
+              [nzPageIndex]="pageIndex"
+              [nzTotal]="promptPaths.length"
+              [nzPageSize]="pageSize"
+              (nzPageIndexChange)="onPromptPageChange($event)"
+            ></nz-pagination>
+          </div>
         </nz-sider>
-        <div class="mt-3 flex justify-center">
-          <nz-pagination
-            [nzPageIndex]="pageIndex"
-            [nzTotal]="promptPaths.length"
-            [nzPageSize]="pageSize"
-            (nzPageIndexChange)="onPromptPageChange($event)"
-          ></nz-pagination>
-        </div>
       </div>
 
       <div class="col-span-4">
@@ -47,8 +57,26 @@
               @if (promptErrorMessage) {
                 <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
               } @else {
-                <pre
-                  class="whitespace-pre-wrap break-words bg-slate-50 border border-slate-200 rounded-md p-4 text-sm">{{ content }}</pre>
+                <div class="mb-3 flex items-center justify-between">
+                  <div nz-typography nzType="secondary">Prompt content</div>
+
+                  <button nz-button nzType="default" (click)="togglePromptView()">
+                    {{ isMarkdownView ? 'View raw' : 'View markdown' }}
+                  </button>
+                </div>
+
+                @if (isMarkdownView) {
+                  <nz-spin [nzSpinning]="isMarkdownRendering" nzTip="Rendering markdown...">
+                    <div class="markdown-content rounded-md border border-slate-200 bg-slate-50 p-4 text-sm"
+                         [innerHTML]="renderedContent"
+                    ></div>
+                  </nz-spin>
+                } @else {
+                  <pre
+                    class="whitespace-pre-wrap break-words rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
+                    {{ content }}
+                  </pre>
+                }
               }
             </nz-spin>
           }
@@ -57,3 +85,44 @@
     </div>
   </nz-spin>
 </div>
+
+<nz-modal
+  [(nzVisible)]="isReviewModalVisible"
+  nzTitle="Process review"
+  nzWidth="800px"
+  [nzOkDisabled]="!canSubmitBulkReview"
+  [nzOkLoading]="isSubmittingReview"
+  (nzOnCancel)="closeReviewModal()"
+  (nzOnOk)="submitBulkReview()"
+>
+  <ng-container *nzModalContent>
+    <div class="flex flex-col gap-4">
+      <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+        <div class="font-semibold">Prompt</div>
+        <div>{{ selectedPromptPath }}</div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Model</label>
+        <input nz-input placeholder="Model name" [(ngModel)]="reviewModel"/>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Sources</label>
+        <nz-spin [nzSpinning]="isSourceOptionsLoading" nzTip="Loading sources...">
+          <nz-tree
+            [nzData]="sourceTreeNodes"
+            nzCheckable
+            nzCheckStrictly
+            [nzCheckedKeys]="selectedSourceKeys"
+            (nzCheckedKeysChange)="onSourceKeysChange($event)"
+          ></nz-tree>
+        </nz-spin>
+      </div>
+
+      @if (reviewSubmitError) {
+        <div nz-typography nzType="danger">{{ reviewSubmitError }}</div>
+      }
+    </div>
+  </ng-container>
+</nz-modal>

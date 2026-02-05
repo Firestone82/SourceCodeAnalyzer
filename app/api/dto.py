@@ -81,6 +81,7 @@ class SubmitListItemResponse(BaseModel):
     source_path: str
     prompt_path: str
     rated: bool
+    total_issues: int
     created_at: datetime
 
 

@@ -13,6 +13,7 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
+import {NzMessageService} from 'ng-zorro-antd/message';
 
 import {SourcesApiService} from '../../service/api/sources-api.service';
 import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/sources-api.models';
@@ -64,7 +65,6 @@ export class SourcesListComponent implements OnInit {
   public promptDraft: string = '';
   public promptErrorMessage: string | null = null;
   public reviewModel: string = '';
-  public reviewSubmitMessage: string | null = null;
   public reviewSubmitError: string | null = null;
   public isSubmittingReview: boolean = false;
 
@@ -72,7 +72,8 @@ export class SourcesListComponent implements OnInit {
     private readonly sourcesApiService: SourcesApiService,
     private readonly promptsApiService: PromptsApiService,
     private readonly activatedRoute: ActivatedRoute,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly nzMessageService: NzMessageService
   ) {
   }
 
@@ -137,7 +138,6 @@ export class SourcesListComponent implements OnInit {
 
   public openReviewModal(): void {
     this.isReviewModalVisible = true;
-    this.reviewSubmitMessage = null;
     this.reviewSubmitError = null;
     if (this.promptPaths.length === 0) {
       this.loadPromptOptions();
@@ -184,7 +184,6 @@ export class SourcesListComponent implements OnInit {
     }
 
     this.isSubmittingReview = true;
-    this.reviewSubmitMessage = null;
     this.reviewSubmitError = null;
 
     const trimmedPromptDraft = this.promptDraft.trim();
@@ -210,7 +209,8 @@ export class SourcesListComponent implements OnInit {
           if (!response) {
             return;
           }
-          this.reviewSubmitMessage = `Review queued. Job ID: ${response.job_id}`;
+          this.nzMessageService.success(`Review queued. Job ID: ${response.job_id}`);
+          this.closeReviewModal();
         });
     };
 

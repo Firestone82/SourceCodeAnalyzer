@@ -8,6 +8,7 @@ export interface SubmitListItemDto {
   prompt_path: string;
   source_path: string;
   rated: boolean;
+  total_issues: number;
   created_at: string;
 }
 

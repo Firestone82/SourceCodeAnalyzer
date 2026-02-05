@@ -12,6 +12,7 @@
     </label>
   </div>
   <nz-table
+    class="submits-table"
     [nzData]="submits"
     [nzLoading]="isLoading"
     nzSize="small"
@@ -34,6 +35,7 @@
       <th>Source path</th>
       <th>Submit date</th>
       <th>Rated</th>
+      <th>Total issues</th>
       <th></th>
     </tr>
     </thead>
@@ -67,6 +69,7 @@
               {{ submit.rated ? 'Yes' : 'No' }}
             </nz-tag>
           </td>
+          <td class="text-center">{{ submit.total_issues }}</td>
           <td class="text-center">
             <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
           </td>

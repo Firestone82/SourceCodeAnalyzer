@@ -196,6 +196,7 @@ def get_submits(
                 prompt_path=submit.prompt_path,
                 created_at=submit.created_at,
                 rated=is_fully_rated,
+                total_issues=total_issues,
             )
         )
 
