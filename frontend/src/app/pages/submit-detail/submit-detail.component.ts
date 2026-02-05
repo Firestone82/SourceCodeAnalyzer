@@ -1,5 +1,5 @@
 import {Component, OnInit} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, RouterLink} from '@angular/router';
 import {forkJoin} from 'rxjs';
 import {DatePipe} from '@angular/common';
 
@@ -27,7 +27,8 @@ import {NzButtonComponent} from 'ng-zorro-antd/button';
     SourceCodeViewerComponent,
     NzCardComponent,
     DatePipe,
-    NzButtonComponent
+    NzButtonComponent,
+    RouterLink
   ],
   templateUrl: './submit-detail.component.html',
   styleUrl: './submit-detail.component.css'

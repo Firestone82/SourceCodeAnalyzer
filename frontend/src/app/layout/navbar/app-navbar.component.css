@@ -1,0 +1,15 @@
+
+.app-nav {
+  background: transparent;
+  border-bottom: none;
+  line-height: 64px;
+}
+
+.app-nav a {
+  color: rgba(255, 255, 255, .85);
+}
+
+.app-nav a.active {
+  color: #fff;
+  font-weight: 600;
+}

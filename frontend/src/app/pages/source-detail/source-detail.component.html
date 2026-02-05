@@ -1,0 +1,49 @@
+<nz-spin [nzSpinning]="isLoading" nzTip="Loading...">
+  <nz-card class="mb-4">
+    <div class="flex items-center justify-between">
+      <div>
+        <div nz-typography nzType="secondary">Source</div>
+        <div nz-typography><strong>{{ sourcePath }}</strong></div>
+      </div>
+      <a nz-button nzType="default" [routerLink]="['/sources']">Back to sources</a>
+    </div>
+
+    @if (errorMessage) {
+      <div nz-typography nzType="danger" class="mt-3">{{ errorMessage }}</div>
+    }
+  </nz-card>
+
+  @if (!errorMessage) {
+    <div class="grid grid-cols-5 gap-4">
+      <div class="col-span-1">
+        <nz-sider>
+          <ul nz-menu nzMode="inline" nzSelectable>
+            @for (fileName of fileNames; track fileName) {
+              <li
+                nz-menu-item
+                [nzSelected]="fileName === selectedFileName"
+                (click)="selectFile(fileName)"
+              >
+                <span>{{ fileName }}</span>
+              </li>
+            }
+          </ul>
+        </nz-sider>
+      </div>
+
+      <div class="col-span-4">
+        <nz-card>
+          @if (selectedFileName) {
+            <app-file-viewer
+              [fileName]="selectedFileName"
+              [fileContent]="selectedFileContent"
+              [issues]="[]">
+            </app-file-viewer>
+          } @else {
+            <div nz-typography>Select a file to view its content.</div>
+          }
+        </nz-card>
+      </div>
+    </div>
+  }
+</nz-spin>

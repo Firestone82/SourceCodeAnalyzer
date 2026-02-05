@@ -1,0 +1,37 @@
+<nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <div class="mb-4 flex items-center justify-between">
+    <div>
+      <div nz-typography nzType="secondary">Sources</div>
+      <div nz-typography>Browse analyzed source bundles.</div>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div nz-typography nzType="danger" class="mb-3">{{ errorMessage }}</div>
+  }
+
+  <nz-table
+    [nzData]="sourcePaths"
+    [nzLoading]="isLoading"
+    nzSize="middle"
+    nzBordered
+    [nzFrontPagination]="false"
+  >
+    <thead>
+    <tr>
+      <th>Source path</th>
+    </tr>
+    </thead>
+    <tbody>
+      @for (sourcePath of sourcePaths; track sourcePath) {
+        <tr>
+          <td>
+            <a [routerLink]="['/sources', sourcePath]" class="text-blue-600 hover:text-blue-500">
+              {{ sourcePath }}
+            </a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </nz-table>
+</nz-card>

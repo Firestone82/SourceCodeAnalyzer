@@ -1,0 +1,37 @@
+<nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <div class="mb-4 flex items-center justify-between">
+    <div>
+      <div nz-typography nzType="secondary">Prompts</div>
+      <div nz-typography>Browse available prompt templates.</div>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div nz-typography nzType="danger" class="mb-3">{{ errorMessage }}</div>
+  }
+
+  <nz-table
+    [nzData]="promptPaths"
+    [nzLoading]="isLoading"
+    nzSize="middle"
+    nzBordered
+    [nzFrontPagination]="false"
+  >
+    <thead>
+    <tr>
+      <th>Prompt path</th>
+    </tr>
+    </thead>
+    <tbody>
+      @for (promptPath of promptPaths; track promptPath) {
+        <tr>
+          <td>
+            <a [routerLink]="['/prompts', promptPath]" class="text-blue-600 hover:text-blue-500">
+              {{ promptPath }}
+            </a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </nz-table>
+</nz-card>

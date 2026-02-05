@@ -42,8 +42,16 @@
         <tr>
           <td>{{ submit.id }}</td>
           <td>{{ submit.model }}</td>
-          <td>{{ submit.prompt_path }}</td>
-          <td>{{ submit.source_path }}</td>
+          <td>
+            <a [routerLink]="['/prompts', submit.prompt_path]" class="text-blue-600 hover:text-blue-500">
+              {{ submit.prompt_path }}
+            </a>
+          </td>
+          <td>
+            <a [routerLink]="['/sources', submit.source_path]" class="text-blue-600 hover:text-blue-500">
+              {{ submit.source_path }}
+            </a>
+          </td>
           <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
           <td class="text-center">
             <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">

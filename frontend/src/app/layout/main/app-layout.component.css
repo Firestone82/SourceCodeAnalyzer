@@ -1,0 +1,22 @@
+.app-layout {
+  min-height: 100vh;
+}
+
+.app-header {
+  display: flex;
+  align-items: center;
+  color: rgba(255, 255, 255, .85);
+  font-weight: 600;
+}
+
+.app-header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 24px;
+}
+
+.app-title {
+  font-size: 18px;
+}
