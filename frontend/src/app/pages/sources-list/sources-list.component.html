@@ -2,8 +2,8 @@
   <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
     <div class="flex items-center justify-between">
       <div>
-        <div nz-typography nzType="secondary">Sources</div>
-        <div nz-typography>Browse analyzed source bundles.</div>
+        <div nz-typography nzType="secondary">Source Viewer</div>
+        <div nz-typography>Browse uploaded sources and start reviews.</div>
       </div>
 
       <button nz-button
@@ -20,23 +20,32 @@
   </nz-card>
 
   <nz-spin [nzSpinning]="isLoading" nzTip="Loading...">
-    <div class="grid grid-cols-5 gap-4">
-      <div class="col-span-1">
+    <div class="grid grid-cols-8 gap-4">
+      <div class="col-span-2">
         <nz-card class="source-tree-container">
           <div nz-typography nzType="secondary">Found sources</div>
 
           <nz-tree
             [nzData]="sourceTreeNodes"
             [nzSelectedKeys]="selectedSourceKeys"
+            [nzTreeTemplate]="sourceTreeNodeTemplate"
             nzBlockNode
             nzShowLine
             nzVirtualHeight="60vh"
             (nzClick)="handleSourceNodeClick($event)"
           ></nz-tree>
+          <ng-template #sourceTreeNodeTemplate let-node>
+            <span>{{ node.title }}</span>
+            @if (node.isLeaf && node.key === selectedSourcePath) {
+              <span class="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
+                Selected
+              </span>
+            }
+          </ng-template>
         </nz-card>
       </div>
 
-      <div class="col-span-4">
+      <div class="col-span-6">
         <nz-card>
           @if (!selectedSourcePath) {
             <div nz-typography>Select a source to view its files.</div>

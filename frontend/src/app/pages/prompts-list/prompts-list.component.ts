@@ -36,6 +36,7 @@ import {AuthService} from '../../service/auth/auth.service';
     JobCreatedModalComponent
   ],
   templateUrl: './prompts-list.component.html',
+  styleUrl: './prompts-list.component.css'
 })
 export class PromptsListComponent implements OnInit, OnDestroy {
   public promptPaths: string[] = [];

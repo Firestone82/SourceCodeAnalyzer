@@ -2,7 +2,7 @@
   <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
     <div class="flex items-center justify-between">
       <div>
-        <div nz-typography nzType="secondary">Prompts</div>
+        <div nz-typography nzType="secondary">Prompts Viewer</div>
         <div nz-typography>Browse available prompt templates.</div>
       </div>
 
@@ -21,9 +21,11 @@
   </nz-card>
 
   <nz-spin [nzSpinning]="isLoading" nzTip="Loading...">
-    <div class="grid grid-cols-5 gap-4">
-      <div class="col-span-1">
-        <nz-sider>
+    <div class="grid grid-cols-8 gap-4">
+      <div class="col-span-2">
+        <nz-card class="prompts-menu-container">
+          <div nz-typography nzType="secondary">Found sources</div>
+
           <ul nz-menu nzMode="inline" nzSelectable>
             @for (promptPath of pagedPromptPaths; track promptPath) {
               <li
@@ -44,10 +46,10 @@
               (nzPageIndexChange)="onPromptPageChange($event)"
             ></nz-pagination>
           </div>
-        </nz-sider>
+        </nz-card>
       </div>
 
-      <div class="col-span-4">
+      <div class="col-span-6">
         <nz-card>
           @if (!selectedPromptPath) {
             <div nz-typography>Select a prompt to view its content.</div>

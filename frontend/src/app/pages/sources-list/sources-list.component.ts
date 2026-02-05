@@ -222,7 +222,14 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
     const buildNodes = (node: SourceTreeEntry): NzTreeNodeOptions[] => {
       return Array.from(node.children.entries())
-        .sort(([left], [right]) => left.localeCompare(right))
+        .sort(([leftName, leftChild], [rightName, rightChild]) => {
+          const leftIsLeaf = leftChild.children.size === 0;
+          const rightIsLeaf = rightChild.children.size === 0;
+          if (leftIsLeaf !== rightIsLeaf) {
+            return leftIsLeaf ? 1 : -1;
+          }
+          return leftName.localeCompare(rightName);
+        })
         .map(([name, child]) => {
           const children = buildNodes(child);
           const isLeaf = children.length === 0;
