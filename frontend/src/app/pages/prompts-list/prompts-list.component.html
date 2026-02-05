@@ -86,43 +86,18 @@
   </nz-spin>
 </div>
 
-<nz-modal
-  [(nzVisible)]="isReviewModalVisible"
-  nzTitle="Process review"
-  nzWidth="800px"
-  [nzOkDisabled]="!canSubmitBulkReview"
-  [nzOkLoading]="isSubmittingReview"
-  (nzOnCancel)="closeReviewModal()"
-  (nzOnOk)="submitBulkReview()"
->
-  <ng-container *nzModalContent>
-    <div class="flex flex-col gap-4">
-      <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-        <div class="font-semibold">Prompt</div>
-        <div>{{ selectedPromptPath }}</div>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">Model</label>
-        <input nz-input placeholder="Model name" [(ngModel)]="reviewModel"/>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">Sources</label>
-        <nz-spin [nzSpinning]="isSourceOptionsLoading" nzTip="Loading sources...">
-          <nz-tree
-            [nzData]="sourceTreeNodes"
-            nzCheckable
-            nzCheckStrictly
-            [nzCheckedKeys]="selectedSourceKeys"
-            (nzCheckedKeysChange)="onSourceKeysChange($event)"
-          ></nz-tree>
-        </nz-spin>
-      </div>
-
-      @if (reviewSubmitError) {
-        <div nz-typography nzType="danger">{{ reviewSubmitError }}</div>
-      }
-    </div>
-  </ng-container>
-</nz-modal>
+<app-prompt-review-modal
+  [isVisible]="isReviewModalVisible"
+  (isVisibleChange)="isReviewModalVisible = $event"
+  [selectedPromptPath]="selectedPromptPath"
+  [reviewModel]="reviewModel"
+  (reviewModelChange)="reviewModel = $event"
+  [sourceTreeNodes]="sourceTreeNodes"
+  [selectedSourceKeys]="selectedSourceKeys"
+  (selectedSourceKeysChange)="onSourceKeysChange($event)"
+  [isSourceOptionsLoading]="isSourceOptionsLoading"
+  [isSubmittingReview]="isSubmittingReview"
+  [reviewSubmitError]="reviewSubmitError"
+  [canSubmitBulkReview]="canSubmitBulkReview"
+  (submitReview)="submitBulkReview()"
+/>

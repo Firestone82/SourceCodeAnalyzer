@@ -5,10 +5,8 @@ import {catchError, finalize, of} from 'rxjs';
 import {FormsModule} from '@angular/forms';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzCardComponent} from 'ng-zorro-antd/card';
-import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzMenuModule} from 'ng-zorro-antd/menu';
-import {NzModalModule} from 'ng-zorro-antd/modal';
 import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
@@ -19,6 +17,7 @@ import {SourcesApiService} from '../../service/api/sources-api.service';
 import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/sources-api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {PromptsApiService} from '../../service/api/prompts-api.service';
+import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {
   PromptContentResponseDto,
   PromptNamesResponseDto,
@@ -32,15 +31,14 @@ import {
     FormsModule,
     NzButtonModule,
     NzCardComponent,
-    NzInputModule,
     NzLayoutModule,
     NzMenuModule,
-    NzModalModule,
     NzPaginationModule,
     NzSelectModule,
     NzSpinModule,
     NzTypographyModule,
-    SourceCodeViewerComponent
+    SourceCodeViewerComponent,
+    SourceReviewModalComponent
   ],
   templateUrl: './sources-list.component.html',
 })

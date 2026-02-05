@@ -11,9 +11,6 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
-import {NzModalModule} from 'ng-zorro-antd/modal';
-import {NzInputModule} from 'ng-zorro-antd/input';
-import {NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzTreeNodeOptions, NzTreeNodeKey} from 'ng-zorro-antd/core/tree';
 
@@ -22,6 +19,7 @@ import {PromptContentResponseDto, PromptNamesResponseDto} from '../../service/ap
 import {SourcesApiService} from '../../service/api/sources-api.service';
 import {SourcePathsResponseDto} from '../../service/api/sources-api.models';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
+import {PromptReviewModalComponent} from '../../components/prompt-review-modal/prompt-review-modal.component';
 
 @Component({
   selector: 'app-prompts-list',
@@ -35,9 +33,7 @@ import {SyntaxHighlighterService} from '../../service/syntax-highlighting.servic
     NzSpinModule,
     NzTypographyModule,
     NzButtonModule,
-    NzModalModule,
-    NzInputModule,
-    NzTreeModule
+    PromptReviewModalComponent
   ],
   templateUrl: './prompts-list.component.html',
 })
@@ -59,10 +55,12 @@ export class PromptsListComponent implements OnInit {
   public sourcePaths: string[] = [];
   public sourceTreeNodes: NzTreeNodeOptions[] = [];
   public selectedSourceKeys: NzTreeNodeKey[] = [];
+  public selectedSourceLeafKeys: string[] = [];
   public isSourceOptionsLoading: boolean = false;
   public reviewModel: string = '';
   public isSubmittingReview: boolean = false;
   public reviewSubmitError: string | null = null;
+  private sourceTreeLeafMap: Map<string, string[]> = new Map();
 
   public constructor(
     private readonly promptsApiService: PromptsApiService,
@@ -193,6 +191,7 @@ export class PromptsListComponent implements OnInit {
     this.isReviewModalVisible = true;
     this.reviewSubmitError = null;
     this.selectedSourceKeys = [];
+    this.selectedSourceLeafKeys = [];
     if (this.sourcePaths.length === 0) {
       this.loadSourcePaths();
     }
@@ -204,13 +203,14 @@ export class PromptsListComponent implements OnInit {
 
   public onSourceKeysChange(keys: NzTreeNodeKey[]): void {
     this.selectedSourceKeys = keys;
+    this.selectedSourceLeafKeys = this.expandSourceKeys(keys);
   }
 
   public get canSubmitBulkReview(): boolean {
     return Boolean(
       this.selectedPromptPath
       && this.reviewModel.trim()
-      && this.selectedSourceKeys.length > 0
+      && this.selectedSourceLeafKeys.length > 0
       && !this.isSubmittingReview
       && !this.isSourceOptionsLoading
     );
@@ -221,7 +221,7 @@ export class PromptsListComponent implements OnInit {
       return;
     }
 
-    const selectedSources = this.selectedSourceKeys.filter((key): key is string => typeof key === 'string');
+    const selectedSources = this.selectedSourceLeafKeys;
     if (selectedSources.length === 0) {
       return;
     }
@@ -276,6 +276,7 @@ export class PromptsListComponent implements OnInit {
       .subscribe((response: SourcePathsResponseDto) => {
         this.sourcePaths = response.source_paths;
         this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+        this.sourceTreeLeafMap = this.buildSourceTreeLeafMap(this.sourcePaths);
       });
   }
 
@@ -307,13 +308,44 @@ export class PromptsListComponent implements OnInit {
             title: name,
             key: child.path,
             children,
-            isLeaf,
-            disableCheckbox: !isLeaf
+            isLeaf
           };
         });
     };
 
     return buildNodes(root);
+  }
+
+  private buildSourceTreeLeafMap(sourcePaths: string[]): Map<string, string[]> {
+    const map = new Map<string, string[]>();
+    for (const sourcePath of sourcePaths) {
+      const parts = sourcePath.split('/').filter(Boolean);
+      let currentPath = '';
+      for (const part of parts) {
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        const existing = map.get(currentPath) ?? [];
+        existing.push(sourcePath);
+        map.set(currentPath, existing);
+      }
+    }
+    return map;
+  }
+
+  private expandSourceKeys(keys: NzTreeNodeKey[]): string[] {
+    const expandedKeys = new Set<string>();
+    for (const key of keys) {
+      if (typeof key !== 'string') {
+        continue;
+      }
+      const leafKeys = this.sourceTreeLeafMap.get(key);
+      if (!leafKeys) {
+        continue;
+      }
+      for (const leafKey of leafKeys) {
+        expandedKeys.add(leafKey);
+      }
+    }
+    return Array.from(expandedKeys);
   }
 
   private updatePageForPrompt(promptPath: string): void {

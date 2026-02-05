@@ -88,59 +88,21 @@
   </nz-spin>
 </div>
 
-<nz-modal
-  [(nzVisible)]="isReviewModalVisible"
-  nzTitle="Process review"
-  nzWidth="800px"
-  [nzOkDisabled]="!canSubmitReview"
-  [nzOkLoading]="isSubmittingReview"
-  (nzOnCancel)="closeReviewModal()"
-  (nzOnOk)="submitReview()"
->
-  <ng-container *nzModalContent>
-    <div class="flex flex-col gap-4">
-      <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
-        <div class="font-semibold">Source</div>
-        <div>{{ selectedSourcePath }}</div>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">Model</label>
-        <input nz-input placeholder="Model name" [(ngModel)]="reviewModel"/>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">Prompt template</label>
-        <nz-select
-          class="w-full"
-          [nzLoading]="isPromptOptionsLoading"
-          [ngModel]="selectedPromptPath"
-          (ngModelChange)="selectPromptForReview($event)"
-          nzPlaceHolder="Select a prompt"
-        >
-          @for (promptPath of promptPaths; track promptPath) {
-            <nz-option [nzLabel]="promptPath" [nzValue]="promptPath"></nz-option>
-          }
-        </nz-select>
-      </div>
-
-      <div>
-        <label class="mb-1 block text-sm font-medium">Prompt content</label>
-        <textarea nz-input
-                  rows="25"
-                  placeholder="Prompt content"
-                  [(ngModel)]="promptDraft"
-        ></textarea>
-      </div>
-
-      @if (promptErrorMessage) {
-        <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
-      }
-
-      @if (reviewSubmitError) {
-        <div nz-typography nzType="danger">{{ reviewSubmitError }}</div>
-      }
-
-    </div>
-  </ng-container>
-</nz-modal>
+<app-source-review-modal
+  [isVisible]="isReviewModalVisible"
+  (isVisibleChange)="isReviewModalVisible = $event"
+  [selectedSourcePath]="selectedSourcePath"
+  [reviewModel]="reviewModel"
+  (reviewModelChange)="reviewModel = $event"
+  [promptPaths]="promptPaths"
+  [selectedPromptPath]="selectedPromptPath"
+  (promptSelectionChange)="selectPromptForReview($event)"
+  [promptDraft]="promptDraft"
+  (promptDraftChange)="promptDraft = $event"
+  [promptErrorMessage]="promptErrorMessage"
+  [reviewSubmitError]="reviewSubmitError"
+  [isPromptOptionsLoading]="isPromptOptionsLoading"
+  [isSubmittingReview]="isSubmittingReview"
+  [canSubmitReview]="canSubmitReview"
+  (submitReview)="submitReview()"
+/>
