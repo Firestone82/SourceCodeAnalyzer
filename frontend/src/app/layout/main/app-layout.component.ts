@@ -10,7 +10,7 @@ import {NzLayoutModule} from 'ng-zorro-antd/layout';
     <nz-layout class="app-layout">
       <nz-header class="app-header">Submits Rater</nz-header>
 
-      <nz-content class="app-content">
+      <nz-content class="max-w-7xl w-full mx-auto p-4">
         <router-outlet/>
       </nz-content>
     </nz-layout>

@@ -262,13 +262,13 @@ def get_submit_details(
     )
 
     for issue, rating in rater_issues:
-        rating = None if rating is None else rating.rating
+        rate = None if rating is None else rating.rating
         rated_at = None if rating is None else rating.created_at
 
         if issue.file is None and issue.line is None:
             summary = SubmitSummary(
                 explanation=issue.explanation,
-                rating=rating,
+                rating=rate,
                 rated_at=rated_at,
             )
         else:
@@ -278,8 +278,8 @@ def get_submit_details(
                 severity=issue.severity,
                 line=issue.line,
                 explanation=issue.explanation,
-                rating=None if rating is None else rating.rating,
-                rated_at=None if rating is None else rating.created_at,
+                rating=rate,
+                rated_at=rated_at,
             ))
 
     return SubmitIssuesResponse(

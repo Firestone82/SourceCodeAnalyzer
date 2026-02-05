@@ -1,7 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
 import {forkJoin} from 'rxjs';
-import {NgFor, NgIf} from '@angular/common';
+import {DatePipe} from '@angular/common';
 
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzMenuModule} from 'ng-zorro-antd/menu';
@@ -9,22 +9,25 @@ import {NzBadgeModule} from 'ng-zorro-antd/badge';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzMessageService} from 'ng-zorro-antd/message';
-import {SubmitsApiService} from '../../api/submits-api.service';
-import {IssueDto, SubmitDetailsDto, SubmitDto} from '../../api/submits-api.models';
+import {SubmitsApiService} from '../../service/api/submits-api.service';
+import {IssueDto, SubmitDetailsDto, SubmitDto} from '../../service/api/submits-api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
+import {NzCardComponent} from 'ng-zorro-antd/card';
+import {NzButtonComponent} from 'ng-zorro-antd/button';
 
 @Component({
   selector: 'app-submit-detail',
   standalone: true,
   imports: [
-    NgIf,
-    NgFor,
     NzLayoutModule,
     NzMenuModule,
     NzBadgeModule,
     NzTypographyModule,
     NzSpinModule,
-    SourceCodeViewerComponent
+    SourceCodeViewerComponent,
+    NzCardComponent,
+    DatePipe,
+    NzButtonComponent
   ],
   templateUrl: './submit-detail.component.html',
   styleUrl: './submit-detail.component.css'
@@ -32,8 +35,8 @@ import {SourceCodeViewerComponent} from '../../components/source-code-viewer/sou
 export class SubmitDetailComponent implements OnInit {
   public isLoading: boolean = false;
 
-  public submitDto: SubmitDto | null = null;
-  public submitDetailsDto: SubmitDetailsDto | null = null;
+  public submit: SubmitDto | null = null;
+  public submitDetails: SubmitDetailsDto | null = null;
 
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
@@ -48,10 +51,10 @@ export class SubmitDetailComponent implements OnInit {
   }
 
   public get issuesBySelectedFile(): IssueDto[] {
-    if (!this.submitDetailsDto || !this.selectedFileName) {
+    if (!this.submitDetails || !this.selectedFileName) {
       return [];
     }
-    return this.submitDetailsDto.issues.filter((issue: IssueDto) => issue.file === this.selectedFileName);
+    return this.submitDetails.issues.filter((issue: IssueDto) => issue.file === this.selectedFileName);
   }
 
   public ngOnInit(): void {
@@ -67,8 +70,8 @@ export class SubmitDetailComponent implements OnInit {
       details: this.submitsApiService.getSubmitDetails(submitId)
     }).subscribe({
       next: ({submit, details}: { submit: SubmitDto; details: SubmitDetailsDto }) => {
-        this.submitDto = submit;
-        this.submitDetailsDto = details;
+        this.submit = submit;
+        this.submitDetails = details;
 
         this.fileNames = Object.keys(submit.files || {}).sort((left: string, right: string) => left.localeCompare(right));
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
@@ -106,12 +109,12 @@ export class SubmitDetailComponent implements OnInit {
 
   private recalculateRemainingIssues(): void {
     const remaining: Record<string, number> = {};
-    if (!this.submitDetailsDto) {
+    if (!this.submitDetails) {
       this.remainingIssuesByFile = remaining;
       return;
     }
 
-    for (const issue of this.submitDetailsDto.issues) {
+    for (const issue of this.submitDetails.issues) {
       if (!remaining[issue.file]) {
         remaining[issue.file] = 0;
       }

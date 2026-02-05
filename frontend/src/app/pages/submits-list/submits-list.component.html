@@ -1,38 +1,40 @@
-<nz-table
-  [nzData]="submits"
-  [nzLoading]="isLoading"
-  nzSize="middle"
-  nzBordered
->
-  <thead>
-  <tr>
-    <th>Id</th>
-    <th>Model</th>
-    <th>Prompt path</th>
-    <th>Source path</th>
-    <th>Submit date</th>
-    <th>Rated</th>
-    <th></th>
-  </tr>
-  </thead>
+<nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-table
+    [nzData]="submits"
+    [nzLoading]="isLoading"
+    nzSize="middle"
+    nzBordered
+  >
+    <thead>
+    <tr>
+      <th>Id</th>
+      <th>Model</th>
+      <th>Prompt path</th>
+      <th>Source path</th>
+      <th>Submit date</th>
+      <th>Rated</th>
+      <th></th>
+    </tr>
+    </thead>
 
-  <tbody>
-    @for (submit of submits; track $index) {
-      <tr>
-        <td>{{ submit.id }}</td>
-        <td>{{ submit.model }}</td>
-        <td>{{ submit.prompt_path }}</td>
-        <td>{{ submit.source_path }}</td>
-        <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-        <td class="text-center">
-          <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
-            {{ submit.rated ? 'Yes' : 'No' }}
-          </nz-tag>
-        </td>
-        <td class="text-center">
-          <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
-        </td>
-      </tr>
-    }
-  </tbody>
-</nz-table>
+    <tbody>
+      @for (submit of submits; track $index) {
+        <tr>
+          <td>{{ submit.id }}</td>
+          <td>{{ submit.model }}</td>
+          <td>{{ submit.prompt_path }}</td>
+          <td>{{ submit.source_path }}</td>
+          <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+          <td class="text-center">
+            <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
+              {{ submit.rated ? 'Yes' : 'No' }}
+            </nz-tag>
+          </td>
+          <td class="text-center">
+            <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
+          </td>
+        </tr>
+      }
+    </tbody>
+  </nz-table>
+</nz-card>

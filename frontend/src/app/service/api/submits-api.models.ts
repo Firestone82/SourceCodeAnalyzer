@@ -1,3 +1,5 @@
+import {SafeHtml} from '@angular/platform-browser';
+
 export type IssueSeverity = 'low' | 'medium' | 'high';
 
 export interface SubmitListItemDto {
@@ -12,6 +14,8 @@ export interface SubmitListItemDto {
 export interface SubmitDto {
   id: number;
   model: string;
+  prompt_path: string;
+  source_path: string;
   files: Record<string, string>;
   created_at: string;
 }
@@ -21,6 +25,7 @@ export interface SubmitDetailsDto {
   rater_id: number;
   summary: {
     explanation: string;
+    highlightedExplanation?: SafeHtml;
     rating: number | null;
     rated_at: string | null;
   };
@@ -33,6 +38,7 @@ export interface IssueDto {
   severity: IssueSeverity;
   line: number;
   explanation: string;
+  highlightedExplanation?: SafeHtml;
   rating: number | null;
   rated_at: string | null;
 }

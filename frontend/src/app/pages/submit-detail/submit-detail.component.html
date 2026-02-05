@@ -1,40 +1,87 @@
-<nz-spin [nzSpinning]="isLoading">
-  <div *ngIf="submitDetailsDto as details" class="page">
-    <div class="header">
-      <div>
-        <div nz-typography nzType="secondary">Submit</div>
-        <div nz-typography><strong>#{{ details.submit_id }}</strong></div>
+<div class="flex flex-col gap-4">
+  @if (isLoading || !submitDetails || !submit) {
+    <nz-spin nzTip="Loading..."></nz-spin>
+  } @else {
+    <nz-card>
+      <div class="flex gap-4 justify-between items-center mb-4">
+        <div class="flex gap-5">
+          <div>
+            <div nz-typography nzType="secondary">Submit</div>
+            <div nz-typography><strong>#{{ submit.id }}</strong></div>
+          </div>
+
+          <div>
+            <div nz-typography nzType="secondary">Model</div>
+            <div nz-typography><strong>{{ submit.model }}</strong></div>
+          </div>
+
+          <div>
+            <div nz-typography nzType="secondary">Source path</div>
+            <div nz-typography><strong>{{ submit.source_path }}</strong></div>
+          </div>
+
+          <div>
+            <div nz-typography nzType="secondary">Prompt path</div>
+            <div nz-typography><strong>{{ submit.prompt_path }}</strong></div>
+          </div>
+
+          <div>
+            <div nz-typography nzType="secondary">Submit date</div>
+            <div nz-typography><strong>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</strong></div>
+          </div>
+        </div>
+
+        <div>
+          <a nz-button nzType="primary">Next submit</a>
+        </div>
       </div>
 
-      <div class="summary" *ngIf="details.summary?.explanation">
+      <div class="summary">
         <div nz-typography nzType="secondary">Summary</div>
-        <div nz-typography>{{ details.summary.explanation }}</div>
+        @if (submitDetails.summary.highlightedExplanation) {
+          <span class="issue-text" [innerHTML]="submitDetails.summary.highlightedExplanation"></span>
+        } @else {
+          <span>{{ submitDetails.summary.explanation }}</span>
+        }
       </div>
-    </div>
+    </nz-card>
 
-    <nz-layout class="detail-layout">
-      <nz-sider nzWidth="320" class="sider">
-        <ul nz-menu nzMode="inline" nzSelectable>
-          <li
-            nz-menu-item
-            *ngFor="let fileName of fileNames"
-            [nzSelected]="fileName === selectedFileName"
-            (click)="selectFile(fileName)">
-            <span>{{ fileName }}</span>
-            <nz-badge class="badge" [nzCount]="remainingIssuesByFile[fileName] ?? 0"></nz-badge>
-          </li>
-        </ul>
-      </nz-sider>
+    <nz-spin [nzSpinning]="isLoading">
+      <div class="grid grid-cols-5 gap-4">
+        <div class="col-span-1">
+          <nz-sider>
+            <ul nz-menu nzMode="inline" nzSelectable>
+              @for (fileName of fileNames; track fileNames) {
+                <li
+                  nz-menu-item
+                  [nzSelected]="fileName === selectedFileName"
+                  (click)="selectFile(fileName)"
+                >
+                  <div class="flex justify-between items-center w-full">
+                    <span>{{ fileName }}</span>
+                    <nz-badge nzStandalone [nzCount]="remainingIssuesByFile[fileName] ?? 0"></nz-badge>
+                  </div>
+                </li>
+              }
+            </ul>
+          </nz-sider>
+        </div>
 
-      <nz-content class="content">
-        <app-file-viewer
-          *ngIf="selectedFileName && submitDto"
-          [fileName]="selectedFileName"
-          [fileContent]="submitDto.files[selectedFileName] || ''"
-          [issues]="issuesBySelectedFile"
-          (rate)="handleRate($event.issue, $event.rating)">
-        </app-file-viewer>
-      </nz-content>
-    </nz-layout>
-  </div>
-</nz-spin>
+        <div class="col-span-4">
+          <nz-card>
+            @if (selectedFileName && submit) {
+              <app-file-viewer
+                [fileName]="selectedFileName"
+                [fileContent]="submit.files[selectedFileName] || ''"
+                [issues]="issuesBySelectedFile"
+                (rate)="handleRate($event.issue, $event.rating)">
+              </app-file-viewer>
+            } @else {
+              <div nz-typography>Select a file to view its content and issues.</div>
+            }
+          </nz-card>
+        </div>
+      </div>
+    </nz-spin>
+  }
+</div>
