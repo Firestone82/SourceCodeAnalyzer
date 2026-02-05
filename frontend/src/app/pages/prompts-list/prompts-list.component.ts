@@ -1,6 +1,6 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
-import {catchError, finalize, of} from 'rxjs';
+import {catchError, finalize, of, Subject, takeUntil} from 'rxjs';
 
 import {FormsModule} from '@angular/forms';
 import {DomSanitizer, type SafeHtml} from '@angular/platform-browser';
@@ -11,12 +11,14 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
+import {NzMessageService} from 'ng-zorro-antd/message';
 
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 import {PromptReviewModalComponent} from '../../components/prompt-review-modal/prompt-review-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
+import {AuthService} from '../../service/auth/auth.service';
 
 @Component({
   selector: 'app-prompts-list',
@@ -35,7 +37,7 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
   ],
   templateUrl: './prompts-list.component.html',
 })
-export class PromptsListComponent implements OnInit {
+export class PromptsListComponent implements OnInit, OnDestroy {
   public promptPaths: string[] = [];
   public isLoading: boolean = false;
   public isPromptLoading: boolean = false;
@@ -52,18 +54,32 @@ export class PromptsListComponent implements OnInit {
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
+  public isAdmin: boolean = false;
+  private readonly destroy$ = new Subject<void>();
 
   public constructor(
     private readonly promptsApiService: PromptsApiService,
     private readonly activatedRoute: ActivatedRoute,
     private readonly router: Router,
     private readonly syntaxHighlighterService: SyntaxHighlighterService,
-    private readonly domSanitizer: DomSanitizer
+    private readonly domSanitizer: DomSanitizer,
+    private readonly authService: AuthService,
+    private readonly nzMessageService: NzMessageService
   ) {
   }
 
   public ngOnInit(): void {
     this.loadPrompts();
+    this.authService.rater$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((rater) => {
+        this.isAdmin = Boolean(rater?.admin);
+      });
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   public get pagedPromptPaths(): string[] {
@@ -73,6 +89,7 @@ export class PromptsListComponent implements OnInit {
 
   private loadPrompts(): void {
     this.isLoading = true;
+    this.errorMessage = null;
 
     this.promptsApiService
       .getPromptPaths()
@@ -174,6 +191,11 @@ export class PromptsListComponent implements OnInit {
 
   public openReviewModal(): void {
     if (!this.selectedPromptPath) {
+      this.errorMessage = 'Select a prompt before starting a review.';
+      return;
+    }
+    if (!this.isAdmin) {
+      this.nzMessageService.error('Only admins can start reviews.');
       return;
     }
 

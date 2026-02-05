@@ -17,6 +17,7 @@ import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {AnalyzeSourceResponseDto} from '../../service/api/api.models';
 import {AuthService} from '../../service/auth/auth.service';
+import {NzMessageService} from 'ng-zorro-antd/message';
 
 @Component({
   selector: 'app-submits-list',
@@ -64,7 +65,8 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     private readonly submitsApiService: SubmitsApiService,
     private readonly jobsApiService: JobsApiService,
     private readonly router: Router,
-    private readonly authService: AuthService
+    private readonly authService: AuthService,
+    private readonly nzMessageService: NzMessageService
   ) {
   }
 
@@ -101,7 +103,19 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   }
 
   public openUploadModal(): void {
+    if (!this.isAdmin) {
+      this.nzMessageService.error('Only admins can upload submits.');
+      return;
+    }
     this.isUploadModalVisible = true;
+  }
+
+  public handleRateClick(event: Event, submit: SubmitListItemDto): void {
+    if (!this.isAdmin && !submit.published) {
+      event.preventDefault();
+      event.stopPropagation();
+      this.nzMessageService.error('Only admins can review unpublished submits.');
+    }
   }
 
   private startUploadPolling(): void {
@@ -169,6 +183,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
 
   private loadSubmits(): void {
     this.isLoading = true;
+    this.errorMessage = null;
 
     this.submitsApiService
       .getSubmits(

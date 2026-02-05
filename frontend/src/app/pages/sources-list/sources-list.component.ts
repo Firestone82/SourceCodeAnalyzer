@@ -1,6 +1,6 @@
-import {Component, OnInit} from '@angular/core';
+import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
-import {catchError, finalize, of} from 'rxjs';
+import {catchError, finalize, of, Subject, takeUntil} from 'rxjs';
 
 import {FormsModule} from '@angular/forms';
 import {NzButtonModule} from 'ng-zorro-antd/button';
@@ -11,12 +11,14 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
+import {NzMessageService} from 'ng-zorro-antd/message';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
+import {AuthService} from '../../service/auth/auth.service';
 
 @Component({
   selector: 'app-sources-list',
@@ -37,7 +39,7 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
   ],
   templateUrl: './sources-list.component.html',
 })
-export class SourcesListComponent implements OnInit {
+export class SourcesListComponent implements OnInit, OnDestroy {
   public sourcePaths: string[] = [];
   public isLoading: boolean = false;
   public isSourceLoading: boolean = false;
@@ -53,16 +55,30 @@ export class SourcesListComponent implements OnInit {
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
+  public isAdmin: boolean = false;
+  private readonly destroy$ = new Subject<void>();
 
   public constructor(
     private readonly sourcesApiService: SourcesApiService,
     private readonly activatedRoute: ActivatedRoute,
     private readonly router: Router,
+    private readonly authService: AuthService,
+    private readonly nzMessageService: NzMessageService,
   ) {
   }
 
   public ngOnInit(): void {
     this.loadSources();
+    this.authService.rater$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((rater) => {
+        this.isAdmin = Boolean(rater?.admin);
+      });
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
   }
 
   public get selectedFileContent(): string {
@@ -79,6 +95,7 @@ export class SourcesListComponent implements OnInit {
 
   private loadSources(): void {
     this.isLoading = true;
+    this.errorMessage = null;
 
     this.sourcesApiService
       .getSourcePaths()
@@ -112,6 +129,11 @@ export class SourcesListComponent implements OnInit {
 
   public openReviewModal(): void {
     if (!this.selectedSourcePath) {
+      this.errorMessage = 'Select a source before starting a review.';
+      return;
+    }
+    if (!this.isAdmin) {
+      this.nzMessageService.error('Only admins can start reviews.');
       return;
     }
     this.isReviewModalVisible = true;

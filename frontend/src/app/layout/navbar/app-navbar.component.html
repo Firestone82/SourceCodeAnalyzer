@@ -20,18 +20,27 @@
           Sources
         </a>
       </li>
-      <li nz-menu-item>
-        <a routerLink="/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-          Jobs
-        </a>
-      </li>
+      @if (authService.rater$ | async; as rater) {
+        @if (rater.admin) {
+          <li nz-menu-item>
+            <a routerLink="/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+              Jobs
+            </a>
+          </li>
+        }
+      }
     </ul>
   </div>
 
   @if (authService.rater$ | async; as rater) {
     <div class="app-rater">
       <span class="app-rater-label">Logged in as</span>
-      <span class="app-rater-name">{{ rater.name }}</span>
+      <span class="app-rater-name">
+        {{ rater.name }}
+        @if (rater.admin) {
+          <span class="ml-2 text-xs font-semibold uppercase text-red-500">(Admin)</span>
+        }
+      </span>
       <button
         nz-button
         nzType="default"
