@@ -47,8 +47,16 @@
           </div>
         </div>
 
-        <div>
-          <a nz-button nzType="primary">Next submit</a>
+        <div class="flex gap-2">
+          <button nz-button (click)="openReviewModal()">Reevaluate submit</button>
+          <a
+            nz-button
+            nzType="primary"
+            [routerLink]="['/submits', nextSubmitId]"
+            [disabled]="!nextSubmitId"
+          >
+            Next submit
+          </a>
         </div>
       </div>
 
@@ -101,3 +109,26 @@
     </nz-spin>
   }
 </div>
+
+<app-source-review-modal
+  [(isVisible)]="isReviewModalVisible"
+  [selectedSourcePath]="submit?.source_path ?? null"
+  [reviewModel]="reviewModel"
+  (reviewModelChange)="handleReviewModelChange($event)"
+  [promptPaths]="promptPaths"
+  [selectedPromptPath]="selectedPromptPath"
+  (promptSelectionChange)="handlePromptSelection($event)"
+  [promptDraft]="promptDraft"
+  (promptDraftChange)="handlePromptDraftChange($event)"
+  [promptErrorMessage]="promptErrorMessage"
+  [reviewSubmitError]="reviewSubmitError"
+  [isPromptOptionsLoading]="isPromptOptionsLoading"
+  [isSubmittingReview]="isSubmittingReview"
+  [canSubmitReview]="canSubmitReview"
+  (submitReview)="submitReview()"
+></app-source-review-modal>
+
+<app-job-created-modal
+  [(isVisible)]="isJobModalVisible"
+  [jobIds]="jobModalIds"
+></app-job-created-modal>
