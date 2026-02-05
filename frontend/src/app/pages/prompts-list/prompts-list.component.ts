@@ -1,26 +1,36 @@
 import {Component, OnInit} from '@angular/core';
-import {RouterLink} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {catchError, finalize, of} from 'rxjs';
 
 import {NzCardComponent} from 'ng-zorro-antd/card';
-import {NzTableModule} from 'ng-zorro-antd/table';
+import {NzLayoutModule} from 'ng-zorro-antd/layout';
+import {NzMenuModule} from 'ng-zorro-antd/menu';
+import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 
 import {PromptsApiService} from '../../service/api/prompts-api.service';
-import {PromptNamesResponseDto} from '../../service/api/prompts-api.models';
+import {PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/prompts-api.models';
 
 @Component({
   selector: 'app-prompts-list',
   standalone: true,
-  imports: [NzCardComponent, NzTableModule, NzTypographyModule, RouterLink],
+  imports: [NzCardComponent, NzLayoutModule, NzMenuModule, NzSpinModule, NzTypographyModule],
   templateUrl: './prompts-list.component.html',
 })
 export class PromptsListComponent implements OnInit {
   public promptPaths: string[] = [];
   public isLoading: boolean = false;
+  public isPromptLoading: boolean = false;
   public errorMessage: string | null = null;
+  public promptErrorMessage: string | null = null;
+  public selectedPromptPath: string | null = null;
+  public content: string = '';
 
-  public constructor(private readonly promptsApiService: PromptsApiService) {
+  public constructor(
+    private readonly promptsApiService: PromptsApiService,
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly router: Router
+  ) {
   }
 
   public ngOnInit(): void {
@@ -43,6 +53,44 @@ export class PromptsListComponent implements OnInit {
       )
       .subscribe((response: PromptNamesResponseDto) => {
         this.promptPaths = response.prompt_paths;
+        const requestedPrompt: string | null = this.activatedRoute.snapshot.queryParamMap.get('prompt');
+        const shouldSelectPrompt: string | null =
+          (requestedPrompt && this.promptPaths.includes(requestedPrompt)) ? requestedPrompt : null;
+        if (shouldSelectPrompt) {
+          this.selectPrompt(shouldSelectPrompt);
+        } else if (this.promptPaths.length > 0) {
+          this.selectPrompt(this.promptPaths[0]);
+        }
+      });
+  }
+
+  public selectPrompt(promptPath: string): void {
+    if (this.selectedPromptPath === promptPath) {
+      return;
+    }
+
+    this.selectedPromptPath = promptPath;
+    this.content = '';
+    this.promptErrorMessage = null;
+    this.isPromptLoading = true;
+    void this.router.navigate([], {
+      queryParams: {prompt: promptPath},
+      queryParamsHandling: 'merge'
+    });
+
+    this.promptsApiService
+      .getPromptContent(promptPath)
+      .pipe(
+        catchError(() => {
+          this.promptErrorMessage = 'Failed to load prompt content.';
+          return of<PromptContentResponseDto>({prompt_path: promptPath, content: ''});
+        }),
+        finalize(() => {
+          this.isPromptLoading = false;
+        })
+      )
+      .subscribe((response: PromptContentResponseDto) => {
+        this.content = response.content;
       });
   }
 }

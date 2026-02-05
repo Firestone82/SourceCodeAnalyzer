@@ -14,13 +14,14 @@
   <nz-table
     [nzData]="submits"
     [nzLoading]="isLoading"
-    nzSize="middle"
+    nzSize="small"
     nzBordered
     [nzFrontPagination]="false"
     [nzTotal]="totalSubmits"
     [nzPageSize]="pageSize"
     [nzPageIndex]="pageIndex"
     [nzShowSizeChanger]="true"
+    [nzScroll]="{ y: '480px' }"
     [nzPageSizeOptions]="[10, 20, 50]"
     (nzPageIndexChange)="onPageIndexChange($event)"
     (nzPageSizeChange)="onPageSizeChange($event)"
@@ -43,12 +44,20 @@
           <td>{{ submit.id }}</td>
           <td>{{ submit.model }}</td>
           <td>
-            <a [routerLink]="['/prompts', submit.prompt_path]" class="text-blue-600 hover:text-blue-500">
+            <a
+              [routerLink]="['/prompts']"
+              [queryParams]="{prompt: submit.prompt_path}"
+              class="text-blue-600 hover:text-blue-500"
+            >
               {{ submit.prompt_path }}
             </a>
           </td>
           <td>
-            <a [routerLink]="['/sources', submit.source_path]" class="text-blue-600 hover:text-blue-500">
+            <a
+              [routerLink]="['/sources']"
+              [queryParams]="{source: submit.source_path}"
+              class="text-blue-600 hover:text-blue-500"
+            >
               {{ submit.source_path }}
             </a>
           </td>

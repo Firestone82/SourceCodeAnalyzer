@@ -1,37 +1,51 @@
-<nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
-  <div class="mb-4 flex items-center justify-between">
-    <div>
-      <div nz-typography nzType="secondary">Prompts</div>
-      <div nz-typography>Browse available prompt templates.</div>
+<div class="flex flex-col gap-4">
+  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+    <div class="flex items-center justify-between">
+      <div>
+        <div nz-typography nzType="secondary">Prompts</div>
+        <div nz-typography>Browse available prompt templates.</div>
+      </div>
     </div>
-  </div>
 
-  @if (errorMessage) {
-    <div nz-typography nzType="danger" class="mb-3">{{ errorMessage }}</div>
-  }
+    @if (errorMessage) {
+      <div nz-typography nzType="danger" class="mt-3">{{ errorMessage }}</div>
+    }
+  </nz-card>
 
-  <nz-table
-    [nzData]="promptPaths"
-    [nzLoading]="isLoading"
-    nzSize="middle"
-    nzBordered
-    [nzFrontPagination]="false"
-  >
-    <thead>
-    <tr>
-      <th>Prompt path</th>
-    </tr>
-    </thead>
-    <tbody>
-      @for (promptPath of promptPaths; track promptPath) {
-        <tr>
-          <td>
-            <a [routerLink]="['/prompts', promptPath]" class="text-blue-600 hover:text-blue-500">
-              {{ promptPath }}
-            </a>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </nz-table>
-</nz-card>
+  <nz-spin [nzSpinning]="isLoading" nzTip="Loading...">
+    <div class="grid grid-cols-5 gap-4">
+      <div class="col-span-1">
+        <nz-sider>
+          <ul nz-menu nzMode="inline" nzSelectable>
+            @for (promptPath of promptPaths; track promptPath) {
+              <li
+                nz-menu-item
+                [nzSelected]="promptPath === selectedPromptPath"
+                (click)="selectPrompt(promptPath)"
+              >
+                <span>{{ promptPath }}</span>
+              </li>
+            }
+          </ul>
+        </nz-sider>
+      </div>
+
+      <div class="col-span-4">
+        <nz-card>
+          @if (!selectedPromptPath) {
+            <div nz-typography>Select a prompt to view its content.</div>
+          } @else {
+            <nz-spin [nzSpinning]="isPromptLoading" nzTip="Loading prompt...">
+              @if (promptErrorMessage) {
+                <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
+              } @else {
+                <pre
+                  class="whitespace-pre-wrap break-words bg-slate-50 border border-slate-200 rounded-md p-4 text-sm">{{ content }}</pre>
+              }
+            </nz-spin>
+          }
+        </nz-card>
+      </div>
+    </div>
+  </nz-spin>
+</div>

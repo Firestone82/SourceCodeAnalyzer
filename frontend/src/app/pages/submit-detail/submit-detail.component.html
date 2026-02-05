@@ -16,22 +16,30 @@
           </div>
 
           <div>
-            <div nz-typography nzType="secondary">Source path</div>
-            <div nz-typography>
-              <a [routerLink]="['/sources', submit.source_path]" class="text-blue-600 hover:text-blue-500">
+              <div nz-typography nzType="secondary">Source path</div>
+              <div nz-typography>
+              <a
+                [routerLink]="['/sources']"
+                [queryParams]="{source: submit.source_path}"
+                class="text-blue-600 hover:text-blue-500"
+              >
                 <strong>{{ submit.source_path }}</strong>
               </a>
+              </div>
             </div>
-          </div>
 
           <div>
-            <div nz-typography nzType="secondary">Prompt path</div>
-            <div nz-typography>
-              <a [routerLink]="['/prompts', submit.prompt_path]" class="text-blue-600 hover:text-blue-500">
+              <div nz-typography nzType="secondary">Prompt path</div>
+              <div nz-typography>
+              <a
+                [routerLink]="['/prompts']"
+                [queryParams]="{prompt: submit.prompt_path}"
+                class="text-blue-600 hover:text-blue-500"
+              >
                 <strong>{{ submit.prompt_path }}</strong>
               </a>
+              </div>
             </div>
-          </div>
 
           <div>
             <div nz-typography nzType="secondary">Submit date</div>

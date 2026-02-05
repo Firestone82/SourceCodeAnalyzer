@@ -33,9 +33,9 @@ export class SubmitsListComponent implements OnInit {
   isLoading: boolean = false;
   errorMessage: string | null = null;
   pageIndex: number = 1;
-  pageSize: number = 10;
+  pageSize: number = 20;
   totalSubmits: number = 0;
-  onlyUnrated: boolean = false;
+  onlyUnrated: boolean = true;
   modelFilter: string = '';
 
   public constructor(private readonly submitsApiService: SubmitsApiService) {
