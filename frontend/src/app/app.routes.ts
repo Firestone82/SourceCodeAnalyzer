@@ -4,11 +4,14 @@ import {SubmitDetailComponent} from './pages/submit-detail/submit-detail.compone
 import {AppLayout} from './layout/main/app-layout.component';
 import {PromptsListComponent} from './pages/prompts-list/prompts-list.component';
 import {SourcesListComponent} from './pages/sources-list/sources-list.component';
+import {LoginComponent} from './pages/login/login.component';
+import {AuthGuard} from './service/auth/auth.guard';
 
 export const routes: Routes = [
   {
     path: '',
     component: AppLayout,
+    canActivateChild: [AuthGuard],
     children: [
       {
         path: 'submits',
@@ -27,6 +30,10 @@ export const routes: Routes = [
         component: SourcesListComponent
       },
     ]
+  },
+  {
+    path: 'login',
+    component: LoginComponent
   },
   {
     path: '**',

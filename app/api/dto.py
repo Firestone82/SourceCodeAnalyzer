@@ -18,6 +18,16 @@ class IssueRatingRequest(BaseModel):
     rating: int
 
 
+class LoginRequest(BaseModel):
+    key: str = Field(min_length=1)
+
+
+class RaterResponse(BaseModel):
+    id: int
+    name: str
+    admin: bool
+
+
 class PromptNamesResponse(BaseModel):
     prompt_paths: list[str]
 

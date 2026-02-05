@@ -1,8 +1,8 @@
 import {Injectable} from '@angular/core';
 import {map, Observable} from 'rxjs';
-import {ApiClientService} from './api-client.service';
-import {SubmitDetailsDto, SubmitDto, SubmitListResponseDto} from './submits-api.models';
-import {SyntaxHighlighterService} from '../syntax-highlighting.service';
+import {ApiClientService} from '../api-client.service';
+import {AnalyzeSourceResponseDto, SubmitDetailsDto, SubmitDto, SubmitListResponseDto} from '../api.models';
+import {SyntaxHighlighterService} from '../../syntax-highlighting.service';
 import {DomSanitizer} from '@angular/platform-browser';
 
 @Injectable({providedIn: 'root'})
@@ -41,17 +41,17 @@ export class SubmitsApiService {
         map((submitDetails: SubmitDetailsDto) => {
           for (const issue of submitDetails.issues) {
             this.syntaxHighlightService
-              .markdownToHtml(issue.explanation, 'github-light')
+              .markdownToHtml(issue.explanation)
               .then((highlightedExplanation: string) => {
                 issue.highlightedExplanation = this.domSanitizer.bypassSecurityTrustHtml(highlightedExplanation);
               });
           }
 
           this.syntaxHighlightService
-              .markdownToHtml(submitDetails.summary.explanation, 'github-light')
-              .then((highlightedExplanation: string) => {
-                submitDetails.summary.highlightedExplanation = this.domSanitizer.bypassSecurityTrustHtml(highlightedExplanation);
-              });
+            .markdownToHtml(submitDetails.summary.explanation)
+            .then((highlightedExplanation: string) => {
+              submitDetails.summary.highlightedExplanation = this.domSanitizer.bypassSecurityTrustHtml(highlightedExplanation);
+            });
 
           return submitDetails;
         })
@@ -63,5 +63,9 @@ export class SubmitsApiService {
       `/ratings/issues/${issueId}`,
       {rating}
     );
+  }
+
+  public uploadSubmit(formData: FormData): Observable<AnalyzeSourceResponseDto> {
+    return this.apiClientService.postFormData<AnalyzeSourceResponseDto>('/submits/upload', formData);
   }
 }

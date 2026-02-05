@@ -2,6 +2,56 @@ import {SafeHtml} from '@angular/platform-browser';
 
 export type IssueSeverity = 'low' | 'medium' | 'high';
 
+export interface LoginRequestDto {
+  key: string;
+}
+
+export interface RaterDto {
+  id: number;
+  name: string;
+  admin: boolean;
+}
+
+export interface PromptNamesResponseDto {
+  prompt_paths: string[];
+}
+
+export interface PromptContentResponseDto {
+  prompt_path: string;
+  content: string;
+}
+
+export interface PromptUploadRequestDto {
+  prompt_path: string;
+  content: string;
+}
+
+export interface PromptUploadResponseDto {
+  prompt_path: string;
+}
+
+export interface SourcePathsResponseDto {
+  source_paths: string[];
+}
+
+export interface SourceFilesResponseDto {
+  source_path: string;
+  files: Record<string, string>;
+}
+
+export interface AnalyzeSourceRequestDto {
+  model: string;
+  prompt_path: string;
+}
+
+export interface AnalyzeSourceResponseDto {
+  ok: boolean;
+  job_id: string;
+  source_path: string;
+  model: string;
+  prompt_path: string;
+}
+
 export interface SubmitListItemDto {
   id: number;
   model: string;
@@ -52,5 +102,5 @@ export interface IssueDto {
 }
 
 export interface RateIssueRequestDto {
-  rating: number; // 0..10
+  rating: number;
 }

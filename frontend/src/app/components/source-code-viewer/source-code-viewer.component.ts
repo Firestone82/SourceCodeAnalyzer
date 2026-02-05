@@ -6,7 +6,7 @@ import {NzRateModule} from 'ng-zorro-antd/rate';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 
-import {IssueDto} from '../../service/api/submits-api.models';
+import {IssueDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 
@@ -93,7 +93,7 @@ export class SourceCodeViewerComponent implements OnChanges {
     // Apply late syntax highlighting
     for (const line of lines) {
       this.syntaxHighlightService
-        .codeToHtml(line.text, 'c', 'github-light')
+        .codeToHtml(line.text, 'c')
         .then((highlighted: string) => {
           line.highlightedHtml = this.domSanitizer.bypassSecurityTrustHtml(highlighted);
         });

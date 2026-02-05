@@ -7,15 +7,16 @@ export class SyntaxHighlighterService {
 
   private highlighterPromise: Promise<Highlighter> | null = null;
   private markdownParser: MarkdownIt | null = null;
+  private defaultTheme: BundledTheme = 'github-light';
 
-  public getHighlighter(): Promise<Highlighter> {
+  public async getSourceHighlighter(): Promise<Highlighter> {
     if (this.highlighterPromise !== null) {
       return this.highlighterPromise;
     }
 
     this.highlighterPromise = createHighlighter({
       themes: ['github-dark', 'github-light'] satisfies BundledTheme[],
-      langs: ['c', 'cpp'] satisfies BundledLanguage[]
+      langs: ['c', 'cpp', 'rs', 'java'] satisfies BundledLanguage[]
     });
 
     return this.highlighterPromise;
@@ -26,7 +27,7 @@ export class SyntaxHighlighterService {
       return this.markdownParser;
     }
 
-    const highlighterInstance: Highlighter = await this.getHighlighter();
+    const highlighterInstance: Highlighter = await this.getSourceHighlighter();
 
     const markdownParserInstance: MarkdownIt = new MarkdownIt({
       html: true,
@@ -50,9 +51,9 @@ export class SyntaxHighlighterService {
   public async codeToHtml(
     code: string,
     language: BundledLanguage,
-    theme: BundledTheme
+    theme: BundledTheme = this.defaultTheme
   ): Promise<string> {
-    const highlighterInstance: Highlighter = await this.getHighlighter();
+    const highlighterInstance: Highlighter = await this.getSourceHighlighter();
 
     return highlighterInstance.codeToHtml(code, {
       lang: language,
@@ -62,7 +63,7 @@ export class SyntaxHighlighterService {
 
   public async markdownToHtml(
     markdown: string,
-    theme: BundledTheme
+    theme: BundledTheme = this.defaultTheme
   ): Promise<string> {
     const markdownParserInstance: MarkdownIt = await this.getMarkdownParser(theme);
     return markdownParserInstance.render(markdown);

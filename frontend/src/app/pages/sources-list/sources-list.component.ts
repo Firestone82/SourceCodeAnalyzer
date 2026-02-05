@@ -13,16 +13,16 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
 
-import {SourcesApiService} from '../../service/api/sources-api.service';
-import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/sources-api.models';
+import {SourcesApiService} from '../../service/api/types/sources-api.service';
+import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
-import {PromptsApiService} from '../../service/api/prompts-api.service';
+import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {
   PromptContentResponseDto,
   PromptNamesResponseDto,
   PromptUploadResponseDto
-} from '../../service/api/prompts-api.models';
+} from '../../service/api/api.models';
 
 @Component({
   selector: 'app-sources-list',

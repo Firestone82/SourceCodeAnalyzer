@@ -1,0 +1,85 @@
+<nz-modal
+  [nzVisible]="isVisible"
+  nzTitle="Upload submit"
+  nzWidth="700px"
+  [nzOkDisabled]="!canSubmit"
+  [nzOkLoading]="isSubmitting"
+  (nzOnCancel)="closeModal()"
+  (nzOnOk)="handleSubmit()"
+>
+  <ng-container *nzModalContent>
+    <div class="flex flex-col gap-4">
+      <div>
+        <label class="mb-1 block text-sm font-medium">Model</label>
+        <input
+          nz-input
+          placeholder="Model name"
+          [ngModel]="uploadModel"
+          (ngModelChange)="handleModelChange($event)"
+          [nzAutocomplete]="modelAuto"
+        />
+        <nz-autocomplete #modelAuto>
+          @for (model of filteredModelOptions; track model) {
+            <nz-auto-option [nzValue]="model">{{ model }}</nz-auto-option>
+          }
+        </nz-autocomplete>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Source bundle (.zip)</label>
+        <input type="file" accept=".zip" (change)="handleSourceFileInput($event)"/>
+        @if (sourceFileName) {
+          <div class="mt-1 text-xs text-slate-500">{{ sourceFileName }}</div>
+        }
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Source name (optional)</label>
+        <input
+          nz-input
+          placeholder="Friendly source name"
+          [ngModel]="sourceName"
+          (ngModelChange)="handleSourceNameChange($event)"
+        />
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Prompt template</label>
+        <nz-select
+          class="w-full"
+          [nzLoading]="isPromptOptionsLoading"
+          [ngModel]="selectedPromptPath"
+          (ngModelChange)="handlePromptSelection($event)"
+          nzAllowClear
+          nzPlaceHolder="Select an existing prompt"
+        >
+          @for (promptPath of promptPaths; track promptPath) {
+            <nz-option [nzLabel]="promptPath" [nzValue]="promptPath"></nz-option>
+          }
+        </nz-select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Or upload a new prompt</label>
+        <input type="file" accept=".txt" (change)="handlePromptFileInput($event)"/>
+        @if (promptFileName) {
+          <div class="mt-1 text-xs text-slate-500">{{ promptFileName }}</div>
+        }
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Prompt name (optional)</label>
+        <input
+          nz-input
+          placeholder="Prompt name for upload"
+          [ngModel]="promptName"
+          (ngModelChange)="handlePromptNameChange($event)"
+        />
+      </div>
+
+      @if (uploadErrorMessage) {
+        <div nz-typography nzType="danger">{{ uploadErrorMessage }}</div>
+      }
+    </div>
+  </ng-container>
+</nz-modal>

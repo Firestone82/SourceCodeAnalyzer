@@ -10,8 +10,8 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 
-import {SourcesApiService} from '../../service/api/sources-api.service';
-import {SourceFilesResponseDto} from '../../service/api/sources-api.models';
+import {SourcesApiService} from '../../service/api/types/sources-api.service';
+import {SourceFilesResponseDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 
 @Component({

@@ -1,0 +1,29 @@
+<div class="min-h-[calc(100vh-64px)] flex items-center justify-center p-6">
+  <nz-card class="w-full max-w-md">
+    <div class="flex flex-col gap-4">
+      <div>
+        <div nz-typography nzType="secondary">Rater access</div>
+        <div nz-typography>Enter your API key to continue.</div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <label nz-typography>API key</label>
+        <input
+          nz-input
+          type="password"
+          placeholder="Enter API key"
+          [(ngModel)]="apiKey"
+          (keyup.enter)="submit()"
+        />
+      </div>
+
+      @if (errorMessage) {
+        <div nz-typography nzType="danger">{{ errorMessage }}</div>
+      }
+
+      <button nz-button nzType="primary" [disabled]="isSubmitting" (click)="submit()">
+        {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
+      </button>
+    </div>
+  </nz-card>
+</div>

@@ -14,10 +14,10 @@ import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzTreeNodeOptions, NzTreeNodeKey} from 'ng-zorro-antd/core/tree';
 
-import {PromptsApiService} from '../../service/api/prompts-api.service';
-import {PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/prompts-api.models';
-import {SourcesApiService} from '../../service/api/sources-api.service';
-import {SourcePathsResponseDto} from '../../service/api/sources-api.models';
+import {PromptsApiService} from '../../service/api/types/prompts-api.service';
+import {PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
+import {SourcesApiService} from '../../service/api/types/sources-api.service';
+import {SourcePathsResponseDto} from '../../service/api/api.models';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 import {PromptReviewModalComponent} from '../../components/prompt-review-modal/prompt-review-modal.component';
 
@@ -170,7 +170,7 @@ export class PromptsListComponent implements OnInit {
 
     this.isMarkdownRendering = true;
     this.syntaxHighlighterService
-      .markdownToHtml(this.content, 'github-light')
+      .markdownToHtml(this.content)
       .then((html: string) => {
         this.renderedContent = this.domSanitizer.bypassSecurityTrustHtml(html);
       })

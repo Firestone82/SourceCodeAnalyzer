@@ -1,17 +1,26 @@
-<ul nz-menu nzMode="horizontal" class="app-nav">
-  <li nz-menu-item>
-    <a routerLink="/submits" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-      Submits
-    </a>
-  </li>
-  <li nz-menu-item>
-    <a routerLink="/prompts" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-      Prompts
-    </a>
-  </li>
-  <li nz-menu-item>
-    <a routerLink="/sources" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
-      Sources
-    </a>
-  </li>
-</ul>
+<div class="app-nav-container">
+  <ul nz-menu nzMode="horizontal" class="app-nav">
+    <li nz-menu-item>
+      <a routerLink="/submits" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        Submits
+      </a>
+    </li>
+    <li nz-menu-item>
+      <a routerLink="/prompts" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        Prompts
+      </a>
+    </li>
+    <li nz-menu-item>
+      <a routerLink="/sources" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        Sources
+      </a>
+    </li>
+  </ul>
+
+  @if (authService.rater$ | async; as rater) {
+    <div class="app-rater">
+      <span class="app-rater-label">Logged in as</span>
+      <span class="app-rater-name">{{ rater.name }}</span>
+    </div>
+  }
+</div>

@@ -1,13 +1,13 @@
 import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 
-import {ApiClientService} from './api-client.service';
+import {ApiClientService} from '../api-client.service';
 import {
   PromptContentResponseDto,
   PromptNamesResponseDto,
   PromptUploadRequestDto,
   PromptUploadResponseDto
-} from './prompts-api.models';
+} from '../api.models';
 
 @Injectable({providedIn: 'root'})
 export class PromptsApiService {

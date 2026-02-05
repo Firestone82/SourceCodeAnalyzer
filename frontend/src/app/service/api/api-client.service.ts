@@ -2,6 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient, HttpHeaders, HttpParams} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {environment} from '../../../environments/environment';
+import {AuthService} from '../auth/auth.service';
 
 export interface ApiRequestOptions {
   queryParams?: Record<string, string | number | boolean | null | undefined>;
@@ -11,9 +12,11 @@ export interface ApiRequestOptions {
 @Injectable({providedIn: 'root'})
 export class ApiClientService {
   private readonly apiBaseUrl: string = environment.apiBaseUrl;
-  private readonly apiKey: string = environment.apiKey;
 
-  public constructor(private readonly httpClient: HttpClient) {
+  public constructor(
+    private readonly httpClient: HttpClient,
+    private readonly authService: AuthService
+  ) {
   }
 
   public get<ResponseBody>(path: string, options?: ApiRequestOptions): Observable<ResponseBody> {
@@ -30,7 +33,18 @@ export class ApiClientService {
   ): Observable<ResponseBody> {
     return this.httpClient.post<ResponseBody>(this.buildUrl(path), body, {
       params: this.buildParams(options?.queryParams),
-      headers: this.buildHeaders(options?.headers)
+      headers: this.buildHeaders(options?.headers, true)
+    });
+  }
+
+  public postFormData<ResponseBody>(
+    path: string,
+    body: FormData,
+    options?: ApiRequestOptions
+  ): Observable<ResponseBody> {
+    return this.httpClient.post<ResponseBody>(this.buildUrl(path), body, {
+      params: this.buildParams(options?.queryParams),
+      headers: this.buildHeaders(options?.headers, false)
     });
   }
 
@@ -41,14 +55,14 @@ export class ApiClientService {
   ): Observable<ResponseBody> {
     return this.httpClient.put<ResponseBody>(this.buildUrl(path), body, {
       params: this.buildParams(options?.queryParams),
-      headers: this.buildHeaders(options?.headers)
+      headers: this.buildHeaders(options?.headers, true)
     });
   }
 
   public delete<ResponseBody>(path: string, options?: ApiRequestOptions): Observable<ResponseBody> {
     return this.httpClient.delete<ResponseBody>(this.buildUrl(path), {
       params: this.buildParams(options?.queryParams),
-      headers: this.buildHeaders(options?.headers)
+      headers: this.buildHeaders(options?.headers, true)
     });
   }
 
@@ -61,36 +75,35 @@ export class ApiClientService {
   private buildParams(extraParams?: Record<string, string | number | boolean | null | undefined>): HttpParams {
     let httpParams: HttpParams = new HttpParams();
 
-    // Always include api_key (query param), if configured
-    if (this.apiKey && this.apiKey.trim().length > 0) {
-      httpParams = httpParams.set('api_key', this.apiKey);
-    }
-
-    if (!extraParams) {
-      return httpParams;
-    }
-
-    for (const [key, value] of Object.entries(extraParams)) {
-      if (value === null || value === undefined) {
-        continue;
+    if (extraParams) {
+      for (const [key, value] of Object.entries(extraParams)) {
+        if (value === null || value === undefined) {
+          continue;
+        }
+        httpParams = httpParams.set(key, String(value));
       }
-      httpParams = httpParams.set(key, String(value));
     }
 
     return httpParams;
   }
 
-  private buildHeaders(extraHeaders?: Record<string, string>): HttpHeaders {
-    let httpHeaders: HttpHeaders = new HttpHeaders({
-      'Content-Type': 'application/json'
-    });
+  private buildHeaders(extraHeaders?: Record<string, string>, includeJsonContentType: boolean = true): HttpHeaders {
+    let httpHeaders: HttpHeaders = new HttpHeaders();
 
-    if (!extraHeaders) {
-      return httpHeaders;
+    // Assign api_key header, if configured
+    const apiKey = this.authService.apiKey;
+    if (apiKey && apiKey.trim().length > 0) {
+      httpHeaders = httpHeaders.set('Authorization', `X-API-Key ${apiKey}`);
     }
 
-    for (const [key, value] of Object.entries(extraHeaders)) {
-      httpHeaders = httpHeaders.set(key, value);
+    if (includeJsonContentType) {
+      httpHeaders = httpHeaders.set('Content-Type', 'application/json');
+    }
+
+    if (extraHeaders) {
+      for (const [key, value] of Object.entries(extraHeaders)) {
+        httpHeaders = httpHeaders.set(key, value);
+      }
     }
 
     return httpHeaders;

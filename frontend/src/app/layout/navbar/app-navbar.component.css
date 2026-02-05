@@ -1,4 +1,16 @@
 
+:host {
+  flex: 1;
+}
+
+.app-nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 16px;
+}
+
 .app-nav {
   background: transparent;
   border-bottom: none;
@@ -12,4 +24,18 @@
 .app-nav a.active {
   color: #fff;
   font-weight: 600;
+}
+
+.app-rater {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, .85);
+  white-space: nowrap;
+}
+
+.app-rater-name {
+  font-weight: 600;
+  color: #fff;
 }

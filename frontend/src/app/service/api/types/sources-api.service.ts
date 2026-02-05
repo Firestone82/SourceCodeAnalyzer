@@ -1,8 +1,13 @@
 import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 
-import {ApiClientService} from './api-client.service';
-import {AnalyzeSourceRequestDto, AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from './sources-api.models';
+import {ApiClientService} from '../api-client.service';
+import {
+  AnalyzeSourceRequestDto,
+  AnalyzeSourceResponseDto,
+  SourceFilesResponseDto,
+  SourcePathsResponseDto
+} from '../api.models';
 
 @Injectable({providedIn: 'root'})
 export class SourcesApiService {

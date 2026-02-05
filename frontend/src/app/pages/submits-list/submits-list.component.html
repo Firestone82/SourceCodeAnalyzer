@@ -1,80 +1,122 @@
-<nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
-  <div class="mb-4 flex flex-wrap items-center gap-3">
-    <input
-      nz-input
-      placeholder="Filter by model"
-      [(ngModel)]="modelFilter"
-      (keyup.enter)="applyFilters()"
-      class="max-w-[240px]"
-    />
-    <label nz-checkbox [(ngModel)]="onlyUnrated" (ngModelChange)="applyFilters()">
-      Only not rated
-    </label>
-  </div>
-  <nz-table
-    class="submits-table"
-    [nzData]="submits"
-    [nzLoading]="isLoading"
-    nzSize="small"
-    nzBordered
-    [nzFrontPagination]="false"
-    [nzTotal]="totalSubmits"
-    [nzPageSize]="pageSize"
-    [nzPageIndex]="pageIndex"
-    [nzShowSizeChanger]="true"
-    [nzScroll]="{ y: '480px' }"
-    [nzPageSizeOptions]="[10, 20, 50]"
-    (nzPageIndexChange)="onPageIndexChange($event)"
-    (nzPageSizeChange)="onPageSizeChange($event)"
-  >
-    <thead>
-    <tr>
-      <th>Id</th>
-      <th>Model</th>
-      <th>Prompt path</th>
-      <th>Source path</th>
-      <th>Submit date</th>
-      <th>Rated</th>
-      <th>Total issues</th>
-      <th></th>
-    </tr>
-    </thead>
+<div class="flex flex-col gap-4">
+  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div nz-typography nzType="secondary">Submits</div>
+        <div nz-typography>Upload new source bundles or review existing submits.</div>
+      </div>
 
-    <tbody>
-      @for (submit of submits; track $index) {
-        <tr>
-          <td>{{ submit.id }}</td>
-          <td>{{ submit.model }}</td>
-          <td>
-            <a
-              [routerLink]="['/prompts']"
-              [queryParams]="{prompt: submit.prompt_path}"
-              class="text-blue-600 hover:text-blue-500"
-            >
-              {{ submit.prompt_path }}
-            </a>
-          </td>
-          <td>
-            <a
-              [routerLink]="['/sources']"
-              [queryParams]="{source: submit.source_path}"
-              class="text-blue-600 hover:text-blue-500"
-            >
-              {{ submit.source_path }}
-            </a>
-          </td>
-          <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-          <td class="text-center">
-            <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
-              {{ submit.rated ? 'Yes' : 'No' }}
-            </nz-tag>
-          </td>
-          <td class="text-center">{{ submit.total_issues }}</td>
-          <td class="text-center">
-            <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
-          </td>
-        </tr>
-      }
-    </tbody>
-  </nz-table>
-</nz-card>
+      <button nz-button nzType="primary" (click)="openUploadModal()">Upload submit</button>
+    </div>
+
+    @if (uploadSuccessMessage) {
+      <div nz-typography nzType="success" class="mt-3">{{ uploadSuccessMessage }}</div>
+    }
+  </nz-card>
+
+  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <input
+        nz-input
+        placeholder="Filter by model"
+        [(ngModel)]="modelFilter"
+        (keyup.enter)="applyFilters()"
+        class="max-w-[240px]"
+      />
+
+      <label nz-checkbox [(ngModel)]="onlyUnrated" (ngModelChange)="applyFilters()">
+        Only not rated
+      </label>
+    </div>
+
+    <nz-table
+      class="submits-table"
+      [nzData]="submits"
+      [nzLoading]="isLoading"
+      nzSize="small"
+      nzBordered
+      [nzFrontPagination]="false"
+      [nzTotal]="totalSubmits"
+      [nzPageSize]="pageSize"
+      [nzPageIndex]="pageIndex"
+      [nzShowSizeChanger]="true"
+      [nzScroll]="{ y: '480px' }"
+      [nzPageSizeOptions]="[10, 20, 50]"
+      (nzPageIndexChange)="onPageIndexChange($event)"
+      (nzPageSizeChange)="onPageSizeChange($event)"
+    >
+      <thead>
+      <tr>
+        <th>Id</th>
+        <th>Model</th>
+        <th>Prompt path</th>
+        <th>Source path</th>
+        <th>Submit date</th>
+        <th>Rated</th>
+        <th>Total issues</th>
+        <th></th>
+      </tr>
+      </thead>
+
+      <tbody>
+        @for (submit of submits; track $index) {
+          <tr>
+            <td>{{ submit.id }}</td>
+            <td>{{ submit.model }}</td>
+            <td>
+              <a
+                [routerLink]="['/prompts']"
+                [queryParams]="{prompt: submit.prompt_path}"
+                class="text-blue-600 hover:text-blue-500"
+              >
+                {{ submit.prompt_path }}
+              </a>
+            </td>
+            <td>
+              <a
+                [routerLink]="['/sources']"
+                [queryParams]="{source: submit.source_path}"
+                class="text-blue-600 hover:text-blue-500"
+              >
+                {{ submit.source_path }}
+              </a>
+            </td>
+            <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td class="text-center">
+              <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
+                {{ submit.rated ? 'Yes' : 'No' }}
+              </nz-tag>
+            </td>
+            <td class="text-center">{{ submit.total_issues }}</td>
+            <td class="text-center">
+              <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </nz-card>
+</div>
+
+<app-submit-upload-modal
+  [isVisible]="isUploadModalVisible"
+  (isVisibleChange)="isUploadModalVisible = $event"
+  [uploadModel]="uploadModel"
+  (uploadModelChange)="uploadModel = $event"
+  [sourceName]="sourceName"
+  (sourceNameChange)="sourceName = $event"
+  [promptName]="promptName"
+  (promptNameChange)="promptName = $event"
+  [promptPaths]="promptPaths"
+  [selectedPromptPath]="selectedPromptPath"
+  (selectedPromptPathChange)="selectedPromptPath = $event"
+  [sourceFileName]="sourceFile?.name || null"
+  [promptFileName]="promptFile?.name || null"
+  [isPromptOptionsLoading]="isPromptOptionsLoading"
+  [isSubmitting]="isSubmittingUpload"
+  [canSubmit]="canSubmitUpload"
+  [uploadErrorMessage]="uploadErrorMessage"
+  (sourceFileSelected)="handleSourceFileSelected($event)"
+  (promptFileSelected)="handlePromptFileSelected($event)"
+  (submitUpload)="submitUpload()"
+/>
