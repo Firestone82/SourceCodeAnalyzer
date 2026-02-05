@@ -47,3 +47,7 @@
 .submits-table .ant-table-body {
   overflow-y: hidden !important;
 }
+
+.jobs-table .ant-table-body {
+  overflow-y: hidden !important;
+}

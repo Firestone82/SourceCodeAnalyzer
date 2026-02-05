@@ -24,6 +24,7 @@
     </div>
 
     <nz-table
+      class="jobs-table"
       [nzData]="jobs"
       [nzLoading]="isLoading"
       nzSize="small"
@@ -41,13 +42,12 @@
       <thead>
       <tr>
         <th class="w-[120px]">Job ID</th>
-        <th class="w-[140px]">Type</th>
-        <th class="w-[120px]">Status</th>
         <th>Model</th>
         <th>Prompt path</th>
         <th>Source path</th>
-        <th class="w-[120px]">Submit</th>
         <th class="w-[170px]">Updated</th>
+        <th class="w-[120px] text-center">Status</th>
+        <th class="w-[120px]">Submit</th>
       </tr>
       </thead>
       <tbody>
@@ -56,15 +56,15 @@
             <td class="whitespace-nowrap">
               <span [title]="job.job_id">{{ shortJobId(job.job_id) }}</span>
             </td>
-            <td class="whitespace-nowrap">{{ job.job_type }}</td>
-            <td>
+            <td class="truncate max-w-[160px]" [title]="job.model || '-'">{{ job.model || '-' }}</td>
+            <td class="truncate max-w-[200px]" [title]="job.prompt_path || '-'">{{ job.prompt_path || '-' }}</td>
+            <td class="truncate max-w-[200px]" [title]="job.source_path || '-'">{{ job.source_path || '-' }}</td>
+            <td>{{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td class="text-center">
               <nz-tag [nzColor]="statusColor(job.status)">
                 {{ job.status }}
               </nz-tag>
             </td>
-            <td class="truncate max-w-[160px]" [title]="job.model || '-'">{{ job.model || '-' }}</td>
-            <td class="truncate max-w-[200px]" [title]="job.prompt_path || '-'">{{ job.prompt_path || '-' }}</td>
-            <td class="truncate max-w-[200px]" [title]="job.source_path || '-'">{{ job.source_path || '-' }}</td>
             <td>
               @if (job.submit_id) {
                 <a nz-button nzType="link" [routerLink]="['/submits', job.submit_id]">Open</a>
@@ -72,7 +72,6 @@
                 <span>-</span>
               }
             </td>
-            <td>{{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
           </tr>
         }
       </tbody>
