@@ -11,6 +11,13 @@ export interface SubmitListItemDto {
   created_at: string;
 }
 
+export interface SubmitListResponseDto {
+  items: SubmitListItemDto[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface SubmitDto {
   id: number;
   model: string;

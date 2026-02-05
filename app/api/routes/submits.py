@@ -1,12 +1,20 @@
 import shutil
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import select, and_, func, case, Select
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyze_job import run_submit_analysis
-from app.api.dto import SubmitResponse, SubmitSummary, SubmitIssue, AnalyzeSourceResponse, SubmitIssuesResponse
+from app.api.dto import (
+    SubmitResponse,
+    SubmitSummary,
+    SubmitIssue,
+    AnalyzeSourceResponse,
+    SubmitIssuesResponse,
+    SubmitListResponse,
+    SubmitListItemResponse,
+)
 from app.api.security import get_current_rater
 from app.database.db import get_database
 from app.database.models import Issue, Submit, Rater, IssueRating
@@ -111,7 +119,11 @@ def upload_submit(
 def get_submits(
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
-) -> list[SubmitResponse]:
+        page: int = Query(1, ge=1),
+        page_size: int = Query(20, ge=1, le=100),
+        only_unrated: bool = Query(False),
+        model: str | None = Query(None),
+) -> SubmitListResponse:
     # total issues per submit
     total_issues_subquery = (
         select(
@@ -154,29 +166,45 @@ def get_submits(
         )
         .outerjoin(total_issues_subquery, total_issues_subquery.c.submit_id == Submit.id)
         .outerjoin(rated_issues_subquery, rated_issues_subquery.c.submit_id == Submit.id)
-        .order_by(Submit.created_at.desc())
     )
 
-    rows = session.execute(statement).all()
+    if model is not None and model.strip():
+        statement = statement.where(Submit.model.ilike(f"%{model.strip()}%"))
 
-    submits: list[SubmitResponse] = []
+    if only_unrated:
+        statement = statement.where(is_fully_rated_column.is_(False))
+
+    total_count = session.execute(
+        select(func.count()).select_from(statement.order_by(None).subquery())
+    ).scalar_one()
+
+    offset = (page - 1) * page_size
+    rows = session.execute(
+        statement
+        .order_by(Submit.created_at.desc())
+        .limit(page_size)
+        .offset(offset)
+    ).all()
+
+    submits: list[SubmitListItemResponse] = []
     for submit, total_issues, rated_issues, is_fully_rated in rows:
-        # WARNING: this can be expensive for lists (filesystem work per submit)
-        files: dict = find_source_files_or_extract(submit.source_path)
-
         submits.append(
-            SubmitResponse(
+            SubmitListItemResponse(
                 id=submit.id,
                 model=submit.model,
                 source_path=submit.source_path,
                 prompt_path=submit.prompt_path,
-                files=files,
                 created_at=submit.created_at,
                 rated=is_fully_rated,
             )
         )
 
-    return submits
+    return SubmitListResponse(
+        items=submits,
+        total=total_count,
+        page=page,
+        page_size=page_size,
+    )
 
 
 @router.get("/{submit_id}")

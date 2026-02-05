@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {map, Observable} from 'rxjs';
 import {ApiClientService} from './api-client.service';
-import {SubmitDetailsDto, SubmitDto, SubmitListItemDto} from './submits-api.models';
+import {SubmitDetailsDto, SubmitDto, SubmitListResponseDto} from './submits-api.models';
 import {SyntaxHighlighterService} from '../syntax-highlighting.service';
 import {DomSanitizer} from '@angular/platform-browser';
 
@@ -14,8 +14,20 @@ export class SubmitsApiService {
   ) {
   }
 
-  public getSubmits(): Observable<SubmitListItemDto[]> {
-    return this.apiClientService.get<SubmitListItemDto[]>('/submits');
+  public getSubmits(
+    page: number,
+    pageSize: number,
+    onlyUnrated: boolean,
+    model: string | null
+  ): Observable<SubmitListResponseDto> {
+    return this.apiClientService.get<SubmitListResponseDto>('/submits', {
+      queryParams: {
+        page,
+        page_size: pageSize,
+        only_unrated: onlyUnrated,
+        model: model && model.trim() ? model.trim() : null
+      }
+    });
   }
 
   public getSubmit(submitId: number): Observable<SubmitDto> {

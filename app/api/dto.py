@@ -66,6 +66,22 @@ class SubmitResponse(BaseModel):
     created_at: datetime
 
 
+class SubmitListItemResponse(BaseModel):
+    id: int
+    model: str
+    source_path: str
+    prompt_path: str
+    rated: bool
+    created_at: datetime
+
+
+class SubmitListResponse(BaseModel):
+    items: list[SubmitListItemResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class SubmitDetailsIssue(BaseModel):
     id: int
     file: str

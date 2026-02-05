@@ -1,9 +1,29 @@
 <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <div class="mb-4 flex flex-wrap items-center gap-3">
+    <input
+      nz-input
+      placeholder="Filter by model"
+      [(ngModel)]="modelFilter"
+      (keyup.enter)="applyFilters()"
+      class="max-w-[240px]"
+    />
+    <label nz-checkbox [(ngModel)]="onlyUnrated" (ngModelChange)="applyFilters()">
+      Only not rated
+    </label>
+  </div>
   <nz-table
     [nzData]="submits"
     [nzLoading]="isLoading"
     nzSize="middle"
     nzBordered
+    [nzFrontPagination]="false"
+    [nzTotal]="totalSubmits"
+    [nzPageSize]="pageSize"
+    [nzPageIndex]="pageIndex"
+    [nzShowSizeChanger]="true"
+    [nzPageSizeOptions]="[10, 20, 50]"
+    (nzPageIndexChange)="onPageIndexChange($event)"
+    (nzPageSizeChange)="onPageSizeChange($event)"
   >
     <thead>
     <tr>
