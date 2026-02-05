@@ -1,0 +1,3 @@
+::ng-deep .source-tree-container > div {
+  padding-left: 1rem !important;
+}

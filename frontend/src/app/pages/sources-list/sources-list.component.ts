@@ -2,16 +2,15 @@ import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, Router} from '@angular/router';
 import {catchError, finalize, of, Subject, takeUntil} from 'rxjs';
 
-import {FormsModule} from '@angular/forms';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
-import {NzMenuModule} from 'ng-zorro-antd/menu';
-import {NzPaginationModule} from 'ng-zorro-antd/pagination';
-import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
+import {NzTabsModule} from 'ng-zorro-antd/tabs';
+import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
+import {NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
@@ -24,20 +23,19 @@ import {AuthService} from '../../service/auth/auth.service';
   selector: 'app-sources-list',
   standalone: true,
   imports: [
-    FormsModule,
     NzButtonModule,
     NzCardComponent,
     NzLayoutModule,
-    NzMenuModule,
-    NzPaginationModule,
-    NzSelectModule,
     NzSpinModule,
+    NzTabsModule,
+    NzTreeModule,
     NzTypographyModule,
     SourceCodeViewerComponent,
     SourceReviewModalComponent,
     JobCreatedModalComponent
   ],
   templateUrl: './sources-list.component.html',
+  styleUrl: './sources-list.component.css',
 })
 export class SourcesListComponent implements OnInit, OnDestroy {
   public sourcePaths: string[] = [];
@@ -46,11 +44,11 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public errorMessage: string | null = null;
   public sourceErrorMessage: string | null = null;
   public selectedSourcePath: string | null = null;
+  public selectedSourceKeys: string[] = [];
+  public sourceTreeNodes: NzTreeNodeOptions[] = [];
   public files: Record<string, string> = {};
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
-  public pageIndex: number = 1;
-  public pageSize: number = 12;
 
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
@@ -88,9 +86,19 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     return this.files[this.selectedFileName] ?? '';
   }
 
-  public get pagedSourcePaths(): string[] {
-    const startIndex = (this.pageIndex - 1) * this.pageSize;
-    return this.sourcePaths.slice(startIndex, startIndex + this.pageSize);
+  public get selectedFileIndex(): number {
+    if (!this.selectedFileName) {
+      return 0;
+    }
+    const index = this.fileNames.indexOf(this.selectedFileName);
+    return index >= 0 ? index : 0;
+  }
+
+  public onFileTabChange(index: number): void {
+    const fileName = this.fileNames[index];
+    if (fileName && fileName !== this.selectedFileName) {
+      this.selectedFileName = fileName;
+    }
   }
 
   private loadSources(): void {
@@ -110,21 +118,16 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       )
       .subscribe((response: SourcePathsResponseDto) => {
         this.sourcePaths = response.source_paths;
+        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
         const requestedSource: string | null = this.activatedRoute.snapshot.queryParamMap.get('source');
         const shouldSelectSource: string | null =
           (requestedSource && this.sourcePaths.includes(requestedSource)) ? requestedSource : null;
         if (shouldSelectSource) {
-          this.updatePageForSource(shouldSelectSource);
           this.selectSource(shouldSelectSource);
         } else if (this.sourcePaths.length > 0) {
-          this.pageIndex = 1;
           this.selectSource(this.sourcePaths[0]);
         }
       });
-  }
-
-  public onSourcePageChange(pageIndex: number): void {
-    this.pageIndex = pageIndex;
   }
 
   public openReviewModal(): void {
@@ -144,12 +147,24 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     this.isJobModalVisible = true;
   }
 
-  private updatePageForSource(sourcePath: string): void {
-    const index = this.sourcePaths.indexOf(sourcePath);
-    if (index === -1) {
+  public handleSourceNodeClick(event: NzFormatEmitEvent): void {
+    const node = event.node;
+    if (!node) {
       return;
     }
-    this.pageIndex = Math.floor(index / this.pageSize) + 1;
+
+    if (!node.isLeaf) {
+      node.isExpanded = !node.isExpanded;
+      return;
+    }
+
+    const key = node.key?.toString();
+    if (!key) {
+      return;
+    }
+
+    this.selectedSourceKeys = [key];
+    this.selectSource(key);
   }
 
   public selectSource(sourcePath: string): void {
@@ -158,6 +173,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     }
 
     this.selectedSourcePath = sourcePath;
+    this.selectedSourceKeys = [sourcePath];
     this.files = {};
     this.fileNames = [];
     this.selectedFileName = null;
@@ -184,5 +200,41 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         this.fileNames = Object.keys(response.files).sort((left, right) => left.localeCompare(right));
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
       });
+  }
+
+  private buildSourceTreeNodes(sourcePaths: string[]): NzTreeNodeOptions[] {
+    type SourceTreeEntry = {children: Map<string, SourceTreeEntry>; path: string};
+    const root: SourceTreeEntry = {children: new Map(), path: ''};
+
+    for (const sourcePath of sourcePaths) {
+      const parts = sourcePath.split('/').filter(Boolean);
+      let current = root;
+      let currentPath = '';
+
+      for (const part of parts) {
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        if (!current.children.has(part)) {
+          current.children.set(part, {children: new Map(), path: currentPath});
+        }
+        current = current.children.get(part)!;
+      }
+    }
+
+    const buildNodes = (node: SourceTreeEntry): NzTreeNodeOptions[] => {
+      return Array.from(node.children.entries())
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([name, child]) => {
+          const children = buildNodes(child);
+          const isLeaf = children.length === 0;
+          return {
+            title: name,
+            key: child.path,
+            children,
+            isLeaf
+          };
+        });
+    };
+
+    return buildNodes(root);
   }
 }
