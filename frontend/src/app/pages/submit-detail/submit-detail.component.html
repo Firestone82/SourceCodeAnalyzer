@@ -113,19 +113,9 @@
 <app-source-review-modal
   [(isVisible)]="isReviewModalVisible"
   [selectedSourcePath]="submit?.source_path ?? null"
-  [reviewModel]="reviewModel"
-  (reviewModelChange)="handleReviewModelChange($event)"
-  [promptPaths]="promptPaths"
-  [selectedPromptPath]="selectedPromptPath"
-  (promptSelectionChange)="handlePromptSelection($event)"
-  [promptDraft]="promptDraft"
-  (promptDraftChange)="handlePromptDraftChange($event)"
-  [promptErrorMessage]="promptErrorMessage"
-  [reviewSubmitError]="reviewSubmitError"
-  [isPromptOptionsLoading]="isPromptOptionsLoading"
-  [isSubmittingReview]="isSubmittingReview"
-  [canSubmitReview]="canSubmitReview"
-  (submitReview)="submitReview()"
+  [defaultPromptPath]="submit?.prompt_path ?? null"
+  [defaultModel]="submit?.model ?? ''"
+  (reviewQueued)="handleReviewQueued($event)"
 ></app-source-review-modal>
 
 <app-job-created-modal

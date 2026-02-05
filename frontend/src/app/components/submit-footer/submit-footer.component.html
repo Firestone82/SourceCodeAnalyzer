@@ -1,0 +1,13 @@
+<div class="flex justify-end gap-2">
+  <button nz-button type="button" (click)="handleCancel()">{{ cancelLabel }}</button>
+  <button
+    nz-button
+    nzType="primary"
+    type="button"
+    [disabled]="isDisabled"
+    [nzLoading]="isSubmitting"
+    (click)="handleSubmit()"
+  >
+    {{ submitLabel }}
+  </button>
+</div>

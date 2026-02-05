@@ -92,19 +92,7 @@
   [isVisible]="isReviewModalVisible"
   (isVisibleChange)="isReviewModalVisible = $event"
   [selectedSourcePath]="selectedSourcePath"
-  [reviewModel]="reviewModel"
-  (reviewModelChange)="reviewModel = $event"
-  [promptPaths]="promptPaths"
-  [selectedPromptPath]="selectedPromptPath"
-  (promptSelectionChange)="selectPromptForReview($event)"
-  [promptDraft]="promptDraft"
-  (promptDraftChange)="promptDraft = $event"
-  [promptErrorMessage]="promptErrorMessage"
-  [reviewSubmitError]="reviewSubmitError"
-  [isPromptOptionsLoading]="isPromptOptionsLoading"
-  [isSubmittingReview]="isSubmittingReview"
-  [canSubmitReview]="canSubmitReview"
-  (submitReview)="submitReview()"
+  (reviewQueued)="handleReviewQueued($event)"
 />
 
 <app-job-created-modal

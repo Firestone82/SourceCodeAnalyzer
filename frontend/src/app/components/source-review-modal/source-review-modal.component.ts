@@ -1,12 +1,17 @@
-import {Component, EventEmitter, Input, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzModalModule} from 'ng-zorro-antd/modal';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
+import {catchError, finalize, of} from 'rxjs';
 
 import {KNOWN_MODELS} from '../../shared/model-options';
+import {PromptsApiService} from '../../service/api/types/prompts-api.service';
+import {SourcesApiService} from '../../service/api/types/sources-api.service';
+import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto, PromptUploadResponseDto} from '../../service/api/api.models';
+import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 
 @Component({
   selector: 'app-source-review-modal',
@@ -17,27 +22,40 @@ import {KNOWN_MODELS} from '../../shared/model-options';
     NzInputModule,
     NzModalModule,
     NzSelectModule,
-    NzTypographyModule
+    NzTypographyModule,
+    SubmitFooterComponent
   ],
   templateUrl: './source-review-modal.component.html'
 })
-export class SourceReviewModalComponent {
+export class SourceReviewModalComponent implements OnChanges {
   @Input() public isVisible: boolean = false;
   @Output() public readonly isVisibleChange = new EventEmitter<boolean>();
   @Input() public selectedSourcePath: string | null = null;
-  @Input() public reviewModel: string = '';
-  @Output() public readonly reviewModelChange = new EventEmitter<string>();
-  @Input() public promptPaths: string[] = [];
-  @Input() public selectedPromptPath: string | null = null;
-  @Output() public readonly promptSelectionChange = new EventEmitter<string>();
-  @Input() public promptDraft: string = '';
-  @Output() public readonly promptDraftChange = new EventEmitter<string>();
-  @Input() public promptErrorMessage: string | null = null;
-  @Input() public reviewSubmitError: string | null = null;
-  @Input() public isPromptOptionsLoading: boolean = false;
-  @Input() public isSubmittingReview: boolean = false;
-  @Input() public canSubmitReview: boolean = false;
-  @Output() public readonly submitReview = new EventEmitter<void>();
+  @Input() public defaultPromptPath: string | null = null;
+  @Input() public defaultModel: string = '';
+  @Output() public readonly reviewQueued = new EventEmitter<AnalyzeSourceResponseDto>();
+
+  public reviewModel: string = '';
+  public promptPaths: string[] = [];
+  public selectedPromptPath: string | null = null;
+  public promptDraft: string = '';
+  public promptErrorMessage: string | null = null;
+  public reviewSubmitError: string | null = null;
+  public isPromptOptionsLoading: boolean = false;
+  public isSubmittingReview: boolean = false;
+  private promptContent: string = '';
+
+  public constructor(
+    private readonly promptsApiService: PromptsApiService,
+    private readonly sourcesApiService: SourcesApiService
+  ) {
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isVisible']?.currentValue) {
+      this.initializeModal();
+    }
+  }
 
   public get filteredModelOptions(): string[] {
     const query = this.reviewModel.trim().toLowerCase();
@@ -47,23 +65,189 @@ export class SourceReviewModalComponent {
     return KNOWN_MODELS.filter((model) => model.toLowerCase().includes(query));
   }
 
+  public get canSubmitReview(): boolean {
+    return Boolean(
+      this.selectedSourcePath
+      && this.selectedPromptPath
+      && this.reviewModel.trim()
+      && !this.isSubmittingReview
+      && !this.isPromptOptionsLoading
+    );
+  }
+
   public closeModal(): void {
+    this.resetForm();
     this.isVisibleChange.emit(false);
   }
 
   public handleModelChange(model: string): void {
-    this.reviewModelChange.emit(model);
+    this.reviewModel = model;
   }
 
   public handlePromptSelection(promptPath: string): void {
-    this.promptSelectionChange.emit(promptPath);
+    if (this.selectedPromptPath === promptPath) {
+      return;
+    }
+
+    this.selectedPromptPath = promptPath;
+    this.promptContent = '';
+    this.promptDraft = '';
+    this.promptErrorMessage = null;
+    this.isPromptOptionsLoading = true;
+
+    this.promptsApiService
+      .getPromptContent(promptPath)
+      .pipe(
+        catchError(() => {
+          this.promptErrorMessage = 'Failed to load prompt content.';
+          return of<PromptContentResponseDto>({prompt_path: promptPath, content: ''});
+        }),
+        finalize(() => {
+          this.isPromptOptionsLoading = false;
+        })
+      )
+      .subscribe((response: PromptContentResponseDto) => {
+        this.promptContent = response.content;
+        this.promptDraft = response.content;
+      });
   }
 
   public handlePromptDraftChange(draft: string): void {
-    this.promptDraftChange.emit(draft);
+    this.promptDraft = draft;
   }
 
   public handleSubmit(): void {
-    this.submitReview.emit();
+    if (!this.canSubmitReview || !this.selectedSourcePath || !this.selectedPromptPath) {
+      return;
+    }
+
+    this.isSubmittingReview = true;
+    this.reviewSubmitError = null;
+
+    const trimmedPromptDraft = this.promptDraft.trim();
+    const trimmedPromptContent = this.promptContent.trim();
+    const hasPromptChanged = trimmedPromptDraft !== trimmedPromptContent;
+
+    const finalizeSubmission = (promptPath: string): void => {
+      this.sourcesApiService
+        .analyzeSource(this.selectedSourcePath!, {
+          model: this.reviewModel.trim(),
+          prompt_path: promptPath
+        })
+        .pipe(
+          catchError(() => {
+            this.reviewSubmitError = 'Failed to submit review.';
+            return of(null);
+          }),
+          finalize(() => {
+            this.isSubmittingReview = false;
+          })
+        )
+        .subscribe((response) => {
+          if (!response) {
+            return;
+          }
+          this.reviewQueued.emit(response);
+          this.closeModal();
+        });
+    };
+
+    if (hasPromptChanged) {
+      const uploadName = this.buildPromptUploadName(this.selectedPromptPath);
+      this.promptsApiService
+        .uploadPrompt({
+          prompt_path: uploadName,
+          content: trimmedPromptDraft
+        })
+        .pipe(
+          catchError(() => {
+            this.reviewSubmitError = 'Failed to upload updated prompt.';
+            return of<PromptUploadResponseDto | null>(null);
+          })
+        )
+        .subscribe((response) => {
+          if (!response) {
+            this.isSubmittingReview = false;
+            return;
+          }
+          finalizeSubmission(response.prompt_path);
+        });
+    } else {
+      finalizeSubmission(this.selectedPromptPath);
+    }
+  }
+
+  private initializeModal(): void {
+    this.reviewSubmitError = null;
+    this.promptErrorMessage = null;
+    this.reviewModel = this.defaultModel ?? '';
+    if (this.defaultPromptPath) {
+      this.promptPaths = [this.defaultPromptPath];
+      this.selectedPromptPath = this.defaultPromptPath;
+      this.loadPromptContent(this.defaultPromptPath);
+      return;
+    }
+    this.loadPromptOptions();
+  }
+
+  private resetForm(): void {
+    this.reviewModel = '';
+    this.promptPaths = [];
+    this.selectedPromptPath = null;
+    this.promptDraft = '';
+    this.promptContent = '';
+    this.promptErrorMessage = null;
+    this.reviewSubmitError = null;
+    this.isPromptOptionsLoading = false;
+    this.isSubmittingReview = false;
+  }
+
+  private loadPromptOptions(): void {
+    this.isPromptOptionsLoading = true;
+
+    this.promptsApiService
+      .getPromptPaths()
+      .pipe(
+        catchError(() => {
+          this.promptErrorMessage = 'Failed to load prompts.';
+          return of<PromptNamesResponseDto>({prompt_paths: []});
+        }),
+        finalize(() => {
+          this.isPromptOptionsLoading = false;
+        })
+      )
+      .subscribe((response: PromptNamesResponseDto) => {
+        this.promptPaths = response.prompt_paths;
+        if (this.promptPaths.length > 0) {
+          this.handlePromptSelection(this.promptPaths[0]);
+        }
+      });
+  }
+
+  private loadPromptContent(promptPath: string): void {
+    this.promptErrorMessage = null;
+    this.isPromptOptionsLoading = true;
+
+    this.promptsApiService
+      .getPromptContent(promptPath)
+      .pipe(
+        catchError(() => {
+          this.promptErrorMessage = 'Failed to load prompt content.';
+          return of<PromptContentResponseDto>({prompt_path: promptPath, content: ''});
+        }),
+        finalize(() => {
+          this.isPromptOptionsLoading = false;
+        })
+      )
+      .subscribe((response: PromptContentResponseDto) => {
+        this.promptContent = response.content;
+        this.promptDraft = response.content;
+      });
+  }
+
+  private buildPromptUploadName(promptPath: string): string {
+    const baseName = promptPath.split('/').filter(Boolean).pop() ?? 'prompt';
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    return `custom/${baseName}-${timestamp}`;
   }
 }

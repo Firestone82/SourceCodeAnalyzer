@@ -14,9 +14,8 @@ import {NzCardComponent} from 'ng-zorro-antd/card';
 import {SubmitUploadModalComponent} from '../../components/submit-upload-modal/submit-upload-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
-import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
-import {PromptContentResponseDto, PromptNamesResponseDto, PromptUploadResponseDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto} from '../../service/api/api.models';
 
 @Component({
   selector: 'app-submits-list',
@@ -52,18 +51,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   sourceFilter: string = '';
 
   isUploadModalVisible: boolean = false;
-  uploadModel: string = '';
-  sourceName: string = '';
-  promptName: string = '';
-  promptPaths: string[] = [];
-  selectedPromptPath: string | null = null;
-  promptContent: string = '';
-  promptDraft: string = '';
-  promptErrorMessage: string | null = null;
-  sourceFile: File | null = null;
-  isPromptOptionsLoading: boolean = false;
-  isSubmittingUpload: boolean = false;
-  uploadErrorMessage: string | null = null;
   pendingUpload: { jobId: string; sourcePath: string; promptPath: string; model: string } | null = null;
   isJobModalVisible: boolean = false;
   jobModalIds: string[] = [];
@@ -72,7 +59,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
 
   public constructor(
     private readonly submitsApiService: SubmitsApiService,
-    private readonly promptsApiService: PromptsApiService,
     private readonly jobsApiService: JobsApiService,
     private readonly router: Router
   ) {
@@ -107,176 +93,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
 
   public openUploadModal(): void {
     this.isUploadModalVisible = true;
-    this.uploadErrorMessage = null;
-    this.promptErrorMessage = null;
-    this.loadPromptPaths();
-  }
-
-  public handleSourceFileSelected(file: File | null): void {
-    this.sourceFile = file;
-  }
-
-  public handlePromptSelection(promptPath: string | null): void {
-    if (!promptPath) {
-      this.selectedPromptPath = null;
-      this.promptContent = '';
-      return;
-    }
-
-    if (this.selectedPromptPath === promptPath) {
-      return;
-    }
-
-    this.selectedPromptPath = promptPath;
-    this.promptContent = '';
-    this.promptDraft = '';
-    this.promptErrorMessage = null;
-    this.isPromptOptionsLoading = true;
-
-    this.promptsApiService
-      .getPromptContent(promptPath)
-      .pipe(
-        catchError(() => {
-          this.promptErrorMessage = 'Failed to load prompt content.';
-          return of<PromptContentResponseDto>({prompt_path: promptPath, content: ''});
-        }),
-        finalize(() => {
-          this.isPromptOptionsLoading = false;
-        })
-      )
-      .subscribe((response: PromptContentResponseDto) => {
-        this.promptContent = response.content;
-        this.promptDraft = response.content;
-      });
-  }
-
-  public handlePromptDraftChange(draft: string): void {
-    this.promptDraft = draft;
-  }
-
-  public submitUpload(): void {
-    if (!this.canSubmitUpload) {
-      return;
-    }
-
-    this.uploadErrorMessage = null;
-    this.isSubmittingUpload = true;
-
-    const trimmedDraft = this.promptDraft.trim();
-    const trimmedContent = this.promptContent.trim();
-    const hasPromptChanged = !this.selectedPromptPath || trimmedDraft !== trimmedContent;
-
-    const finalizeUpload = (promptPath: string): void => {
-      const formData = new FormData();
-      formData.append('model', this.uploadModel.trim());
-
-      if (this.sourceName.trim()) {
-        formData.append('source_path', this.sourceName.trim());
-      }
-
-      if (this.sourceFile) {
-        formData.append('source_file', this.sourceFile);
-      }
-
-      formData.append('prompt_path', promptPath);
-
-      this.submitsApiService
-        .uploadSubmit(formData)
-        .pipe(
-          catchError(() => {
-            this.uploadErrorMessage = 'Failed to upload submit.';
-            return of(null);
-          }),
-          finalize(() => {
-            this.isSubmittingUpload = false;
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            return;
-          }
-          this.isUploadModalVisible = false;
-          this.pendingUpload = {
-            jobId: response.job_id,
-            sourcePath: response.source_path,
-            promptPath: response.prompt_path,
-            model: response.model
-          };
-          this.jobModalIds = [response.job_id];
-          this.isJobModalVisible = true;
-          this.startUploadPolling();
-          this.resetUploadForm();
-          this.loadSubmits();
-        });
-    };
-
-    if (hasPromptChanged) {
-      const uploadName = this.promptName.trim()
-        ? this.promptName.trim()
-        : this.buildPromptUploadName(this.selectedPromptPath);
-      this.promptsApiService
-        .uploadPrompt({
-          prompt_path: uploadName,
-          content: trimmedDraft
-        })
-        .pipe(
-          catchError(() => {
-            this.uploadErrorMessage = 'Failed to upload prompt.';
-            return of<PromptUploadResponseDto | null>(null);
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            this.isSubmittingUpload = false;
-            return;
-          }
-          finalizeUpload(response.prompt_path);
-        });
-    } else if (this.selectedPromptPath) {
-      finalizeUpload(this.selectedPromptPath);
-    }
-  }
-
-  public get canSubmitUpload(): boolean {
-    return Boolean(
-      this.uploadModel.trim() &&
-      this.sourceFile &&
-      this.promptDraft.trim() &&
-      !this.isPromptOptionsLoading &&
-      !this.isSubmittingUpload
-    );
-  }
-
-  private resetUploadForm(): void {
-    this.uploadModel = '';
-    this.sourceName = '';
-    this.promptName = '';
-    this.selectedPromptPath = null;
-    this.promptContent = '';
-    this.promptDraft = '';
-    this.promptErrorMessage = null;
-    this.sourceFile = null;
-  }
-
-  private loadPromptPaths(): void {
-    this.isPromptOptionsLoading = true;
-    this.promptsApiService
-      .getPromptPaths()
-      .pipe(
-        catchError(() => {
-          this.promptErrorMessage = 'Failed to load prompt options.';
-          return of<PromptNamesResponseDto>({prompt_paths: []});
-        }),
-        finalize(() => {
-          this.isPromptOptionsLoading = false;
-        })
-      )
-      .subscribe((response) => {
-        this.promptPaths = response.prompt_paths;
-        if (!this.selectedPromptPath && this.promptPaths.length > 0) {
-          this.handlePromptSelection(this.promptPaths[0]);
-        }
-      });
   }
 
   private startUploadPolling(): void {
@@ -310,10 +126,17 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
       });
   }
 
-  private buildPromptUploadName(promptPath: string | null): string {
-    const baseName = promptPath?.split('/').filter(Boolean).pop() ?? 'prompt';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `custom/${baseName}-${timestamp}`;
+  public handleUploadCompleted(response: AnalyzeSourceResponseDto): void {
+    this.pendingUpload = {
+      jobId: response.job_id,
+      sourcePath: response.source_path,
+      promptPath: response.prompt_path,
+      model: response.model
+    };
+    this.jobModalIds = [response.job_id];
+    this.isJobModalVisible = true;
+    this.startUploadPolling();
+    this.loadSubmits();
   }
 
   private loadSubmits(): void {

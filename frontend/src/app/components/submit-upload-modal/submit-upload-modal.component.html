@@ -2,10 +2,8 @@
   [nzVisible]="isVisible"
   nzTitle="Upload submit"
   nzWidth="700px"
-  [nzOkDisabled]="!canSubmit"
-  [nzOkLoading]="isSubmitting"
   (nzOnCancel)="closeModal()"
-  (nzOnOk)="handleSubmit()"
+  [nzFooter]="footerTemplate"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-4">
@@ -90,3 +88,13 @@
     </div>
   </ng-container>
 </nz-modal>
+
+<ng-template #footerTemplate>
+  <app-submit-footer
+    submitLabel="Upload"
+    [isSubmitting]="isSubmitting"
+    [isDisabled]="!canSubmit"
+    (cancel)="closeModal()"
+    (submit)="handleSubmit()"
+  ></app-submit-footer>
+</ng-template>

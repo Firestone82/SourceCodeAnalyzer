@@ -114,25 +114,7 @@
 <app-submit-upload-modal
   [isVisible]="isUploadModalVisible"
   (isVisibleChange)="isUploadModalVisible = $event"
-  [uploadModel]="uploadModel"
-  (uploadModelChange)="uploadModel = $event"
-  [sourceName]="sourceName"
-  (sourceNameChange)="sourceName = $event"
-  [promptName]="promptName"
-  (promptNameChange)="promptName = $event"
-  [promptPaths]="promptPaths"
-  [selectedPromptPath]="selectedPromptPath"
-  (selectedPromptPathChange)="handlePromptSelection($event)"
-  [promptDraft]="promptDraft"
-  (promptDraftChange)="handlePromptDraftChange($event)"
-  [sourceFileName]="sourceFile?.name || null"
-  [promptErrorMessage]="promptErrorMessage"
-  [isPromptOptionsLoading]="isPromptOptionsLoading"
-  [isSubmitting]="isSubmittingUpload"
-  [canSubmit]="canSubmitUpload"
-  [uploadErrorMessage]="uploadErrorMessage"
-  (sourceFileSelected)="handleSourceFileSelected($event)"
-  (submitUpload)="submitUpload()"
+  (uploadComplete)="handleUploadCompleted($event)"
 />
 
 <app-job-created-modal

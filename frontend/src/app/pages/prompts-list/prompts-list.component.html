@@ -90,16 +90,7 @@
   [isVisible]="isReviewModalVisible"
   (isVisibleChange)="isReviewModalVisible = $event"
   [selectedPromptPath]="selectedPromptPath"
-  [reviewModel]="reviewModel"
-  (reviewModelChange)="reviewModel = $event"
-  [sourceTreeNodes]="sourceTreeNodes"
-  [selectedSourceKeys]="selectedSourceKeys"
-  (selectedSourceKeysChange)="onSourceKeysChange($event)"
-  [isSourceOptionsLoading]="isSourceOptionsLoading"
-  [isSubmittingReview]="isSubmittingReview"
-  [reviewSubmitError]="reviewSubmitError"
-  [canSubmitBulkReview]="canSubmitBulkReview"
-  (submitReview)="submitBulkReview()"
+  (reviewsQueued)="handleReviewsQueued($event)"
 />
 
 <app-job-created-modal

@@ -13,16 +13,10 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
-import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
-import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
-import {
-  PromptContentResponseDto,
-  PromptNamesResponseDto,
-  PromptUploadResponseDto
-} from '../../service/api/api.models';
 
 @Component({
   selector: 'app-sources-list',
@@ -57,21 +51,11 @@ export class SourcesListComponent implements OnInit {
   public pageSize: number = 12;
 
   public isReviewModalVisible: boolean = false;
-  public promptPaths: string[] = [];
-  public isPromptOptionsLoading: boolean = false;
-  public selectedPromptPath: string | null = null;
-  public promptContent: string = '';
-  public promptDraft: string = '';
-  public promptErrorMessage: string | null = null;
-  public reviewModel: string = '';
-  public reviewSubmitError: string | null = null;
-  public isSubmittingReview: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
 
   public constructor(
     private readonly sourcesApiService: SourcesApiService,
-    private readonly promptsApiService: PromptsApiService,
     private readonly activatedRoute: ActivatedRoute,
     private readonly router: Router,
   ) {
@@ -91,16 +75,6 @@ export class SourcesListComponent implements OnInit {
   public get pagedSourcePaths(): string[] {
     const startIndex = (this.pageIndex - 1) * this.pageSize;
     return this.sourcePaths.slice(startIndex, startIndex + this.pageSize);
-  }
-
-  public get canSubmitReview(): boolean {
-    return Boolean(
-      this.selectedSourcePath
-      && this.selectedPromptPath
-      && this.reviewModel.trim()
-      && !this.isSubmittingReview
-      && !this.isPromptOptionsLoading
-    );
   }
 
   private loadSources(): void {
@@ -137,129 +111,15 @@ export class SourcesListComponent implements OnInit {
   }
 
   public openReviewModal(): void {
+    if (!this.selectedSourcePath) {
+      return;
+    }
     this.isReviewModalVisible = true;
-    this.reviewSubmitError = null;
-    if (this.promptPaths.length === 0) {
-      this.loadPromptOptions();
-    } else if (!this.selectedPromptPath && this.promptPaths.length > 0) {
-      this.selectPromptForReview(this.promptPaths[0]);
-    }
   }
 
-  public closeReviewModal(): void {
-    this.isReviewModalVisible = false;
-  }
-
-  public selectPromptForReview(promptPath: string): void {
-    if (this.selectedPromptPath === promptPath) {
-      return;
-    }
-
-    this.selectedPromptPath = promptPath;
-    this.promptContent = '';
-    this.promptDraft = '';
-    this.promptErrorMessage = null;
-    this.isPromptOptionsLoading = true;
-
-    this.promptsApiService
-      .getPromptContent(promptPath)
-      .pipe(
-        catchError(() => {
-          this.promptErrorMessage = 'Failed to load prompt content.';
-          return of<PromptContentResponseDto>({prompt_path: promptPath, content: ''});
-        }),
-        finalize(() => {
-          this.isPromptOptionsLoading = false;
-        })
-      )
-      .subscribe((response: PromptContentResponseDto) => {
-        this.promptContent = response.content;
-        this.promptDraft = response.content;
-      });
-  }
-
-  public submitReview(): void {
-    if (!this.canSubmitReview || !this.selectedSourcePath || !this.selectedPromptPath) {
-      return;
-    }
-
-    this.isSubmittingReview = true;
-    this.reviewSubmitError = null;
-
-    const trimmedPromptDraft = this.promptDraft.trim();
-    const trimmedPromptContent = this.promptContent.trim();
-    const hasPromptChanged = trimmedPromptDraft !== trimmedPromptContent;
-
-    const finalizeSubmission = (promptPath: string): void => {
-      this.sourcesApiService
-        .analyzeSource(this.selectedSourcePath!, {
-          model: this.reviewModel.trim(),
-          prompt_path: promptPath
-        })
-        .pipe(
-          catchError(() => {
-            this.reviewSubmitError = 'Failed to submit review.';
-            return of(null);
-          }),
-          finalize(() => {
-            this.isSubmittingReview = false;
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            return;
-          }
-          this.jobModalIds = [response.job_id];
-          this.isJobModalVisible = true;
-          this.closeReviewModal();
-        });
-    };
-
-    if (hasPromptChanged) {
-      const uploadName = this.buildPromptUploadName(this.selectedPromptPath);
-      this.promptsApiService
-        .uploadPrompt({
-          prompt_path: uploadName,
-          content: trimmedPromptDraft
-        })
-        .pipe(
-          catchError(() => {
-            this.reviewSubmitError = 'Failed to upload updated prompt.';
-            return of<PromptUploadResponseDto | null>(null);
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            this.isSubmittingReview = false;
-            return;
-          }
-          finalizeSubmission(response.prompt_path);
-        });
-    } else {
-      finalizeSubmission(this.selectedPromptPath);
-    }
-  }
-
-  private loadPromptOptions(): void {
-    this.isPromptOptionsLoading = true;
-
-    this.promptsApiService
-      .getPromptPaths()
-      .pipe(
-        catchError(() => {
-          this.promptErrorMessage = 'Failed to load prompts.';
-          return of<PromptNamesResponseDto>({prompt_paths: []});
-        }),
-        finalize(() => {
-          this.isPromptOptionsLoading = false;
-        })
-      )
-      .subscribe((response: PromptNamesResponseDto) => {
-        this.promptPaths = response.prompt_paths;
-        if (this.promptPaths.length > 0) {
-          this.selectPromptForReview(this.promptPaths[0]);
-        }
-      });
+  public handleReviewQueued(response: AnalyzeSourceResponseDto): void {
+    this.jobModalIds = [response.job_id];
+    this.isJobModalVisible = true;
   }
 
   private updatePageForSource(sourcePath: string): void {
@@ -268,12 +128,6 @@ export class SourcesListComponent implements OnInit {
       return;
     }
     this.pageIndex = Math.floor(index / this.pageSize) + 1;
-  }
-
-  private buildPromptUploadName(promptPath: string): string {
-    const baseName = promptPath.split('/').filter(Boolean).pop() ?? 'prompt';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `custom/${baseName}-${timestamp}`;
   }
 
   public selectSource(sourcePath: string): void {

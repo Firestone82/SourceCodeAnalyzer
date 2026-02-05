@@ -2,10 +2,8 @@
   [nzVisible]="isVisible"
   nzTitle="Process review"
   nzWidth="800px"
-  [nzOkDisabled]="!canSubmitReview"
-  [nzOkLoading]="isSubmittingReview"
   (nzOnCancel)="closeModal()"
-  (nzOnOk)="handleSubmit()"
+  [nzFooter]="footerTemplate"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-4">
@@ -66,3 +64,12 @@
     </div>
   </ng-container>
 </nz-modal>
+
+<ng-template #footerTemplate>
+  <app-submit-footer
+    [isSubmitting]="isSubmittingReview"
+    [isDisabled]="!canSubmitReview"
+    (cancel)="closeModal()"
+    (submit)="handleSubmit()"
+  ></app-submit-footer>
+</ng-template>
