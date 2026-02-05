@@ -15,6 +15,11 @@
         Sources
       </a>
     </li>
+    <li nz-menu-item>
+      <a routerLink="/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        Jobs
+      </a>
+    </li>
   </ul>
 
   @if (authService.rater$ | async; as rater) {

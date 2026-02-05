@@ -75,6 +75,27 @@ class AnalyzeSourceResponse(BaseModel):
     prompt_path: str
 
 
+class JobResponse(BaseModel):
+    id: int
+    job_id: str
+    status: str
+    job_type: str
+    source_path: Optional[str]
+    prompt_path: Optional[str]
+    model: Optional[str]
+    submit_id: Optional[int]
+    error: Optional[str]
+    created_at: datetime
+    updated_at: datetime
+
+
+class JobListResponse(BaseModel):
+    items: list[JobResponse]
+    total: int
+    page: int
+    page_size: int
+
+
 class SubmitResponse(BaseModel):
     id: int
     model: str

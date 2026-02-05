@@ -33,14 +33,15 @@ export class SubmitUploadModalComponent {
   @Input() public promptPaths: string[] = [];
   @Input() public selectedPromptPath: string | null = null;
   @Output() public readonly selectedPromptPathChange = new EventEmitter<string | null>();
+  @Input() public promptDraft: string = '';
+  @Output() public readonly promptDraftChange = new EventEmitter<string>();
+  @Input() public promptErrorMessage: string | null = null;
   @Input() public sourceFileName: string | null = null;
-  @Input() public promptFileName: string | null = null;
   @Input() public isPromptOptionsLoading: boolean = false;
   @Input() public isSubmitting: boolean = false;
   @Input() public canSubmit: boolean = false;
   @Input() public uploadErrorMessage: string | null = null;
   @Output() public readonly sourceFileSelected = new EventEmitter<File | null>();
-  @Output() public readonly promptFileSelected = new EventEmitter<File | null>();
   @Output() public readonly submitUpload = new EventEmitter<void>();
 
   public get filteredModelOptions(): string[] {
@@ -77,10 +78,8 @@ export class SubmitUploadModalComponent {
     this.sourceFileSelected.emit(file);
   }
 
-  public handlePromptFileInput(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    const file = input.files && input.files.length > 0 ? input.files[0] : null;
-    this.promptFileSelected.emit(file);
+  public handlePromptDraftChange(draft: string): void {
+    this.promptDraftChange.emit(draft);
   }
 
   public handleSubmit(): void {

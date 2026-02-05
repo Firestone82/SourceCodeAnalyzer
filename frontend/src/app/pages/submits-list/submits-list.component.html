@@ -9,9 +9,6 @@
       <button nz-button nzType="primary" (click)="openUploadModal()">Upload submit</button>
     </div>
 
-    @if (uploadSuccessMessage) {
-      <div nz-typography nzType="success" class="mt-3">{{ uploadSuccessMessage }}</div>
-    }
   </nz-card>
 
   <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
@@ -20,6 +17,22 @@
         nz-input
         placeholder="Filter by model"
         [(ngModel)]="modelFilter"
+        (keyup.enter)="applyFilters()"
+        class="max-w-[240px]"
+      />
+
+      <input
+        nz-input
+        placeholder="Filter by prompt path"
+        [(ngModel)]="promptFilter"
+        (keyup.enter)="applyFilters()"
+        class="max-w-[240px]"
+      />
+
+      <input
+        nz-input
+        placeholder="Filter by source path"
+        [(ngModel)]="sourceFilter"
         (keyup.enter)="applyFilters()"
         class="max-w-[240px]"
       />
@@ -109,14 +122,21 @@
   (promptNameChange)="promptName = $event"
   [promptPaths]="promptPaths"
   [selectedPromptPath]="selectedPromptPath"
-  (selectedPromptPathChange)="selectedPromptPath = $event"
+  (selectedPromptPathChange)="handlePromptSelection($event)"
+  [promptDraft]="promptDraft"
+  (promptDraftChange)="handlePromptDraftChange($event)"
   [sourceFileName]="sourceFile?.name || null"
-  [promptFileName]="promptFile?.name || null"
+  [promptErrorMessage]="promptErrorMessage"
   [isPromptOptionsLoading]="isPromptOptionsLoading"
   [isSubmitting]="isSubmittingUpload"
   [canSubmit]="canSubmitUpload"
   [uploadErrorMessage]="uploadErrorMessage"
   (sourceFileSelected)="handleSourceFileSelected($event)"
-  (promptFileSelected)="handlePromptFileSelected($event)"
   (submitUpload)="submitUpload()"
+/>
+
+<app-job-created-modal
+  [isVisible]="isJobModalVisible"
+  (isVisibleChange)="isJobModalVisible = $event"
+  [jobIds]="jobModalIds"
 />

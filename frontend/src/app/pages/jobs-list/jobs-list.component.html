@@ -1,0 +1,81 @@
+<div class="flex flex-col gap-4">
+  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+    <div class="flex flex-wrap items-center justify-between gap-3">
+      <div>
+        <div nz-typography nzType="secondary">Jobs</div>
+        <div nz-typography>Track running and completed analysis jobs.</div>
+      </div>
+    </div>
+  </nz-card>
+
+  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <nz-select
+        class="w-[200px]"
+        [ngModel]="statusFilter"
+        (ngModelChange)="statusFilter = $event; applyFilters()"
+        nzAllowClear
+        nzPlaceHolder="All statuses"
+      >
+        <nz-option nzLabel="Running" nzValue="running"></nz-option>
+        <nz-option nzLabel="Succeeded" nzValue="succeeded"></nz-option>
+        <nz-option nzLabel="Failed" nzValue="failed"></nz-option>
+      </nz-select>
+    </div>
+
+    <nz-table
+      [nzData]="jobs"
+      [nzLoading]="isLoading"
+      nzSize="small"
+      nzBordered
+      [nzFrontPagination]="false"
+      [nzTotal]="totalJobs"
+      [nzPageSize]="pageSize"
+      [nzPageIndex]="pageIndex"
+      [nzShowSizeChanger]="true"
+      [nzPageSizeOptions]="[10, 20, 50]"
+      [nzScroll]="{ y: '520px' }"
+      (nzPageIndexChange)="onPageIndexChange($event)"
+      (nzPageSizeChange)="onPageSizeChange($event)"
+    >
+      <thead>
+      <tr>
+        <th class="w-[120px]">Job ID</th>
+        <th class="w-[140px]">Type</th>
+        <th class="w-[120px]">Status</th>
+        <th>Model</th>
+        <th>Prompt path</th>
+        <th>Source path</th>
+        <th class="w-[120px]">Submit</th>
+        <th class="w-[170px]">Updated</th>
+      </tr>
+      </thead>
+      <tbody>
+        @for (job of jobs; track job.id) {
+          <tr>
+            <td class="whitespace-nowrap">
+              <span [title]="job.job_id">{{ shortJobId(job.job_id) }}</span>
+            </td>
+            <td class="whitespace-nowrap">{{ job.job_type }}</td>
+            <td>
+              <nz-tag [nzColor]="statusColor(job.status)">
+                {{ job.status }}
+              </nz-tag>
+            </td>
+            <td class="truncate max-w-[160px]" [title]="job.model || '-'">{{ job.model || '-' }}</td>
+            <td class="truncate max-w-[200px]" [title]="job.prompt_path || '-'">{{ job.prompt_path || '-' }}</td>
+            <td class="truncate max-w-[200px]" [title]="job.source_path || '-'">{{ job.source_path || '-' }}</td>
+            <td>
+              @if (job.submit_id) {
+                <a nz-button nzType="link" [routerLink]="['/submits', job.submit_id]">Open</a>
+              } @else {
+                <span>-</span>
+              }
+            </td>
+            <td>{{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </nz-card>
+</div>

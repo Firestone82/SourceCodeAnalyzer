@@ -18,14 +18,18 @@ export class SubmitsApiService {
     page: number,
     pageSize: number,
     onlyUnrated: boolean,
-    model: string | null
+    model: string | null,
+    sourcePath: string | null = null,
+    promptPath: string | null = null
   ): Observable<SubmitListResponseDto> {
     return this.apiClientService.get<SubmitListResponseDto>('/submits', {
       queryParams: {
         page,
         page_size: pageSize,
         only_unrated: onlyUnrated,
-        model: model && model.trim() ? model.trim() : null
+        model: model && model.trim() ? model.trim() : null,
+        source_path: sourcePath && sourcePath.trim() ? sourcePath.trim() : null,
+        prompt_path: promptPath && promptPath.trim() ? promptPath.trim() : null
       }
     });
   }

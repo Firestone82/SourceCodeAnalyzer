@@ -59,3 +59,23 @@ class IssueRating(Base):
 
     issue: Mapped["Issue"] = relationship(back_populates="ratings")
     rater: Mapped["Rater"] = relationship(back_populates="ratings")
+
+
+class AnalysisJob(Base):
+    __tablename__ = "analysis_job"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    job_id: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    status: Mapped[str] = mapped_column(String(32), nullable=False, default="running")
+    job_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    source_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    prompt_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
+    model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    submit_id: Mapped[int | None] = mapped_column(ForeignKey("submit.id"), nullable=True)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, nullable=False, default=datetime.now(), onupdate=datetime.now()
+    )
+
+    submit: Mapped["Submit"] = relationship()

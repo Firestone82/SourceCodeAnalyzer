@@ -52,6 +52,27 @@ export interface AnalyzeSourceResponseDto {
   prompt_path: string;
 }
 
+export interface JobDto {
+  id: number;
+  job_id: string;
+  status: string;
+  job_type: string;
+  source_path: string | null;
+  prompt_path: string | null;
+  model: string | null;
+  submit_id: number | null;
+  error: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface JobListResponseDto {
+  items: JobDto[];
+  total: number;
+  page: number;
+  page_size: number;
+}
+
 export interface SubmitListItemDto {
   id: number;
   model: string;

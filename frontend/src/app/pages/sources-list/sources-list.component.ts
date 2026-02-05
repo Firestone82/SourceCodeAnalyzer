@@ -11,13 +11,13 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
-import {NzMessageService} from 'ng-zorro-antd/message';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
+import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
 import {
   PromptContentResponseDto,
   PromptNamesResponseDto,
@@ -38,7 +38,8 @@ import {
     NzSpinModule,
     NzTypographyModule,
     SourceCodeViewerComponent,
-    SourceReviewModalComponent
+    SourceReviewModalComponent,
+    JobCreatedModalComponent
   ],
   templateUrl: './sources-list.component.html',
 })
@@ -65,13 +66,14 @@ export class SourcesListComponent implements OnInit {
   public reviewModel: string = '';
   public reviewSubmitError: string | null = null;
   public isSubmittingReview: boolean = false;
+  public isJobModalVisible: boolean = false;
+  public jobModalIds: string[] = [];
 
   public constructor(
     private readonly sourcesApiService: SourcesApiService,
     private readonly promptsApiService: PromptsApiService,
     private readonly activatedRoute: ActivatedRoute,
     private readonly router: Router,
-    private readonly nzMessageService: NzMessageService
   ) {
   }
 
@@ -207,7 +209,8 @@ export class SourcesListComponent implements OnInit {
           if (!response) {
             return;
           }
-          this.nzMessageService.success(`Review queued. Job ID: ${response.job_id}`);
+          this.jobModalIds = [response.job_id];
+          this.isJobModalVisible = true;
           this.closeReviewModal();
         });
     };

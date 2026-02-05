@@ -17,7 +17,7 @@ from app.api.dto import (
 )
 from app.api.security import get_current_rater
 from app.database.db import get_database
-from app.database.models import Issue, Submit, Rater, IssueRating
+from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import (
     PROMPTS_ROOT,
@@ -83,6 +83,7 @@ def upload_submit(
         source_file: UploadFile = File(...),
         prompt_path: str | None = Form(None),
         prompt_file: UploadFile | None = File(None),
+        session: Session = Depends(get_database),
 ) -> AnalyzeSourceResponse:
     if not model.strip():
         raise HTTPException(status_code=400, detail="Model is required")
@@ -106,6 +107,16 @@ def upload_submit(
         job_timeout=1800,
     )
 
+    session.add(AnalysisJob(
+        job_id=job.id,
+        status="running",
+        job_type="submit_upload",
+        source_path=stored_source_path,
+        prompt_path=stored_prompt_path,
+        model=model.strip(),
+    ))
+    session.commit()
+
     return AnalyzeSourceResponse(
         ok=True,
         job_id=job.id,
@@ -123,6 +134,8 @@ def get_submits(
         page_size: int = Query(20, ge=1, le=100),
         only_unrated: bool = Query(False),
         model: str | None = Query(None),
+        source_path: str | None = Query(None),
+        prompt_path: str | None = Query(None),
 ) -> SubmitListResponse:
     # total issues per submit
     total_issues_subquery = (
@@ -170,6 +183,12 @@ def get_submits(
 
     if model is not None and model.strip():
         statement = statement.where(Submit.model.ilike(f"%{model.strip()}%"))
+
+    if source_path is not None and source_path.strip():
+        statement = statement.where(Submit.source_path.ilike(f"%{source_path.strip()}%"))
+
+    if prompt_path is not None and prompt_path.strip():
+        statement = statement.where(Submit.prompt_path.ilike(f"%{prompt_path.strip()}%"))
 
     if only_unrated:
         statement = statement.where(is_fully_rated_column.is_(False))

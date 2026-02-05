@@ -1,7 +1,8 @@
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
 
 from app.api.dto import (
     BatchAnalyzeRequest,
@@ -12,6 +13,8 @@ from app.api.dto import (
     PromptContentResponse,
     PromptNamesResponse,
 )
+from app.database.db import get_database
+from app.database.models import AnalysisJob
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import PROMPTS_ROOT, find_prompt_file, safe_join
 
@@ -68,7 +71,11 @@ def upload_prompt(request: PromptUploadRequest) -> PromptUploadResponse:
 
 
 @router.post("/{prompt_path}")
-def analyze_sources_with_prompt(prompt_path: str, request: BatchAnalyzeRequest) -> PromptAnalysisResponse:
+def analyze_sources_with_prompt(
+    prompt_path: str,
+    request: BatchAnalyzeRequest,
+    session: Session = Depends(get_database),
+) -> PromptAnalysisResponse:
     analysis_queue = get_analysis_queue()
 
     jobs: list[PromptAnalysisJob] = []
@@ -81,10 +88,21 @@ def analyze_sources_with_prompt(prompt_path: str, request: BatchAnalyzeRequest) 
             job_timeout=1800,
         )
 
+        session.add(AnalysisJob(
+            job_id=job.id,
+            status="running",
+            job_type="prompt_review",
+            source_path=source_path,
+            prompt_path=prompt_path,
+            model=request.model,
+        ))
+
         jobs.append(PromptAnalysisJob(
             job_id=job.id,
             source_path=source_path)
         )
+
+    session.commit()
 
     return PromptAnalysisResponse(
         ok=True,

@@ -60,11 +60,14 @@
       </div>
 
       <div>
-        <label class="mb-1 block text-sm font-medium">Or upload a new prompt</label>
-        <input type="file" accept=".txt" (change)="handlePromptFileInput($event)"/>
-        @if (promptFileName) {
-          <div class="mt-1 text-xs text-slate-500">{{ promptFileName }}</div>
-        }
+        <label class="mb-1 block text-sm font-medium">Prompt content</label>
+        <textarea
+          nz-input
+          rows="12"
+          placeholder="Prompt content"
+          [ngModel]="promptDraft"
+          (ngModelChange)="handlePromptDraftChange($event)"
+        ></textarea>
       </div>
 
       <div>
@@ -76,6 +79,10 @@
           (ngModelChange)="handlePromptNameChange($event)"
         />
       </div>
+
+      @if (promptErrorMessage) {
+        <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
+      }
 
       @if (uploadErrorMessage) {
         <div nz-typography nzType="danger">{{ uploadErrorMessage }}</div>

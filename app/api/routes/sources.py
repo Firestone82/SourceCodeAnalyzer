@@ -2,10 +2,13 @@ import os
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
 
 from app.analyzer.analyze_job import run_submit_analysis
 from app.api.dto import AnalyzeRequest, SourcePathsResponse, AnalyzeSourceResponse, SourceFilesResponse
+from app.database.db import get_database
+from app.database.models import AnalysisJob
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import find_source_files_or_extract, SOURCES_ROOT
 
@@ -39,7 +42,11 @@ def get_source_file(source_path: str) -> SourceFilesResponse:
 
 
 @router.post("/{source_path:path}")
-def analyze_source_file(source_path: str, request: AnalyzeRequest) -> AnalyzeSourceResponse:
+def analyze_source_file(
+    source_path: str,
+    request: AnalyzeRequest,
+    session: Session = Depends(get_database),
+) -> AnalyzeSourceResponse:
     analysis_queue = get_analysis_queue()
 
     job = analysis_queue.enqueue(
@@ -49,6 +56,16 @@ def analyze_source_file(source_path: str, request: AnalyzeRequest) -> AnalyzeSou
         request.model,
         job_timeout=1800,
     )
+
+    session.add(AnalysisJob(
+        job_id=job.id,
+        status="running",
+        job_type="source_review",
+        source_path=source_path,
+        prompt_path=request.prompt_path,
+        model=request.model,
+    ))
+    session.commit()
 
     return AnalyzeSourceResponse(
         ok=True,

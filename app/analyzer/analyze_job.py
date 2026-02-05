@@ -1,14 +1,16 @@
 import logging
+from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
 
 from sqlalchemy import delete, select, Sequence
 from sqlalchemy.orm import Session
+from rq import get_current_job
 
 from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import EmbeddedFile, ReviewResult
 from app.database.db import SessionLocal
-from app.database.models import Submit, Issue
+from app.database.models import Submit, Issue, AnalysisJob
 from app.utils.files import find_prompt_file, find_source_files_or_extract
 
 logger = logging.getLogger(__name__)
@@ -79,6 +81,26 @@ def delete_previous_submit(session: Session, source_path: str, prompt_path: str)
 
 def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
     session: Session = SessionLocal()
+    job = get_current_job()
+    job_id = job.id if job else None
+
+    def update_job_status(status: str, error: str | None = None, submit_id: int | None = None) -> None:
+        if not job_id:
+            return
+        job_session: Session = SessionLocal()
+        try:
+            record = job_session.execute(
+                select(AnalysisJob).where(AnalysisJob.job_id == job_id)
+            ).scalar_one_or_none()
+            if not record:
+                return
+            record.status = status
+            record.error = error
+            record.submit_id = submit_id
+            record.updated_at = datetime.now()
+            job_session.commit()
+        finally:
+            job_session.close()
 
     # Detele previous analysis results for the same source_path and prompt_path if any
     try:
@@ -89,6 +111,7 @@ def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
             source_path, prompt_path
         )
         session.rollback()
+        update_job_status("failed", error="Failed to clean previous submit")
         session.close()
         raise
 
@@ -126,6 +149,7 @@ def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
             ))
 
         session.commit()
+        update_job_status("succeeded", submit_id=submit.id)
         logger.info(
             "Model '%s' analysis with prompt '%s' completed for files at '%s'. Issues found: %d",
             model, prompt_path, source_path, len(review_result.issues)
@@ -136,6 +160,7 @@ def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
             model, prompt_path, source_path
         )
         session.rollback()
+        update_job_status("failed", error="Analysis failed")
         raise
     finally:
         session.close()

@@ -11,7 +11,6 @@ import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
-import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzTreeNodeOptions, NzTreeNodeKey} from 'ng-zorro-antd/core/tree';
 
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
@@ -20,6 +19,7 @@ import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {SourcePathsResponseDto} from '../../service/api/api.models';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 import {PromptReviewModalComponent} from '../../components/prompt-review-modal/prompt-review-modal.component';
+import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
 
 @Component({
   selector: 'app-prompts-list',
@@ -33,7 +33,8 @@ import {PromptReviewModalComponent} from '../../components/prompt-review-modal/p
     NzSpinModule,
     NzTypographyModule,
     NzButtonModule,
-    PromptReviewModalComponent
+    PromptReviewModalComponent,
+    JobCreatedModalComponent
   ],
   templateUrl: './prompts-list.component.html',
 })
@@ -60,6 +61,8 @@ export class PromptsListComponent implements OnInit {
   public reviewModel: string = '';
   public isSubmittingReview: boolean = false;
   public reviewSubmitError: string | null = null;
+  public isJobModalVisible: boolean = false;
+  public jobModalIds: string[] = [];
   private sourceTreeLeafMap: Map<string, string[]> = new Map();
 
   public constructor(
@@ -68,8 +71,7 @@ export class PromptsListComponent implements OnInit {
     private readonly activatedRoute: ActivatedRoute,
     private readonly router: Router,
     private readonly syntaxHighlighterService: SyntaxHighlighterService,
-    private readonly domSanitizer: DomSanitizer,
-    private readonly nzMessageService: NzMessageService
+    private readonly domSanitizer: DomSanitizer
   ) {
   }
 
@@ -245,15 +247,17 @@ export class PromptsListComponent implements OnInit {
         })
       )
       .subscribe((responses) => {
-        const successCount = responses.filter(Boolean).length;
+        const successResponses = responses.filter(Boolean);
+        const successCount = successResponses.length;
         if (successCount === 0) {
           this.reviewSubmitError = 'Failed to submit reviews.';
           return;
         }
 
-        this.nzMessageService.success(`Queued ${successCount} review(s).`);
+        this.jobModalIds = successResponses.map((response) => response!.job_id);
+        this.isJobModalVisible = true;
         if (successCount < selectedSources.length) {
-          this.nzMessageService.warning('Some reviews failed to queue.');
+          this.reviewSubmitError = 'Some reviews failed to queue.';
         }
         this.closeReviewModal();
       });

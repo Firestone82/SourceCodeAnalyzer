@@ -106,3 +106,9 @@
   [canSubmitReview]="canSubmitReview"
   (submitReview)="submitReview()"
 />
+
+<app-job-created-modal
+  [isVisible]="isJobModalVisible"
+  (isVisibleChange)="isJobModalVisible = $event"
+  [jobIds]="jobModalIds"
+/>

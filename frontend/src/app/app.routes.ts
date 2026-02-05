@@ -6,6 +6,7 @@ import {PromptsListComponent} from './pages/prompts-list/prompts-list.component'
 import {SourcesListComponent} from './pages/sources-list/sources-list.component';
 import {LoginComponent} from './pages/login/login.component';
 import {AuthGuard} from './service/auth/auth.guard';
+import {JobsListComponent} from './pages/jobs-list/jobs-list.component';
 
 export const routes: Routes = [
   {
@@ -28,6 +29,10 @@ export const routes: Routes = [
       {
         path: 'sources',
         component: SourcesListComponent
+      },
+      {
+        path: 'jobs',
+        component: JobsListComponent
       },
     ]
   },
