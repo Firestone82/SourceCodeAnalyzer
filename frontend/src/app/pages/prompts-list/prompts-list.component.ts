@@ -5,6 +5,7 @@ import {catchError, finalize, of} from 'rxjs';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzMenuModule} from 'ng-zorro-antd/menu';
+import {NzPaginationModule} from 'ng-zorro-antd/pagination';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 
@@ -14,7 +15,7 @@ import {PromptContentResponseDto, PromptNamesResponseDto} from '../../service/ap
 @Component({
   selector: 'app-prompts-list',
   standalone: true,
-  imports: [NzCardComponent, NzLayoutModule, NzMenuModule, NzSpinModule, NzTypographyModule],
+  imports: [NzCardComponent, NzLayoutModule, NzMenuModule, NzPaginationModule, NzSpinModule, NzTypographyModule],
   templateUrl: './prompts-list.component.html',
 })
 export class PromptsListComponent implements OnInit {
@@ -25,6 +26,8 @@ export class PromptsListComponent implements OnInit {
   public promptErrorMessage: string | null = null;
   public selectedPromptPath: string | null = null;
   public content: string = '';
+  public pageIndex: number = 1;
+  public pageSize: number = 12;
 
   public constructor(
     private readonly promptsApiService: PromptsApiService,
@@ -35,6 +38,11 @@ export class PromptsListComponent implements OnInit {
 
   public ngOnInit(): void {
     this.loadPrompts();
+  }
+
+  public get pagedPromptPaths(): string[] {
+    const startIndex = (this.pageIndex - 1) * this.pageSize;
+    return this.promptPaths.slice(startIndex, startIndex + this.pageSize);
   }
 
   private loadPrompts(): void {
@@ -57,11 +65,17 @@ export class PromptsListComponent implements OnInit {
         const shouldSelectPrompt: string | null =
           (requestedPrompt && this.promptPaths.includes(requestedPrompt)) ? requestedPrompt : null;
         if (shouldSelectPrompt) {
+          this.updatePageForPrompt(shouldSelectPrompt);
           this.selectPrompt(shouldSelectPrompt);
         } else if (this.promptPaths.length > 0) {
+          this.pageIndex = 1;
           this.selectPrompt(this.promptPaths[0]);
         }
       });
+  }
+
+  public onPromptPageChange(pageIndex: number): void {
+    this.pageIndex = pageIndex;
   }
 
   public selectPrompt(promptPath: string): void {
@@ -92,5 +106,13 @@ export class PromptsListComponent implements OnInit {
       .subscribe((response: PromptContentResponseDto) => {
         this.content = response.content;
       });
+  }
+
+  private updatePageForPrompt(promptPath: string): void {
+    const index = this.promptPaths.indexOf(promptPath);
+    if (index === -1) {
+      return;
+    }
+    this.pageIndex = Math.floor(index / this.pageSize) + 1;
   }
 }

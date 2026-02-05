@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 
 import {ApiClientService} from './api-client.service';
-import {SourceFilesResponseDto, SourcePathsResponseDto} from './sources-api.models';
+import {AnalyzeSourceRequestDto, AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from './sources-api.models';
 
 @Injectable({providedIn: 'root'})
 export class SourcesApiService {
@@ -15,5 +15,15 @@ export class SourcesApiService {
 
   public getSourceFiles(sourcePath: string): Observable<SourceFilesResponseDto> {
     return this.apiClient.get<SourceFilesResponseDto>(`/sources/${encodeURIComponent(sourcePath)}`);
+  }
+
+  public analyzeSource(
+    sourcePath: string,
+    request: AnalyzeSourceRequestDto
+  ): Observable<AnalyzeSourceResponseDto> {
+    return this.apiClient.post<AnalyzeSourceResponseDto, AnalyzeSourceRequestDto>(
+      `/sources/${encodeURIComponent(sourcePath)}`,
+      request
+    );
   }
 }

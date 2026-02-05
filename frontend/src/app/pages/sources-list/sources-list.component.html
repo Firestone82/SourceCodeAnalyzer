@@ -5,6 +5,14 @@
         <div nz-typography nzType="secondary">Sources</div>
         <div nz-typography>Browse analyzed source bundles.</div>
       </div>
+
+      <button nz-button
+              nzType="primary"
+              [disabled]="!selectedSourcePath"
+              (click)="openReviewModal()"
+      >
+        Start review
+      </button>
     </div>
 
     @if (errorMessage) {
@@ -17,16 +25,24 @@
       <div class="col-span-1">
         <nz-sider>
           <ul nz-menu nzMode="inline" nzSelectable>
-            @for (sourcePath of sourcePaths; track sourcePath) {
-              <li
-                nz-menu-item
-                [nzSelected]="sourcePath === selectedSourcePath"
-                (click)="selectSource(sourcePath)"
+            @for (sourcePath of pagedSourcePaths; track sourcePath) {
+              <li nz-menu-item
+                  [nzSelected]="sourcePath === selectedSourcePath"
+                  (click)="selectSource(sourcePath)"
               >
                 <span>{{ sourcePath }}</span>
               </li>
             }
           </ul>
+
+          <div class="mt-3 flex justify-center">
+            <nz-pagination
+              [nzPageIndex]="pageIndex"
+              [nzTotal]="sourcePaths.length"
+              [nzPageSize]="pageSize"
+              (nzPageIndexChange)="onSourcePageChange($event)"
+            />
+          </div>
         </nz-sider>
       </div>
 
@@ -45,9 +61,9 @@
                   <div class="mb-3">
                     <nz-select
                       class="w-full"
+                      nzPlaceHolder="Select a file"
                       [(ngModel)]="selectedFileName"
                       (ngModelChange)="selectedFileName = $event"
-                      nzPlaceHolder="Select a file"
                     >
                       @for (fileName of fileNames; track fileName) {
                         <nz-option [nzLabel]="fileName" [nzValue]="fileName"></nz-option>
@@ -59,8 +75,8 @@
                     <app-file-viewer
                       [fileName]="selectedFileName"
                       [fileContent]="selectedFileContent"
-                      [issues]="[]">
-                    </app-file-viewer>
+                      [issues]="[]"
+                    />
                   }
                 }
               }
@@ -71,3 +87,63 @@
     </div>
   </nz-spin>
 </div>
+
+<nz-modal
+  [(nzVisible)]="isReviewModalVisible"
+  nzTitle="Process review"
+  nzWidth="800px"
+  [nzOkDisabled]="!canSubmitReview"
+  [nzOkLoading]="isSubmittingReview"
+  (nzOnCancel)="closeReviewModal()"
+  (nzOnOk)="submitReview()"
+>
+  <ng-container *nzModalContent>
+    <div class="flex flex-col gap-4">
+      <div class="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+        <div class="font-semibold">Source</div>
+        <div>{{ selectedSourcePath }}</div>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Model</label>
+        <input nz-input placeholder="Model name" [(ngModel)]="reviewModel"/>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Prompt template</label>
+        <nz-select
+          class="w-full"
+          [nzLoading]="isPromptOptionsLoading"
+          [ngModel]="selectedPromptPath"
+          (ngModelChange)="selectPromptForReview($event)"
+          nzPlaceHolder="Select a prompt"
+        >
+          @for (promptPath of promptPaths; track promptPath) {
+            <nz-option [nzLabel]="promptPath" [nzValue]="promptPath"></nz-option>
+          }
+        </nz-select>
+      </div>
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Prompt content</label>
+        <textarea nz-input
+                  rows="25"
+                  placeholder="Prompt content"
+                  [(ngModel)]="promptDraft"
+        ></textarea>
+      </div>
+
+      @if (promptErrorMessage) {
+        <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
+      }
+
+      @if (reviewSubmitError) {
+        <div nz-typography nzType="danger">{{ reviewSubmitError }}</div>
+      }
+
+      @if (reviewSubmitMessage) {
+        <div nz-typography nzType="success">{{ reviewSubmitMessage }}</div>
+      }
+    </div>
+  </ng-container>
+</nz-modal>

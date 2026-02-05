@@ -17,7 +17,7 @@
       <div class="col-span-1">
         <nz-sider>
           <ul nz-menu nzMode="inline" nzSelectable>
-            @for (promptPath of promptPaths; track promptPath) {
+            @for (promptPath of pagedPromptPaths; track promptPath) {
               <li
                 nz-menu-item
                 [nzSelected]="promptPath === selectedPromptPath"
@@ -28,6 +28,14 @@
             }
           </ul>
         </nz-sider>
+        <div class="mt-3 flex justify-center">
+          <nz-pagination
+            [nzPageIndex]="pageIndex"
+            [nzTotal]="promptPaths.length"
+            [nzPageSize]="pageSize"
+            (nzPageIndexChange)="onPromptPageChange($event)"
+          ></nz-pagination>
+        </div>
       </div>
 
       <div class="col-span-4">

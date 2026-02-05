@@ -27,6 +27,15 @@ class PromptContentResponse(BaseModel):
     content: str
 
 
+class PromptUploadRequest(BaseModel):
+    prompt_path: str = Field(min_length=1)
+    content: str = Field(min_length=1)
+
+
+class PromptUploadResponse(BaseModel):
+    prompt_path: str
+
+
 class PromptAnalysisJob(BaseModel):
     job_id: str
     source_path: str

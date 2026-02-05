@@ -6,3 +6,12 @@ export interface PromptContentResponseDto {
   prompt_path: string;
   content: string;
 }
+
+export interface PromptUploadRequestDto {
+  prompt_path: string;
+  content: string;
+}
+
+export interface PromptUploadResponseDto {
+  prompt_path: string;
+}
