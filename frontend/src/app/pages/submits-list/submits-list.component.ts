@@ -16,6 +16,7 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {AnalyzeSourceResponseDto} from '../../service/api/api.models';
+import {AuthService} from '../../service/auth/auth.service';
 
 @Component({
   selector: 'app-submits-list',
@@ -54,18 +55,26 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   pendingUpload: { jobId: string; sourcePath: string; promptPath: string; model: string } | null = null;
   isJobModalVisible: boolean = false;
   jobModalIds: string[] = [];
+  isAdmin: boolean = false;
+  publishingSubmitIds: Set<number> = new Set<number>();
   private readonly destroy$ = new Subject<void>();
   private readonly uploadPollingStop$ = new Subject<void>();
 
   public constructor(
     private readonly submitsApiService: SubmitsApiService,
     private readonly jobsApiService: JobsApiService,
-    private readonly router: Router
+    private readonly router: Router,
+    private readonly authService: AuthService
   ) {
   }
 
   public ngOnInit(): void {
     this.loadSubmits();
+    this.authService.rater$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((rater) => {
+        this.isAdmin = Boolean(rater?.admin);
+      });
   }
 
   public ngOnDestroy(): void {
@@ -137,6 +146,25 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     this.isJobModalVisible = true;
     this.startUploadPolling();
     this.loadSubmits();
+  }
+
+  public togglePublish(submit: SubmitListItemDto): void {
+    if (!this.isAdmin || this.publishingSubmitIds.has(submit.id)) {
+      return;
+    }
+
+    this.publishingSubmitIds.add(submit.id);
+    this.submitsApiService
+      .setSubmitPublishState(submit.id, !submit.published)
+      .pipe(finalize(() => this.publishingSubmitIds.delete(submit.id)))
+      .subscribe({
+        next: (response) => {
+          submit.published = response.published;
+        },
+        error: () => {
+          this.errorMessage = 'Failed to update submit visibility.';
+        }
+      });
   }
 
   private loadSubmits(): void {

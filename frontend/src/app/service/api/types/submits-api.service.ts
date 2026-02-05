@@ -1,7 +1,14 @@
 import {Injectable} from '@angular/core';
 import {map, Observable} from 'rxjs';
 import {ApiClientService} from '../api-client.service';
-import {AnalyzeSourceResponseDto, SubmitDetailsDto, SubmitDto, SubmitListResponseDto} from '../api.models';
+import {
+  AnalyzeSourceResponseDto,
+  SubmitDetailsDto,
+  SubmitDto,
+  SubmitListResponseDto,
+  SubmitPublishRequestDto,
+  SubmitPublishResponseDto
+} from '../api.models';
 import {SyntaxHighlighterService} from '../../syntax-highlighting.service';
 import {DomSanitizer} from '@angular/platform-browser';
 
@@ -71,5 +78,13 @@ export class SubmitsApiService {
 
   public uploadSubmit(formData: FormData): Observable<AnalyzeSourceResponseDto> {
     return this.apiClientService.postFormData<AnalyzeSourceResponseDto>('/submits/upload', formData);
+  }
+
+  public setSubmitPublishState(submitId: number, published: boolean): Observable<SubmitPublishResponseDto> {
+    const payload: SubmitPublishRequestDto = {published};
+    return this.apiClientService.put<SubmitPublishResponseDto, SubmitPublishRequestDto>(
+      `/submits/${submitId}/publish`,
+      payload
+    );
   }
 }

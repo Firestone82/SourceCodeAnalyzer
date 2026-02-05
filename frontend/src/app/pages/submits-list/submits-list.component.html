@@ -60,13 +60,14 @@
     >
       <thead>
       <tr>
-        <th>Id</th>
+        <th nzWidth="50px">Id</th>
         <th>Model</th>
         <th>Prompt path</th>
         <th>Source path</th>
         <th>Submit date</th>
-        <th>Rated</th>
-        <th>Total issues</th>
+        <th nzWidth="100px">Visibility</th>
+        <th nzWidth="80px">Rated</th>
+        <th nzWidth="100px">Total issues</th>
         <th></th>
       </tr>
       </thead>
@@ -74,7 +75,7 @@
       <tbody>
         @for (submit of submits; track $index) {
           <tr>
-            <td>{{ submit.id }}</td>
+            <td class="col-min">{{ submit.id }}</td>
             <td>{{ submit.model }}</td>
             <td>
               <a
@@ -95,14 +96,35 @@
               </a>
             </td>
             <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-            <td class="text-center">
+            <td class="text-center m-0">
+              <nz-tag [nzColor]="submit.published ? 'green' : 'gold'">
+                {{ submit.published ? 'Published' : 'Testing' }}
+              </nz-tag>
+            </td>
+            <td class="text-center m-0">
               <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
                 {{ submit.rated ? 'Yes' : 'No' }}
               </nz-tag>
             </td>
             <td class="text-center">{{ submit.total_issues }}</td>
             <td class="text-center">
-              <a nz-button nzType="primary" [routerLink]="['/submits', submit.id]">Rate</a>
+              <div class="flex w-full flex-row gap-2">
+                <a nz-button nzType="primary" class="w-full" [routerLink]="['/submits', submit.id]">
+                  Rate
+                </a>
+
+                @if (isAdmin) {
+                  <button
+                    nz-button
+                    nzType="default"
+                    class="w-full"
+                    [disabled]="publishingSubmitIds.has(submit.id)"
+                    (click)="togglePublish(submit)"
+                  >
+                    {{ submit.published ? 'Unpublish' : 'Publish' }}
+                  </button>
+                }
+              </div>
             </td>
           </tr>
         }

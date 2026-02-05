@@ -32,6 +32,15 @@
     <div class="app-rater">
       <span class="app-rater-label">Logged in as</span>
       <span class="app-rater-name">{{ rater.name }}</span>
+      <button
+        nz-button
+        nzType="default"
+        class="app-logout-button"
+        type="button"
+        (click)="logout()"
+      >
+        Logout
+      </button>
     </div>
   }
 </div>

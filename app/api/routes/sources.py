@@ -8,7 +8,8 @@ from sqlalchemy.orm import Session
 from app.analyzer.analyze_job import run_submit_analysis
 from app.api.dto import AnalyzeRequest, SourcePathsResponse, AnalyzeSourceResponse, SourceFilesResponse
 from app.database.db import get_database
-from app.database.models import AnalysisJob
+from app.database.models import AnalysisJob, Rater
+from app.api.security import get_current_rater
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import find_source_files_or_extract, SOURCES_ROOT
 
@@ -46,6 +47,7 @@ def analyze_source_file(
     source_path: str,
     request: AnalyzeRequest,
     session: Session = Depends(get_database),
+    current_rater: Rater = Depends(get_current_rater),
 ) -> AnalyzeSourceResponse:
     analysis_queue = get_analysis_queue()
 
@@ -54,6 +56,8 @@ def analyze_source_file(
         source_path,
         request.prompt_path,
         request.model,
+        current_rater.id,
+        False,
         job_timeout=1800,
     )
 

@@ -2,7 +2,7 @@ import shutil
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
-from sqlalchemy import select, and_, func, case, Select
+from sqlalchemy import select, and_, func, case, Select, or_
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyze_job import run_submit_analysis
@@ -14,8 +14,10 @@ from app.api.dto import (
     SubmitIssuesResponse,
     SubmitListResponse,
     SubmitListItemResponse,
+    SubmitPublishRequest,
+    SubmitPublishResponse,
 )
-from app.api.security import get_current_rater
+from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
 from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob
 from app.database.rq_queue import get_analysis_queue
@@ -84,6 +86,7 @@ def upload_submit(
         prompt_path: str | None = Form(None),
         prompt_file: UploadFile | None = File(None),
         session: Session = Depends(get_database),
+        current_rater: Rater = Depends(get_current_rater),
 ) -> AnalyzeSourceResponse:
     if not model.strip():
         raise HTTPException(status_code=400, detail="Model is required")
@@ -104,6 +107,8 @@ def upload_submit(
         stored_source_path,
         stored_prompt_path,
         model.strip(),
+        current_rater.id,
+        False,
         job_timeout=1800,
     )
 
@@ -181,6 +186,11 @@ def get_submits(
         .outerjoin(rated_issues_subquery, rated_issues_subquery.c.submit_id == Submit.id)
     )
 
+    if not current_rater.admin:
+        statement = statement.where(
+            or_(Submit.published.is_(True), Submit.created_by_id == current_rater.id)
+        )
+
     if model is not None and model.strip():
         statement = statement.where(Submit.model.ilike(f"%{model.strip()}%"))
 
@@ -216,6 +226,7 @@ def get_submits(
                 created_at=submit.created_at,
                 rated=is_fully_rated,
                 total_issues=total_issues,
+                published=submit.published,
             )
         )
 
@@ -269,6 +280,9 @@ def get_submit(
     submit: Submit = row[0]
     is_fully_rated: bool = row[1]
 
+    if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
     files: dict = find_source_files_or_extract(submit.source_path)
 
     return SubmitResponse(
@@ -279,6 +293,7 @@ def get_submit(
         files=files,
         created_at=submit.created_at,
         rated=is_fully_rated,
+        published=submit.published,
     )
 
 
@@ -291,6 +306,9 @@ def get_submit_details(
     submit: Submit | None = session.get(Submit, submit_id)
 
     if submit is None:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
+    if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=404, detail="Submit not found")
 
     rater_issues = session.execute(
@@ -335,4 +353,24 @@ def get_submit_details(
         rater_id=current_rater.id,
         summary=summary,
         issues=issues,
+    )
+
+
+@router.put("/{submit_id}/publish")
+def set_submit_publish_state(
+        submit_id: int,
+        request: SubmitPublishRequest,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SubmitPublishResponse:
+    submit: Submit | None = session.get(Submit, submit_id)
+    if submit is None:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
+    submit.published = request.published
+    session.commit()
+
+    return SubmitPublishResponse(
+        id=submit.id,
+        published=submit.published,
     )

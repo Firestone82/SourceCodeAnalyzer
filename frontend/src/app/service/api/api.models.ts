@@ -81,6 +81,7 @@ export interface SubmitListItemDto {
   rated: boolean;
   total_issues: number;
   created_at: string;
+  published: boolean;
 }
 
 export interface SubmitListResponseDto {
@@ -97,6 +98,7 @@ export interface SubmitDto {
   source_path: string;
   files: Record<string, string>;
   created_at: string;
+  published: boolean;
 }
 
 export interface SubmitDetailsDto {
@@ -124,4 +126,13 @@ export interface IssueDto {
 
 export interface RateIssueRequestDto {
   rating: number;
+}
+
+export interface SubmitPublishRequestDto {
+  published: boolean;
+}
+
+export interface SubmitPublishResponseDto {
+  id: number;
+  published: boolean;
 }

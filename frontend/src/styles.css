@@ -44,10 +44,11 @@
   list-style: decimal;
 }
 
-.submits-table .ant-table-body {
+.ant-table-header,
+.ant-table-body {
   overflow-y: hidden !important;
 }
 
-.jobs-table .ant-table-body {
-  overflow-y: hidden !important;
+.m-0 .ant-tag {
+  margin: 0 !important;
 }

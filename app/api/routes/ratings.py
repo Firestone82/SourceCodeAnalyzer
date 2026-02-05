@@ -58,6 +58,13 @@ def rate_issue(
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
 
+    submit: Submit | None = session.get(Submit, issue.submit_id)
+    if submit is None:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
+    if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
+        raise HTTPException(status_code=403, detail="Submit not available for rating")
+
     validate_rating_value(request)
 
     rating: IssueRating = upsert_issue_rating(
@@ -86,6 +93,9 @@ def rate_submit_summary(
     submit: Submit | None = session.get(Submit, submit_id)
     if submit is None:
         raise HTTPException(status_code=404, detail="Submit not found")
+
+    if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
+        raise HTTPException(status_code=403, detail="Submit not available for rating")
 
     validate_rating_value(request)
 

@@ -60,13 +60,22 @@ def embed_text_files(source_path: str) -> List[EmbeddedFile]:
     return embedded
 
 
-def delete_previous_submit(session: Session, source_path: str, prompt_path: str) -> None:
+def delete_previous_submit(
+    session: Session,
+    source_path: str,
+    prompt_path: str,
+    rater_id: int | None = None,
+) -> None:
+    conditions = [
+        Submit.source_path == source_path,
+        Submit.prompt_path == prompt_path,
+    ]
+    if rater_id is not None:
+        conditions.append(Submit.created_by_id == rater_id)
+
     submit_identifier_list: Sequence[int] = (
         session.execute(
-            select(Submit.id).where(
-                Submit.source_path == source_path,
-                Submit.prompt_path == prompt_path,
-            )
+            select(Submit.id).where(*conditions)
         )
         .scalars()
         .all()
@@ -79,7 +88,13 @@ def delete_previous_submit(session: Session, source_path: str, prompt_path: str)
     session.execute(delete(Submit).where(Submit.id.in_(submit_identifier_list)))
 
 
-def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
+def run_submit_analysis(
+    source_path: str,
+    prompt_path: str,
+    model: str,
+    rater_id: int | None = None,
+    published: bool = False,
+) -> None:
     session: Session = SessionLocal()
     job = get_current_job()
     job_id = job.id if job else None
@@ -104,7 +119,7 @@ def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
 
     # Detele previous analysis results for the same source_path and prompt_path if any
     try:
-        delete_previous_submit(session, source_path, prompt_path)
+        delete_previous_submit(session, source_path, prompt_path, rater_id)
     except Exception:
         logger.exception(
             "Failed to delete previous analysis results for source_path='%s' and prompt_path='%s'",
@@ -125,7 +140,9 @@ def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
         submit: Submit = Submit(
             source_path=source_path,
             prompt_path=prompt_path,
-            model=model
+            model=model,
+            created_by_id=rater_id,
+            published=published,
         )
 
         session.add(submit)

@@ -1,4 +1,3 @@
-
 :host {
   flex: 1;
 }
@@ -64,4 +63,17 @@
 .app-rater-name {
   font-weight: 600;
   color: #fff;
+}
+
+.app-logout-button {
+  margin-left: 8px;
+  color: #fff;
+  border-color: rgba(255, 255, 255, .6);
+  background: transparent;
+}
+
+.app-logout-button:hover,
+.app-logout-button:focus {
+  color: #fff;
+  border-color: #fff;
 }

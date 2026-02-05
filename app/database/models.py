@@ -15,9 +15,12 @@ class Submit(Base):
     model: Mapped[str] = mapped_column(String(128), nullable=False)
     source_path: Mapped[str] = mapped_column(String(512), nullable=False)
     prompt_path: Mapped[str] = mapped_column(String(512), nullable=False)
+    created_by_id: Mapped[int | None] = mapped_column(ForeignKey("rater.id"), nullable=True)
+    published: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
 
     issues: Mapped[list["Issue"]] = relationship(back_populates="submit", cascade="all, delete-orphan")
+    created_by: Mapped["Rater"] = relationship()
 
 
 class Issue(Base):

@@ -104,6 +104,7 @@ class SubmitResponse(BaseModel):
     files: dict[str, str]
     rated: bool
     created_at: datetime
+    published: bool
 
 
 class SubmitListItemResponse(BaseModel):
@@ -114,6 +115,7 @@ class SubmitListItemResponse(BaseModel):
     rated: bool
     total_issues: int
     created_at: datetime
+    published: bool
 
 
 class SubmitListResponse(BaseModel):
@@ -152,6 +154,15 @@ class SubmitIssuesResponse(BaseModel):
     rater_id: int
     summary: SubmitSummary
     issues: list[SubmitIssue]
+
+
+class SubmitPublishRequest(BaseModel):
+    published: bool
+
+
+class SubmitPublishResponse(BaseModel):
+    id: int
+    published: bool
 
 
 class RatingResponse(BaseModel):
