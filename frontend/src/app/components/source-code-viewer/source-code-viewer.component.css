@@ -1,0 +1,81 @@
+.viewer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.file-title {
+  padding: 8px 10px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.code {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.code-row {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.code-row:last-child {
+  border-bottom: none;
+}
+
+.issues {
+  padding: 10px;
+  display: grid;
+  gap: 8px;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.issue-card {
+  border-radius: 10px;
+}
+
+.issue-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+}
+
+.issue-text {
+  white-space: pre-wrap;
+}
+
+.issue-rate {
+  margin-top: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.rate-number {
+  min-width: 20px;
+  text-align: right;
+}
+
+.line {
+  display: grid;
+  grid-template-columns: 68px 1fr;
+}
+
+.line-no {
+  padding: 6px 10px;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.45);
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  user-select: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.line-text {
+  padding: 6px 10px;
+  white-space: pre-wrap; /* wrapping */
+  overflow-wrap: anywhere; /* break long tokens */
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+}

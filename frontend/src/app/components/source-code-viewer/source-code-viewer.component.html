@@ -1,0 +1,38 @@
+<div class="viewer">
+  <div class="file-title">
+    <span nz-typography><strong>{{ fileName }}</strong></span>
+  </div>
+
+  <div class="code">
+    <div class="code-row" *ngFor="let line of lines">
+      <div class="issues" *ngIf="line.issues.length > 0">
+        <nz-card
+          *ngFor="let issue of line.issues"
+          nzSize="small"
+          class="issue-card">
+          <div class="issue-header">
+            <nz-tag [nzColor]="severityColor(issue.severity)">{{ issue.severity }}</nz-tag>
+            <span nz-typography nzType="secondary">Line {{ issue.line }} · Issue #{{ issue.id }}</span>
+          </div>
+
+          <div nz-typography class="issue-text">{{ issue.explanation }}</div>
+
+          <div class="issue-rate">
+            <span nz-typography nzType="secondary">Rating:</span>
+            <nz-rate
+              [nzCount]="10"
+              [ngModel]="issue.rating ?? 0"
+              (ngModelChange)="onRatingChange(issue, $event)">
+            </nz-rate>
+            <span nz-typography nzType="secondary" class="rate-number">{{ issue.rating ?? 0 }}</span>
+          </div>
+        </nz-card>
+      </div>
+
+      <div class="line">
+        <div class="line-no">{{ line.lineNumber }}</div>
+        <div class="line-text">{{ line.text === '' ? ' ' : line.text }}</div>
+      </div>
+    </div>
+  </div>
+</div>

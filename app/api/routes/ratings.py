@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.dto import IssueRatingRequest, SubmitRatingResponse, IssueRatingResponse
+from app.api.dto import IssueRatingRequest, RatingResponse
 from app.api.security import get_current_rater
 from app.database.db import get_database
 from app.database.models import Issue, IssueRating, Rater, Submit
@@ -18,16 +18,14 @@ def upsert_issue_rating(
         session: Session,
         *,
         rater_id: int,
-        rating_value: int,
         issue_id: int | None,
-        submit_id: int | None,
+        rating_value: int,
 ) -> IssueRating:
     existing_rating: IssueRating | None = (
         session.query(IssueRating)
         .filter(
             IssueRating.rater_id == rater_id,
             IssueRating.issue_id == issue_id,
-            IssueRating.submit_id == submit_id,
         )
         .one_or_none()
     )
@@ -35,7 +33,6 @@ def upsert_issue_rating(
     if existing_rating is None:
         rating: IssueRating = IssueRating(
             issue_id=issue_id,
-            submit_id=submit_id,
             rater_id=rater_id,
             rating=rating_value,
         )
@@ -56,7 +53,7 @@ def rate_issue(
         request: IssueRatingRequest,
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
-) -> IssueRatingResponse:
+) -> RatingResponse:
     issue: Issue | None = session.get(Issue, issue_id)
     if issue is None:
         raise HTTPException(status_code=404, detail="Issue not found")
@@ -68,10 +65,9 @@ def rate_issue(
         rater_id=current_rater.id,
         rating_value=request.rating,
         issue_id=issue_id,
-        submit_id=None,
     )
 
-    return IssueRatingResponse(
+    return RatingResponse(
         id=rating.id,
         issue_id=rating.issue_id,
         rater_id=rating.rater_id,
@@ -86,7 +82,7 @@ def rate_submit_summary(
         request: IssueRatingRequest,
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
-) -> SubmitRatingResponse:
+) -> RatingResponse:
     submit: Submit | None = session.get(Submit, submit_id)
     if submit is None:
         raise HTTPException(status_code=404, detail="Submit not found")
@@ -98,12 +94,11 @@ def rate_submit_summary(
         rater_id=current_rater.id,
         rating_value=request.rating,
         issue_id=None,
-        submit_id=submit_id,
     )
 
-    return SubmitRatingResponse(
+    return RatingResponse(
         id=rating.id,
-        submit_id=rating.submit_id,
+        issue_id=rating.issue_id,
         rater_id=rating.rater_id,
         rating=rating.rating,
         created_at=rating.created_at,

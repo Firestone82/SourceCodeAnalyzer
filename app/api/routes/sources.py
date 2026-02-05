@@ -45,7 +45,7 @@ def analyze_source_file(source_path: str, request: AnalyzeRequest) -> AnalyzeSou
     job = analysis_queue.enqueue(
         run_submit_analysis,
         source_path,
-        request.prompt_name,
+        request.prompt_path,
         request.model,
         job_timeout=1800,
     )
@@ -55,5 +55,5 @@ def analyze_source_file(source_path: str, request: AnalyzeRequest) -> AnalyzeSou
         job_id=job.id,
         source_path=source_path,
         model=request.model,
-        prompt_name=request.prompt_name,
+        prompt_path=request.prompt_path,
     )

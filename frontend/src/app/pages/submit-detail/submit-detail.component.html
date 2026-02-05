@@ -1,0 +1,40 @@
+<nz-spin [nzSpinning]="isLoading">
+  <div *ngIf="submitDetailsDto as details" class="page">
+    <div class="header">
+      <div>
+        <div nz-typography nzType="secondary">Submit</div>
+        <div nz-typography><strong>#{{ details.submit_id }}</strong></div>
+      </div>
+
+      <div class="summary" *ngIf="details.summary?.explanation">
+        <div nz-typography nzType="secondary">Summary</div>
+        <div nz-typography>{{ details.summary.explanation }}</div>
+      </div>
+    </div>
+
+    <nz-layout class="detail-layout">
+      <nz-sider nzWidth="320" class="sider">
+        <ul nz-menu nzMode="inline" nzSelectable>
+          <li
+            nz-menu-item
+            *ngFor="let fileName of fileNames"
+            [nzSelected]="fileName === selectedFileName"
+            (click)="selectFile(fileName)">
+            <span>{{ fileName }}</span>
+            <nz-badge class="badge" [nzCount]="remainingIssuesByFile[fileName] ?? 0"></nz-badge>
+          </li>
+        </ul>
+      </nz-sider>
+
+      <nz-content class="content">
+        <app-file-viewer
+          *ngIf="selectedFileName && submitDto"
+          [fileName]="selectedFileName"
+          [fileContent]="submitDto.files[selectedFileName] || ''"
+          [issues]="issuesBySelectedFile"
+          (rate)="handleRate($event.issue, $event.rating)">
+        </app-file-viewer>
+      </nz-content>
+    </nz-layout>
+  </div>
+</nz-spin>

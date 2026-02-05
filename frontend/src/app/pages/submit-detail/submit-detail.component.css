@@ -1,0 +1,39 @@
+.page {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 220px 1fr;
+  align-items: start;
+}
+
+.summary {
+  padding: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.detail-layout {
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  overflow: hidden;
+  min-height: 70vh;
+}
+
+.sider {
+  background: rgba(255, 255, 255, 0.02);
+  border-right: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+.content {
+  padding: 12px;
+}
+
+.badge {
+  float: right;
+}

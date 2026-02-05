@@ -1,6 +1,6 @@
 import logging
 from pathlib import Path
-from typing import List
+from typing import List, Dict
 
 from sqlalchemy import delete, select, Sequence
 from sqlalchemy.orm import Session
@@ -32,37 +32,38 @@ def detect_language(file_path: str) -> str:
 
 def embed_text_files(source_path: str) -> List[EmbeddedFile]:
     embedded: List[EmbeddedFile] = []
-    total_chars = 0
+    total_chars: int = 0
 
-    submit_files = find_source_files_or_extract(source_path)
-    for file_path, content in sorted(submit_files.items(), key=lambda x: x[0].as_posix()):
-        total_lines = content.count("\n") + 1
+    submit_files: Dict[str, str] = find_source_files_or_extract(source_path)
+
+    for file_path, content in sorted(submit_files.items(), key=lambda item: item[0]):
         total_chars += len(content)
+        total_lines = content.count("\n") + 1
 
-        lang = detect_language(file_path.as_posix())
-        if lang == "text":
+        language: str = detect_language(file_path)
+        if language == "text":
             logger.info(f"Skipping {file_path}: unsupported file type")
             continue
 
-        embedded.append(
-            EmbeddedFile(
-                path=file_path.as_posix(),
-                language=lang,
-                content=content,
-                total_lines=total_lines,
-            )
-        )
+        embedded.append(EmbeddedFile(
+            path=file_path,
+            language=language,
+            content=content,
+            total_lines=total_lines,
+        ))
 
-    logger.info(f"Embedded {len(embedded)} files ({total_chars} total characters)")
+    logger.info(
+        f"Embedded {len(embedded)} files ({total_chars} total characters)"
+    )
     return embedded
 
 
-def delete_previous_submit(session: Session, source_path: str, prompt_name: str) -> None:
+def delete_previous_submit(session: Session, source_path: str, prompt_path: str) -> None:
     submit_identifier_list: Sequence[int] = (
         session.execute(
             select(Submit.id).where(
                 Submit.source_path == source_path,
-                Submit.prompt_name == prompt_name,
+                Submit.prompt_path == prompt_path,
             )
         )
         .scalars()
@@ -76,23 +77,23 @@ def delete_previous_submit(session: Session, source_path: str, prompt_name: str)
     session.execute(delete(Submit).where(Submit.id.in_(submit_identifier_list)))
 
 
-def run_submit_analysis(source_path: str, prompt_name: str, model: str) -> None:
+def run_submit_analysis(source_path: str, prompt_path: str, model: str) -> None:
     session: Session = SessionLocal()
 
-    # Detele previous analysis results for the same source_path and prompt_name if any
+    # Detele previous analysis results for the same source_path and prompt_path if any
     try:
-        delete_previous_submit(session, source_path, prompt_name)
+        delete_previous_submit(session, source_path, prompt_path)
     except Exception:
         logger.exception(
-            "Failed to delete previous analysis results for source_path='%s' and prompt_name='%s'",
-            source_path, prompt_name
+            "Failed to delete previous analysis results for source_path='%s' and prompt_path='%s'",
+            source_path, prompt_path
         )
         session.rollback()
         session.close()
         raise
 
     try:
-        system_prompt: str = find_prompt_file(prompt_name);
+        system_prompt: str = find_prompt_file(prompt_path);
         files: List[EmbeddedFile] = embed_text_files(source_path)
 
         summarizer: Analyzer = Analyzer(model, files, system_prompt)
@@ -100,13 +101,20 @@ def run_submit_analysis(source_path: str, prompt_name: str, model: str) -> None:
 
         submit: Submit = Submit(
             source_path=source_path,
-            prompt_name=prompt_name,
-            model=model,
-            summary=review_result.summary,
+            prompt_path=prompt_path,
+            model=model
         )
 
         session.add(submit)
         session.flush()  # To get the submit.id
+
+        session.add(Issue(
+            submit_id=submit.id,
+            file=None,
+            line=None,
+            severity="summary",
+            explanation=review_result.summary,
+        ))
 
         for issue in review_result.issues:
             session.add(Issue(
@@ -120,12 +128,12 @@ def run_submit_analysis(source_path: str, prompt_name: str, model: str) -> None:
         session.commit()
         logger.info(
             "Model '%s' analysis with prompt '%s' completed for files at '%s'. Issues found: %d",
-            model, prompt_name, source_path, len(review_result.issues)
+            model, prompt_path, source_path, len(review_result.issues)
         )
     except Exception:
         logger.exception(
             "Model '%s' analysis with prompt '%s' failed for files at '%s'",
-            model, prompt_name, source_path
+            model, prompt_path, source_path
         )
         session.rollback()
         raise

@@ -30,7 +30,7 @@ def extract_zip_safely(zip_path: Path, extracted_root: Path) -> None:
                 target_path.write_bytes(source_stream.read())
 
 
-def find_source_files_or_extract(submit_source_path: str) -> dict[Path, str]:
+def find_source_files_or_extract(submit_source_path: str) -> dict[str, str]:
     source_root: Path = safe_join(SOURCES_ROOT, submit_source_path)
     extracted_source_root: Path = source_root / "src"
 
@@ -42,17 +42,17 @@ def find_source_files_or_extract(submit_source_path: str) -> dict[Path, str]:
 
         extract_zip_safely(zip_path, extracted_source_root)
 
-    files: dict[Path, str] = {}
+    files: dict[str, str] = {}
     for path in extracted_source_root.rglob("*"):
         if path.is_file():
             relative_path: Path = path.relative_to(extracted_source_root)
-            files[relative_path] = path.read_text(encoding="utf-8", errors="replace")
+            files[relative_path.as_posix()] = path.read_text(encoding="utf-8", errors="replace")
 
     return files
 
 
-def find_prompt_file(prompt_name: str) -> str:
-    prompt_path: Path = safe_join(PROMPTS_ROOT, f"{prompt_name}.txt")
+def find_prompt_file(prompt_path: str) -> str:
+    prompt_path: Path = safe_join(PROMPTS_ROOT, f"{prompt_path}.txt")
 
     if not prompt_path.exists() or not prompt_path.is_file():
         raise FileNotFoundError(f"Prompt file at '{prompt_path}' not found")

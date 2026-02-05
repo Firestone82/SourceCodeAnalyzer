@@ -17,30 +17,33 @@ router = APIRouter(prefix="/prompts", tags=["prompts"])
 
 
 @router.get("")
-def list_prompt_names() -> PromptNamesResponse:
-    prompt_names: List[str] = []
+def list_prompt_paths() -> PromptNamesResponse:
+    prompt_paths: List[str] = []
 
     for path in PROMPTS_ROOT.rglob("*.txt"):
         relative_path: Path = path.relative_to(PROMPTS_ROOT)
-        prompt_names.append(relative_path.as_posix())
+        prompt_paths.append(relative_path.as_posix())
+
+    # Remove extensions
+    prompt_paths = [name[:-4] for name in prompt_paths]
 
     return PromptNamesResponse(
-        prompt_names=sorted(prompt_names)
+        prompt_paths=sorted(prompt_paths)
     )
 
 
-@router.get("/{prompt_name}")
-def get_prompt_content(prompt_name: str) -> PromptContentResponse:
-    content: str = find_prompt_file(prompt_name)
+@router.get("/{prompt_path:path}")
+def get_prompt_content(prompt_path: str) -> PromptContentResponse:
+    content: str = find_prompt_file(prompt_path)
 
     return PromptContentResponse(
-        prompt_name=prompt_name,
+        prompt_path=prompt_path,
         content=content
     )
 
 
-@router.post("/{prompt_name}")
-def analyze_sources_with_prompt(prompt_name: str, request: BatchAnalyzeRequest) -> PromptAnalysisResponse:
+@router.post("/{prompt_path}")
+def analyze_sources_with_prompt(prompt_path: str, request: BatchAnalyzeRequest) -> PromptAnalysisResponse:
     analysis_queue = get_analysis_queue()
 
     jobs: list[PromptAnalysisJob] = []
@@ -48,7 +51,7 @@ def analyze_sources_with_prompt(prompt_name: str, request: BatchAnalyzeRequest) 
         job = analysis_queue.enqueue(
             "app.analyzer.analyze_job.run_submit_analysis",
             source_path,
-            prompt_name,
+            prompt_path,
             request.model,
             job_timeout=1800,
         )
@@ -61,6 +64,6 @@ def analyze_sources_with_prompt(prompt_name: str, request: BatchAnalyzeRequest) 
     return PromptAnalysisResponse(
         ok=True,
         model=request.model,
-        prompt_name=prompt_name,
+        prompt_path=prompt_path,
         jobs=jobs,
     )
