@@ -105,6 +105,7 @@ export interface SubmitDetailsDto {
   submit_id: number;
   rater_id: number;
   summary: {
+    id: number | null;
     explanation: string;
     highlightedExplanation?: SafeHtml;
     rating: number | null;

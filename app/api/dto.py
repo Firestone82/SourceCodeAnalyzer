@@ -134,6 +134,7 @@ class SubmitDetailsIssue(BaseModel):
 
 
 class SubmitSummary(BaseModel):
+    id: Optional[int]
     explanation: str
     rating: Optional[int]
     rated_at: Optional[datetime]

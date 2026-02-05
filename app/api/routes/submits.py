@@ -322,6 +322,7 @@ def get_submit_details(
 
     issues = []
     summary = SubmitSummary(
+        id=None,
         explanation="Failed to load summary rating",
         rating=None,
         rated_at=None,
@@ -333,6 +334,7 @@ def get_submit_details(
 
         if issue.file is None and issue.line is None:
             summary = SubmitSummary(
+                id=issue.id,
                 explanation=issue.explanation,
                 rating=rate,
                 rated_at=rated_at,

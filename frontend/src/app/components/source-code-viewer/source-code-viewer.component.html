@@ -26,9 +26,16 @@
                   </div>
 
                   <div class="flex items-center leading-[5px]">
+                    @if (issue.rated_at) {
+                      <span class="mr-2 text-xs text-gray-500">
+                        {{ issue.rated_at | date:'yyyy-MM-dd' }}
+                      </span>
+                    }
                     <nz-rate
-                      [nzCount]="10"
-                      [ngModel]="issue.rating ?? 0"
+                      [nzCount]="5"
+                      [nzAllowHalf]="true"
+                      [nzAllowClear]="false"
+                      [ngModel]="(issue.rating ?? 0) / 2"
                       (ngModelChange)="onRatingChange(issue, $event)"
                     />
                   </div>

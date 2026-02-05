@@ -3,6 +3,7 @@ import {ActivatedRoute, RouterLink} from '@angular/router';
 import {forkJoin, of, Subject} from 'rxjs';
 import {DatePipe} from '@angular/common';
 import {catchError, takeUntil} from 'rxjs/operators';
+import {FormsModule} from '@angular/forms';
 
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzMenuModule} from 'ng-zorro-antd/menu';
@@ -10,6 +11,7 @@ import {NzBadgeModule} from 'ng-zorro-antd/badge';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzMessageService} from 'ng-zorro-antd/message';
+import {NzRateModule} from 'ng-zorro-antd/rate';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
 import {AnalyzeSourceResponseDto, IssueDto, SubmitDetailsDto, SubmitDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
@@ -27,9 +29,11 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
     NzBadgeModule,
     NzTypographyModule,
     NzSpinModule,
+    FormsModule,
     SourceCodeViewerComponent,
     NzCardComponent,
     DatePipe,
+    NzRateModule,
     NzButtonComponent,
     RouterLink,
     SourceReviewModalComponent,
@@ -107,6 +111,31 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
       error: () => {
         issue.rating = previousRating;
         this.nzMessageService.error('Failed to save rating.');
+      }
+    });
+  }
+
+  public handleSummaryRate(newValue: number): void {
+    if (!this.submitDetails?.summary.id) {
+      return;
+    }
+
+    const previousRating: number | null = this.submitDetails.summary.rating;
+    const normalized: number = this.normalizeStarRating(newValue);
+    this.submitDetails.summary.rating = normalized;
+
+    this.submitsApiService.rateIssue(this.submitDetails.summary.id, normalized).subscribe({
+      next: () => {
+        if (!this.submitDetails?.summary) {
+          return;
+        }
+        this.submitDetails.summary.rated_at = this.submitDetails.summary.rated_at ?? new Date().toISOString();
+      },
+      error: () => {
+        if (this.submitDetails?.summary) {
+          this.submitDetails.summary.rating = previousRating;
+        }
+        this.nzMessageService.error('Failed to save summary rating.');
       }
     });
   }
@@ -194,5 +223,9 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     }
 
     this.remainingIssuesByFile = remaining;
+  }
+
+  private normalizeStarRating(newValue: number): number {
+    return Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
   }
 }

@@ -1,5 +1,6 @@
 import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
 import {FormsModule} from '@angular/forms';
+import {DatePipe} from '@angular/common';
 
 import {NzCardModule} from 'ng-zorro-antd/card';
 import {NzRateModule} from 'ng-zorro-antd/rate';
@@ -21,7 +22,7 @@ interface LineViewModel {
 @Component({
   selector: 'app-file-viewer',
   standalone: true,
-  imports: [FormsModule, NzCardModule, NzRateModule, NzTagModule, NzTypographyModule],
+  imports: [FormsModule, DatePipe, NzCardModule, NzRateModule, NzTagModule, NzTypographyModule],
   templateUrl: 'source-code-viewer.component.html',
   styleUrl: 'source-code-viewer.component.css',
 })
@@ -47,7 +48,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   }
 
   public onRatingChange(issue: IssueDto, newValue: number): void {
-    const normalized: number = Math.max(0, Math.min(10, Math.round(Number(newValue))));
+    const normalized: number = Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
     this.rate.emit({issue, rating: normalized});
   }
 

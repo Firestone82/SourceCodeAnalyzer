@@ -61,7 +61,24 @@
       </div>
 
       <div class="summary">
-        <div nz-typography nzType="secondary">Summary</div>
+        <div class="flex items-center justify-between">
+          <div nz-typography nzType="secondary">Summary</div>
+          <div class="flex items-center leading-[5px]">
+            @if (submitDetails.summary.rated_at) {
+              <span class="mr-2 text-xs text-gray-500">
+                {{ submitDetails.summary.rated_at | date:'yyyy-MM-dd' }}
+              </span>
+            }
+            <nz-rate
+              [nzCount]="5"
+              [nzAllowHalf]="true"
+              [nzAllowClear]="false"
+              [ngModel]="(submitDetails.summary.rating ?? 0) / 2"
+              [nzDisabled]="!submitDetails.summary.id"
+              (ngModelChange)="handleSummaryRate($event)"
+            />
+          </div>
+        </div>
         @if (submitDetails.summary.highlightedExplanation) {
           <span class="issue-text" [innerHTML]="submitDetails.summary.highlightedExplanation"></span>
         } @else {
