@@ -6,8 +6,54 @@ services:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - redis_data:/data
+      - ./redis-data:/data
     restart: unless-stopped
 
-volumes:
-  redis_data:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: analyzer-api
+    env_file: .env
+    environment:
+      PORT: 4100
+      DATABASE_URL: sqlite:///./data/dev.db
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "${BACKEND_PORT:-4100}:4100"
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: analyzer-worker
+    command: ["python", "worker.py"]
+    env_file: .env
+    environment:
+      PORT: 4100
+      DATABASE_URL: sqlite:///./data/dev.db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - ./data:/app/data
+    depends_on:
+      - redis
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: analyzer-frontend
+    env_file: .env
+    environment:
+      API_BASE_URL: ${API_BASE_URL:-http://localhost:4100}
+    ports:
+      - "${FRONTEND_PORT:-4200}:4200"
+    depends_on:
+      - api
+    restart: unless-stopped

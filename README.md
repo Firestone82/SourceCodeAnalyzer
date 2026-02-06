@@ -30,7 +30,80 @@ to an RQ worker backed by Redis.
 
 - OpenAI-compatible API endpoint (or local model server) with a JSON-mode capable chat completion endpoint
 
-## 🛠 Installation & Setup
+## 🐳 Docker
+
+### Docker Compose (full stack)
+
+1. **Configure environment**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` (see [Configuration](#configuration) below). Both the backend and frontend read from this file.
+2. **Build and run**
+   ```bash
+   docker compose up --build
+   ```
+3. **Open the app**
+   - API: `http://localhost:4100`
+   - Frontend: `http://localhost:4200`
+
+> Data is persisted to local folders (`./data` and `./redis-data`) via bind mounts.
+
+### Separate containers (Docker run)
+
+1. **Create a network**
+   ```bash
+   docker network create analyzer-net
+   ```
+2. **Start Redis**
+   ```bash
+   docker run -d --name analyzer-redis --network analyzer-net -p 6379:6379 redis:7-alpine \
+     -v "$(pwd)/redis-data:/data" \
+     redis-server --appendonly yes
+   ```
+3. **Build the backend/worker image**
+   ```bash
+   docker build -t analyzer-backend .
+   ```
+4. **Run the API**
+   ```bash
+   docker run -d --name analyzer-api --network analyzer-net -p 4100:4100 \
+     --env-file .env \
+     -e PORT=4100 \
+     -e DATABASE_URL=sqlite:///./data/dev.db \
+     -e REDIS_URL=redis://analyzer-redis:6379/0 \
+     -v "$(pwd)/data:/app/data" \
+     analyzer-backend
+   ```
+5. **Run the worker**
+   ```bash
+   docker run -d --name analyzer-worker --network analyzer-net \
+     --env-file .env \
+     -e PORT=4100 \
+     -e DATABASE_URL=sqlite:///./data/dev.db \
+     -e REDIS_URL=redis://analyzer-redis:6379/0 \
+     -v "$(pwd)/data:/app/data" \
+     analyzer-backend python worker.py
+   ```
+6. **Build and run the frontend**
+   ```bash
+   docker build -t analyzer-frontend ./frontend
+   docker run -d --name analyzer-frontend --network analyzer-net -p 4200:4200 \
+     --env-file .env \
+     analyzer-frontend
+   ```
+7. **Open the app**
+   - API: `http://localhost:4100`
+   - Frontend: `http://localhost:4200`
+
+### Redis-only (optional)
+
+If you want to run Redis in Docker but everything else locally, use:
+```bash
+docker compose -f docker-compose.redis.yml up -d
+```
+
+## 🛠 Local Installation & Setup
 
 1. **Clone the repository**
    ```bash
@@ -41,10 +114,10 @@ to an RQ worker backed by Redis.
    ```bash
    cp .env.example .env
    ```
-   Edit `.env` (see [Configuration](#configuration) below).
+   Edit `.env` (see [Configuration](#configuration) below). The frontend reads `API_BASE_URL` from this file.
 3. **Start Redis**
    ```bash
-   docker compose up -d
+   docker compose -f docker-compose.redis.yml up -d
    ```
 4. **Create a virtual environment**
    ```bash
@@ -54,7 +127,7 @@ to an RQ worker backed by Redis.
    ```
 5. **Run the backend API**
    ```bash
-   uvicorn app.main:app --reload
+   uvicorn app.main:app --reload --port 4100
    ```
 6. **Run the RQ worker**
    ```bash
@@ -63,6 +136,7 @@ to an RQ worker backed by Redis.
 7. **Run the frontend**
    ```bash
    cd frontend
+   ../scripts/generate-frontend-env.sh
    npm install
    ng serve
    ```
@@ -77,6 +151,10 @@ Edit `.env` or set corresponding environment variables.
 APP_NAME=analyzer-backend
 APP_ENV=dev
 LOG_LEVEL=INFO
+BACKEND_PORT=4100
+FRONTEND_PORT=4200
+API_BASE_URL=http://localhost:4100
+CORS_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 
 # Storage
 DATA_DIR=data
@@ -92,6 +170,14 @@ RQ_QUEUE_NAME=analysis
 ANALYZER_BASE_URL=http://localhost:11434/v1
 ANALYZER_API_KEY=
 ```
+
+For local frontend development, regenerate `frontend/public/env.js` when you change `API_BASE_URL`:
+```bash
+./scripts/generate-frontend-env.sh
+```
+
+`CORS_ORIGINS` is a comma-separated list of allowed browser origins for the API (for example,
+`http://localhost:4200,http://127.0.0.1:4200`). Update it if your frontend runs on a different host.
 
 ## 📜 Logs
 

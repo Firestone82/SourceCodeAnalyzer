@@ -19,10 +19,18 @@ class Settings:
 
     analyzer_base_url: str
     analyzer_api_key: str
+    cors_origins: list[str]
 
     @staticmethod
     def load() -> "Settings":
         data_dir_raw: str = os.getenv("DATA_DIR", "data").strip()
+        cors_origins_raw: str = os.getenv(
+            "CORS_ORIGINS",
+            "http://localhost:4200,http://127.0.0.1:4200",
+        ).strip()
+        cors_origins: list[str] = [
+            origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()
+        ]
         return Settings(
             app_name=os.getenv("APP_NAME", "analyzer-backend").strip(),
             app_env=os.getenv("APP_ENV", "dev").strip(),
@@ -34,6 +42,7 @@ class Settings:
 
             analyzer_base_url=os.getenv("ANALYZER_BASE_URL", "").strip(),
             analyzer_api_key=os.getenv("ANALYZER_API_KEY", "").strip(),
+            cors_origins=cors_origins,
         )
 
 
