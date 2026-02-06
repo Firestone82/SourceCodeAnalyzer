@@ -38,11 +38,6 @@
           ></nz-tree>
           <ng-template #promptTreeNodeTemplate let-node>
             <span>{{ node.title }}</span>
-            @if (node.isLeaf && node.key === selectedPromptPath) {
-              <span class="ml-2 rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-700">
-                Selected
-              </span>
-            }
           </ng-template>
         </nz-card>
       </div>
