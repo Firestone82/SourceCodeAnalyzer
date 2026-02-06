@@ -6,13 +6,13 @@ import {FormsModule} from '@angular/forms';
 import {DomSanitizer, type SafeHtml} from '@angular/platform-browser';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
-import {NzMenuModule} from 'ng-zorro-antd/menu';
-import {NzPaginationModule} from 'ng-zorro-antd/pagination';
+import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzSegmentedModule} from 'ng-zorro-antd/segmented';
+import {NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
@@ -28,8 +28,7 @@ import {AuthService} from '../../service/auth/auth.service';
     FormsModule,
     NzCardComponent,
     NzLayoutModule,
-    NzMenuModule,
-    NzPaginationModule,
+    NzTreeModule,
     NzSpinModule,
     NzTypographyModule,
     NzButtonModule,
@@ -48,6 +47,8 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   public errorMessage: string | null = null;
   public promptErrorMessage: string | null = null;
   public selectedPromptPath: string | null = null;
+  public selectedPromptKeys: string[] = [];
+  public promptTreeNodes: NzTreeNodeOptions[] = [];
   public content: string = '';
   public renderedContent: SafeHtml | null = null;
   public isMarkdownView: boolean = true;
@@ -56,9 +57,6 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     {label: 'Markdown', value: 'markdown'},
     {label: 'Raw', value: 'raw'}
   ];
-  public pageIndex: number = 1;
-  public pageSize: number = 12;
-
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
@@ -76,11 +74,6 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   ) {
   }
 
-  public get pagedPromptPaths(): string[] {
-    const startIndex = (this.pageIndex - 1) * this.pageSize;
-    return this.promptPaths.slice(startIndex, startIndex + this.pageSize);
-  }
-
   public ngOnInit(): void {
     this.loadPrompts();
     this.authService.rater$
@@ -95,8 +88,24 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  public onPromptPageChange(pageIndex: number): void {
-    this.pageIndex = pageIndex;
+  public handlePromptNodeClick(event: NzFormatEmitEvent): void {
+    const node = event.node;
+    if (!node) {
+      return;
+    }
+
+    if (!node.isLeaf) {
+      node.isExpanded = !node.isExpanded;
+      return;
+    }
+
+    const key = node.key?.toString();
+    if (!key) {
+      return;
+    }
+
+    this.selectedPromptKeys = [key];
+    this.selectPrompt(key);
   }
 
   public selectPrompt(promptPath: string): void {
@@ -105,6 +114,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     }
 
     this.selectedPromptPath = promptPath;
+    this.selectedPromptKeys = [promptPath];
     this.content = '';
     this.renderedContent = null;
     this.promptErrorMessage = null;
@@ -177,11 +187,11 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       )
       .subscribe((response: PromptNamesResponseDto) => {
         this.promptPaths = response.prompt_paths;
+        this.promptTreeNodes = this.buildPromptTreeNodes(this.promptPaths);
         const requestedPrompt: string | null = this.activatedRoute.snapshot.queryParamMap.get('prompt');
         const shouldSelectPrompt: string | null =
           (requestedPrompt && this.promptPaths.includes(requestedPrompt)) ? requestedPrompt : null;
         if (shouldSelectPrompt) {
-          this.updatePageForPrompt(shouldSelectPrompt);
           this.selectPrompt(shouldSelectPrompt);
         }
       });
@@ -213,11 +223,47 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       });
   }
 
-  private updatePageForPrompt(promptPath: string): void {
-    const index = this.promptPaths.indexOf(promptPath);
-    if (index === -1) {
-      return;
+  private buildPromptTreeNodes(promptPaths: string[]): NzTreeNodeOptions[] {
+    type PromptTreeEntry = { children: Map<string, PromptTreeEntry>; path: string };
+    const root: PromptTreeEntry = {children: new Map(), path: ''};
+
+    for (const promptPath of promptPaths) {
+      const parts = promptPath.split('/').filter(Boolean);
+      let current = root;
+      let currentPath = '';
+
+      for (const part of parts) {
+        currentPath = currentPath ? `${currentPath}/${part}` : part;
+        if (!current.children.has(part)) {
+          current.children.set(part, {children: new Map(), path: currentPath});
+        }
+        current = current.children.get(part)!;
+      }
     }
-    this.pageIndex = Math.floor(index / this.pageSize) + 1;
+
+    const buildNodes = (node: PromptTreeEntry): NzTreeNodeOptions[] => {
+      return Array.from(node.children.entries())
+        .sort(([leftName, leftChild], [rightName, rightChild]) => {
+          const leftIsLeaf = leftChild.children.size === 0;
+          const rightIsLeaf = rightChild.children.size === 0;
+          if (leftIsLeaf !== rightIsLeaf) {
+            return leftIsLeaf ? 1 : -1;
+          }
+          return leftName.localeCompare(rightName);
+        })
+        .map(([name, child]) => {
+          const children = buildNodes(child);
+          const isLeaf = children.length === 0;
+          return {
+            title: name,
+            key: child.path,
+            children,
+            isLeaf,
+            expanded: true
+          };
+        });
+    };
+
+    return buildNodes(root);
   }
 }

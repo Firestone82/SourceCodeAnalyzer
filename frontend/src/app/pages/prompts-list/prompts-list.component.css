@@ -1,0 +1,3 @@
+::ng-deep .prompt-tree-container > div {
+  padding-left: 1rem !important;
+}
