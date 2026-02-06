@@ -1,9 +1,13 @@
 # Source Code Analyzer
+
 **Author:** Pavel Mikula
 
-A FastAPI + Angular application for submitting source archives, running LLM-based code analysis jobs, and rating the reported issues. The backend stores results in SQLite (or another SQLAlchemy-supported database) and offloads analysis to an RQ worker backed by Redis.
+A FastAPI + Angular application for submitting source archives, running LLM-based code analysis jobs, and rating the
+reported issues. The backend stores results in SQLite (or another SQLAlchemy-supported database) and offloads analysis
+to an RQ worker backed by Redis.
 
 ## 🚀 Features
+
 - **Source Archive Uploads** with prompt selection for analysis
 - **OpenAI-Compatible Analyzer** with JSON responses for issue extraction
 - **Asynchronous Job Processing** via Redis + RQ workers
@@ -13,17 +17,21 @@ A FastAPI + Angular application for submitting source archives, running LLM-base
 ## 🧰 Prerequisites
 
 ### Services
+
 - Redis 7+ (used by RQ for background jobs)
 
 ### Software
+
 - Python 3.11+
 - Node.js 20+ (for the Angular frontend)
 - npm or pnpm
 
 ### APIs
+
 - OpenAI-compatible API endpoint (or local model server) with a JSON-mode capable chat completion endpoint
 
 ## 🛠 Installation & Setup
+
 1. **Clone the repository**
    ```bash
    git clone <YOUR_REPO_URL>
@@ -61,7 +69,9 @@ A FastAPI + Angular application for submitting source archives, running LLM-base
    Then open `http://localhost:4200`.
 
 ## ⚙️ Configuration
+
 Edit `.env` or set corresponding environment variables.
+
 ```bash
 # API
 APP_NAME=analyzer-backend
@@ -84,7 +94,11 @@ ANALYZER_API_KEY=
 ```
 
 ## 📜 Logs
-The backend logs to stdout with timestamped log entries. Adjust `LOG_LEVEL` in the environment configuration to control verbosity.
+
+The backend logs to stdout with timestamped log entries. Adjust `LOG_LEVEL` in the environment configuration to control
+verbosity.
 
 ## License & Disclaimer
-This project is provided "as-is" for personal use. No warranty is offered. Adapt for your needs, but please do not redistribute without permission.
+
+This project is provided "as-is" for personal use. No warranty is offered. Adapt for your needs, but please do not
+redistribute without permission.

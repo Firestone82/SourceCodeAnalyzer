@@ -50,12 +50,6 @@ export class PromptReviewModalComponent implements OnChanges {
   ) {
   }
 
-  public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isVisible']?.currentValue) {
-      this.initializeModal();
-    }
-  }
-
   public get filteredModelOptions(): string[] {
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
@@ -72,6 +66,12 @@ export class PromptReviewModalComponent implements OnChanges {
       && !this.isSubmittingReview
       && !this.isSourceOptionsLoading
     );
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isVisible']?.currentValue) {
+      this.initializeModal();
+    }
   }
 
   public closeModal(): void {
@@ -172,7 +172,7 @@ export class PromptReviewModalComponent implements OnChanges {
   }
 
   private buildSourceTreeNodes(sourcePaths: string[]): NzTreeNodeOptions[] {
-    type SourceTreeEntry = {children: Map<string, SourceTreeEntry>; path: string};
+    type SourceTreeEntry = { children: Map<string, SourceTreeEntry>; path: string };
     const root: SourceTreeEntry = {children: new Map(), path: ''};
 
     for (const sourcePath of sourcePaths) {

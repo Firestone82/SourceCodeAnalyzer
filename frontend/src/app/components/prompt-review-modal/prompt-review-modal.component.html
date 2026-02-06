@@ -1,9 +1,9 @@
 <nz-modal
+  (nzOnCancel)="closeModal()"
+  [nzFooter]="footerTemplate"
   [nzVisible]="isVisible"
   nzTitle="Process review"
   nzWidth="800px"
-  (nzOnCancel)="closeModal()"
-  [nzFooter]="footerTemplate"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-4">
@@ -15,11 +15,11 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Model</label>
         <input
+          (ngModelChange)="handleModelChange($event)"
+          [ngModel]="reviewModel"
+          [nzAutocomplete]="modelAuto"
           nz-input
           placeholder="Model name"
-          [ngModel]="reviewModel"
-          (ngModelChange)="handleModelChange($event)"
-          [nzAutocomplete]="modelAuto"
         />
         <nz-autocomplete #modelAuto>
           @for (model of filteredModelOptions; track model) {
@@ -32,10 +32,10 @@
         <label class="mb-1 block text-sm font-medium">Sources</label>
         <nz-spin [nzSpinning]="isSourceOptionsLoading" nzTip="Loading sources...">
           <nz-tree
+            (nzCheckedKeysChange)="handleSourceKeysChange($event)"
+            [nzCheckedKeys]="selectedSourceKeys"
             [nzData]="sourceTreeNodes"
             nzCheckable
-            [nzCheckedKeys]="selectedSourceKeys"
-            (nzCheckedKeysChange)="handleSourceKeysChange($event)"
           ></nz-tree>
         </nz-spin>
       </div>
@@ -49,9 +49,9 @@
 
 <ng-template #footerTemplate>
   <app-submit-footer
-    [isSubmitting]="isSubmittingReview"
-    [isDisabled]="!canSubmitBulkReview"
     (cancel)="closeModal()"
     (submit)="handleSubmit()"
+    [isDisabled]="!canSubmitBulkReview"
+    [isSubmitting]="isSubmittingReview"
   ></app-submit-footer>
 </ng-template>

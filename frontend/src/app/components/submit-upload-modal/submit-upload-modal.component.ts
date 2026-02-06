@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, Output, OnChanges, SimpleChanges} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, Output, SimpleChanges} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzInputModule} from 'ng-zorro-antd/input';
@@ -10,7 +10,12 @@ import {catchError, finalize, of} from 'rxjs';
 import {KNOWN_MODELS} from '../../shared/model-options';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto, PromptUploadResponseDto} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  PromptContentResponseDto,
+  PromptNamesResponseDto,
+  PromptUploadResponseDto
+} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 
 @Component({
@@ -51,12 +56,6 @@ export class SubmitUploadModalComponent implements OnChanges {
   ) {
   }
 
-  public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isVisible']?.currentValue) {
-      this.initializeModal();
-    }
-  }
-
   public get filteredModelOptions(): string[] {
     const query = this.uploadModel.trim().toLowerCase();
     if (!query) {
@@ -77,6 +76,12 @@ export class SubmitUploadModalComponent implements OnChanges {
       && !this.isPromptOptionsLoading
       && !this.isSubmitting
     );
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isVisible']?.currentValue) {
+      this.initializeModal();
+    }
   }
 
   public closeModal(): void {

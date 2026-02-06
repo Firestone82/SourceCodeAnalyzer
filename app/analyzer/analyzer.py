@@ -7,7 +7,6 @@ from openai import OpenAI
 from openai.types.chat import ChatCompletionUserMessageParam, ChatCompletionSystemMessageParam
 from openai.types.shared_params import ResponseFormatJSONObject
 from serde import from_dict
-from serde.json import from_json
 
 from app.analyzer.dto import EmbeddedFile, ReviewResult
 from app.settings import settings

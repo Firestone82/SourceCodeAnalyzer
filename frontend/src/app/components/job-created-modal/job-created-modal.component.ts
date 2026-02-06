@@ -90,13 +90,16 @@ export class JobCreatedModalComponent implements OnChanges, OnDestroy {
           const submitId: number | null | undefined = singleJob?.submit_id;
 
           if (submitId != null) {
-            this.router.navigate(['/submits', submitId]).then(() => {});
+            this.router.navigate(['/submits', submitId]).then(() => {
+            });
           } else {
             // fallback if API hasn’t populated submit_id (or it’s genuinely null)
-            this.router.navigate(['/submits']).then(() => {});
+            this.router.navigate(['/submits']).then(() => {
+            });
           }
         } else {
-          this.router.navigate(['/submits']).then(() => {});
+          this.router.navigate(['/submits']).then(() => {
+          });
         }
       });
   }

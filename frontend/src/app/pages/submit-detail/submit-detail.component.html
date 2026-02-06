@@ -16,30 +16,30 @@
           </div>
 
           <div>
-              <div nz-typography nzType="secondary">Source path</div>
-              <div nz-typography>
+            <div nz-typography nzType="secondary">Source path</div>
+            <div nz-typography>
               <a
-                [routerLink]="['/sources']"
                 [queryParams]="{source: submit.source_path}"
+                [routerLink]="['/sources']"
                 class="text-blue-600 hover:text-blue-500"
               >
                 <strong>{{ submit.source_path }}</strong>
               </a>
-              </div>
             </div>
+          </div>
 
           <div>
-              <div nz-typography nzType="secondary">Prompt path</div>
-              <div nz-typography>
+            <div nz-typography nzType="secondary">Prompt path</div>
+            <div nz-typography>
               <a
-                [routerLink]="['/prompts']"
                 [queryParams]="{prompt: submit.prompt_path}"
+                [routerLink]="['/prompts']"
                 class="text-blue-600 hover:text-blue-500"
               >
                 <strong>{{ submit.prompt_path }}</strong>
               </a>
-              </div>
             </div>
+          </div>
 
           <div>
             <div nz-typography nzType="secondary">Submit date</div>
@@ -48,12 +48,12 @@
         </div>
 
         <div class="flex gap-2">
-          <button nz-button (click)="openReviewModal()">Reevaluate submit</button>
+          <button (click)="openReviewModal()" nz-button>Reevaluate submit</button>
           <a
+            [disabled]="!nextSubmitId"
+            [routerLink]="['/submits', nextSubmitId]"
             nz-button
             nzType="primary"
-            [routerLink]="['/submits', nextSubmitId]"
-            [disabled]="!nextSubmitId"
           >
             Next submit
           </a>
@@ -70,17 +70,17 @@
               </span>
             }
             <nz-rate
-              [nzCount]="5"
-              [nzAllowHalf]="true"
-              [nzAllowClear]="false"
-              [ngModel]="(submitDetails.summary.rating ?? 0) / 2"
-              [nzDisabled]="!submitDetails.summary.id"
               (ngModelChange)="handleSummaryRate($event)"
+              [ngModel]="(submitDetails.summary.rating ?? 0) / 2"
+              [nzAllowClear]="false"
+              [nzAllowHalf]="true"
+              [nzCount]="5"
+              [nzDisabled]="!submitDetails.summary.id"
             />
           </div>
         </div>
         @if (submitDetails.summary.highlightedExplanation) {
-          <span class="issue-text" [innerHTML]="submitDetails.summary.highlightedExplanation"></span>
+          <span [innerHTML]="submitDetails.summary.highlightedExplanation" class="issue-text"></span>
         } @else {
           <span>{{ submitDetails.summary.explanation }}</span>
         }
@@ -94,13 +94,13 @@
             <ul nz-menu nzMode="inline" nzSelectable>
               @for (fileName of fileNames; track fileNames) {
                 <li
-                  nz-menu-item
-                  [nzSelected]="fileName === selectedFileName"
                   (click)="selectFile(fileName)"
+                  [nzSelected]="fileName === selectedFileName"
+                  nz-menu-item
                 >
                   <div class="flex justify-between items-center w-full">
                     <span>{{ fileName }}</span>
-                    <nz-badge nzStandalone [nzCount]="remainingIssuesByFile[fileName] ?? 0"></nz-badge>
+                    <nz-badge [nzCount]="remainingIssuesByFile[fileName] ?? 0" nzStandalone></nz-badge>
                   </div>
                 </li>
               }
@@ -112,10 +112,10 @@
           <nz-card>
             @if (selectedFileName && submit) {
               <app-file-viewer
-                [fileName]="selectedFileName"
+                (rate)="handleRate($event.issue, $event.rating)"
                 [fileContent]="submit.files[selectedFileName] || ''"
-                [issues]="issuesBySelectedFile"
-                (rate)="handleRate($event.issue, $event.rating)">
+                [fileName]="selectedFileName"
+                [issues]="issuesBySelectedFile">
               </app-file-viewer>
             } @else {
               <div nz-typography>Select a file to view its content and issues.</div>
@@ -128,11 +128,11 @@
 </div>
 
 <app-source-review-modal
-  [(isVisible)]="isReviewModalVisible"
-  [selectedSourcePath]="submit?.source_path ?? null"
-  [defaultPromptPath]="submit?.prompt_path ?? null"
-  [defaultModel]="submit?.model ?? ''"
   (reviewQueued)="handleReviewQueued($event)"
+  [(isVisible)]="isReviewModalVisible"
+  [defaultModel]="submit?.model ?? ''"
+  [defaultPromptPath]="submit?.prompt_path ?? null"
+  [selectedSourcePath]="submit?.source_path ?? null"
 ></app-source-review-modal>
 
 <app-job-created-modal

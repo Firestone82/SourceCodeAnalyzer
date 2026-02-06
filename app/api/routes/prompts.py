@@ -13,9 +13,9 @@ from app.api.dto import (
     PromptContentResponse,
     PromptNamesResponse,
 )
+from app.api.security import get_current_rater
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater
-from app.api.security import get_current_rater
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import PROMPTS_ROOT, find_prompt_file, safe_join
 
@@ -73,10 +73,10 @@ def upload_prompt(request: PromptUploadRequest) -> PromptUploadResponse:
 
 @router.post("/{prompt_path}")
 def analyze_sources_with_prompt(
-    prompt_path: str,
-    request: BatchAnalyzeRequest,
-    session: Session = Depends(get_database),
-    current_rater: Rater = Depends(get_current_rater),
+        prompt_path: str,
+        request: BatchAnalyzeRequest,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(get_current_rater),
 ) -> PromptAnalysisResponse:
     analysis_queue = get_analysis_queue()
 

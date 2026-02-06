@@ -1,9 +1,9 @@
 <nz-modal
+  (nzOnCancel)="closeModal()"
+  [nzFooter]="footerTemplate"
   [nzVisible]="isVisible"
   nzTitle="Process review"
   nzWidth="800px"
-  (nzOnCancel)="closeModal()"
-  [nzFooter]="footerTemplate"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-4">
@@ -15,11 +15,11 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Model</label>
         <input
+          (ngModelChange)="handleModelChange($event)"
+          [ngModel]="reviewModel"
+          [nzAutocomplete]="modelAuto"
           nz-input
           placeholder="Model name"
-          [ngModel]="reviewModel"
-          (ngModelChange)="handleModelChange($event)"
-          [nzAutocomplete]="modelAuto"
         />
         <nz-autocomplete #modelAuto>
           @for (model of filteredModelOptions; track model) {
@@ -31,10 +31,10 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt template</label>
         <nz-select
-          class="w-full"
-          [nzLoading]="isPromptOptionsLoading"
-          [ngModel]="selectedPromptPath"
           (ngModelChange)="handlePromptSelection($event)"
+          [ngModel]="selectedPromptPath"
+          [nzLoading]="isPromptOptionsLoading"
+          class="w-full"
           nzPlaceHolder="Select a prompt"
         >
           @for (promptPath of promptPaths; track promptPath) {
@@ -46,11 +46,11 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt content</label>
         <textarea
-          nz-input
-          rows="25"
-          placeholder="Prompt content"
-          [ngModel]="promptDraft"
           (ngModelChange)="handlePromptDraftChange($event)"
+          [ngModel]="promptDraft"
+          nz-input
+          placeholder="Prompt content"
+          rows="25"
         ></textarea>
       </div>
 
@@ -67,9 +67,9 @@
 
 <ng-template #footerTemplate>
   <app-submit-footer
-    [isSubmitting]="isSubmittingReview"
-    [isDisabled]="!canSubmitReview"
     (cancel)="closeModal()"
     (submit)="handleSubmit()"
+    [isDisabled]="!canSubmitReview"
+    [isSubmitting]="isSubmittingReview"
   ></app-submit-footer>
 </ng-template>

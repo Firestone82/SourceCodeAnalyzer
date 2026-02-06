@@ -1,65 +1,65 @@
 <div class="flex flex-col gap-4">
-  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <div nz-typography nzType="secondary">Submits</div>
         <div nz-typography>Upload new source bundles or review existing submits.</div>
       </div>
 
-      <button nz-button nzType="primary" (click)="openUploadModal()">Upload submit</button>
+      <button (click)="openUploadModal()" nz-button nzType="primary">Upload submit</button>
     </div>
 
     @if (errorMessage) {
-      <div nz-typography nzType="danger" class="mt-3">{{ errorMessage }}</div>
+      <div class="mt-3" nz-typography nzType="danger">{{ errorMessage }}</div>
     }
   </nz-card>
 
-  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <input
+        (keyup.enter)="applyFilters()"
+        [(ngModel)]="modelFilter"
+        class="max-w-[240px]"
         nz-input
         placeholder="Filter by model"
-        [(ngModel)]="modelFilter"
-        (keyup.enter)="applyFilters()"
-        class="max-w-[240px]"
       />
 
       <input
+        (keyup.enter)="applyFilters()"
+        [(ngModel)]="promptFilter"
+        class="max-w-[240px]"
         nz-input
         placeholder="Filter by prompt path"
-        [(ngModel)]="promptFilter"
-        (keyup.enter)="applyFilters()"
-        class="max-w-[240px]"
       />
 
       <input
+        (keyup.enter)="applyFilters()"
+        [(ngModel)]="sourceFilter"
+        class="max-w-[240px]"
         nz-input
         placeholder="Filter by source path"
-        [(ngModel)]="sourceFilter"
-        (keyup.enter)="applyFilters()"
-        class="max-w-[240px]"
       />
 
-      <label nz-checkbox [(ngModel)]="onlyUnrated" (ngModelChange)="applyFilters()">
+      <label (ngModelChange)="applyFilters()" [(ngModel)]="onlyUnrated" nz-checkbox>
         Only not rated
       </label>
     </div>
 
     <nz-table
-      class="submits-table"
-      [nzData]="submits"
-      [nzLoading]="isLoading"
-      nzSize="small"
-      nzBordered
-      [nzFrontPagination]="false"
-      [nzTotal]="totalSubmits"
-      [nzPageSize]="pageSize"
-      [nzPageIndex]="pageIndex"
-      [nzShowSizeChanger]="true"
-      [nzScroll]="{ y: '480px' }"
-      [nzPageSizeOptions]="[10, 20, 50]"
       (nzPageIndexChange)="onPageIndexChange($event)"
       (nzPageSizeChange)="onPageSizeChange($event)"
+      [nzData]="submits"
+      [nzFrontPagination]="false"
+      [nzLoading]="isLoading"
+      [nzPageIndex]="pageIndex"
+      [nzPageSizeOptions]="[10, 20, 50]"
+      [nzPageSize]="pageSize"
+      [nzScroll]="{ y: '480px' }"
+      [nzShowSizeChanger]="true"
+      [nzTotal]="totalSubmits"
+      class="submits-table"
+      nzBordered
+      nzSize="small"
     >
       <thead>
       <tr>
@@ -82,8 +82,8 @@
             <td>{{ submit.model }}</td>
             <td>
               <a
-                [routerLink]="['/prompts']"
                 [queryParams]="{prompt: submit.prompt_path}"
+                [routerLink]="['/prompts']"
                 class="text-blue-600 hover:text-blue-500"
               >
                 {{ submit.prompt_path }}
@@ -91,8 +91,8 @@
             </td>
             <td>
               <a
-                [routerLink]="['/sources']"
                 [queryParams]="{source: submit.source_path}"
+                [routerLink]="['/sources']"
                 class="text-blue-600 hover:text-blue-500"
               >
                 {{ submit.source_path }}
@@ -113,22 +113,22 @@
             <td class="text-center">
               <div class="flex w-full flex-row gap-2">
                 <a
+                  (click)="handleRateClick($event, submit)"
+                  [routerLink]="['/submits', submit.id]"
+                  class="w-full"
                   nz-button
                   nzType="primary"
-                  class="w-full"
-                  [routerLink]="['/submits', submit.id]"
-                  (click)="handleRateClick($event, submit)"
                 >
                   Rate
                 </a>
 
                 @if (isAdmin) {
                   <button
+                    (click)="togglePublish(submit)"
+                    [disabled]="publishingSubmitIds.has(submit.id)"
+                    class="w-full"
                     nz-button
                     nzType="default"
-                    class="w-full"
-                    [disabled]="publishingSubmitIds.has(submit.id)"
-                    (click)="togglePublish(submit)"
                   >
                     {{ submit.published ? 'Unpublish' : 'Publish' }}
                   </button>
@@ -143,13 +143,13 @@
 </div>
 
 <app-submit-upload-modal
-  [isVisible]="isUploadModalVisible"
   (isVisibleChange)="isUploadModalVisible = $event"
   (uploadComplete)="handleUploadCompleted($event)"
+  [isVisible]="isUploadModalVisible"
 />
 
 <app-job-created-modal
-  [isVisible]="isJobModalVisible"
   (isVisibleChange)="isJobModalVisible = $event"
+  [isVisible]="isJobModalVisible"
   [jobIds]="jobModalIds"
 />

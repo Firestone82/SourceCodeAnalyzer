@@ -8,7 +8,7 @@ import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
-import {catchError, interval, of, Subject, switchMap, takeUntil, startWith} from 'rxjs';
+import {catchError, interval, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {JobDto, JobListResponseDto} from '../../service/api/api.models';

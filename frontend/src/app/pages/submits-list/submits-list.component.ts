@@ -8,14 +8,13 @@ import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {SubmitListItemDto, SubmitListResponseDto} from '../../service/api/api.models';
-import {catchError, finalize, interval, merge, of, Subject, switchMap, takeUntil, startWith} from 'rxjs';
+import {AnalyzeSourceResponseDto, SubmitListItemDto, SubmitListResponseDto} from '../../service/api/api.models';
+import {catchError, finalize, interval, merge, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {SubmitUploadModalComponent} from '../../components/submit-upload-modal/submit-upload-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
-import {AnalyzeSourceResponseDto} from '../../service/api/api.models';
 import {AuthService} from '../../service/auth/auth.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
 
@@ -118,37 +117,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     }
   }
 
-  private startUploadPolling(): void {
-    if (!this.pendingUpload) {
-      return;
-    }
-
-    const pending = this.pendingUpload;
-    this.uploadPollingStop$.next();
-    interval(4000)
-      .pipe(
-        startWith(0),
-        switchMap(() => this.jobsApiService.getJob(pending.jobId)),
-        catchError(() => of(null)),
-        takeUntil(merge(this.destroy$, this.uploadPollingStop$))
-      )
-      .subscribe((response) => {
-        if (!response) {
-          return;
-        }
-        if (response.status === 'failed') {
-          this.pendingUpload = null;
-          this.uploadPollingStop$.next();
-          return;
-        }
-        if (response.status === 'succeeded' && response.submit_id) {
-          this.pendingUpload = null;
-          this.uploadPollingStop$.next();
-          void this.router.navigate(['/submits', response.submit_id]);
-        }
-      });
-  }
-
   public handleUploadCompleted(response: AnalyzeSourceResponseDto): void {
     this.pendingUpload = {
       jobId: response.job_id,
@@ -177,6 +145,37 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
         },
         error: () => {
           this.errorMessage = 'Failed to update submit visibility.';
+        }
+      });
+  }
+
+  private startUploadPolling(): void {
+    if (!this.pendingUpload) {
+      return;
+    }
+
+    const pending = this.pendingUpload;
+    this.uploadPollingStop$.next();
+    interval(4000)
+      .pipe(
+        startWith(0),
+        switchMap(() => this.jobsApiService.getJob(pending.jobId)),
+        catchError(() => of(null)),
+        takeUntil(merge(this.destroy$, this.uploadPollingStop$))
+      )
+      .subscribe((response) => {
+        if (!response) {
+          return;
+        }
+        if (response.status === 'failed') {
+          this.pendingUpload = null;
+          this.uploadPollingStop$.next();
+          return;
+        }
+        if (response.status === 'succeeded' && response.submit_id) {
+          this.pendingUpload = null;
+          this.uploadPollingStop$.next();
+          void this.router.navigate(['/submits', response.submit_id]);
         }
       });
   }

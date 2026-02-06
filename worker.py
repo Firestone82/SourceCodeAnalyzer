@@ -1,7 +1,7 @@
 from rq import Worker
 
-from app.logging_config import configure_logging
 from app.database.rq_queue import ANALYSIS_QUEUE, get_redis_connection
+from app.logging_config import configure_logging
 
 
 def main() -> None:

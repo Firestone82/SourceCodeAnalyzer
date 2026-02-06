@@ -1,8 +1,8 @@
 <nz-modal
+  (nzOnCancel)="closeModal()"
+  [nzFooter]="null"
   [nzVisible]="isVisible"
   nzTitle="Job queued"
-  [nzFooter]="null"
-  (nzOnCancel)="closeModal()"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col items-center gap-3">
@@ -12,7 +12,7 @@
           <nz-tag>{{ jobId }}</nz-tag>
         }
       </div>
-      <a nz-button nzType="link" routerLink="/jobs" (click)="closeModal()">Open jobs</a>
+      <a (click)="closeModal()" nz-button nzType="link" routerLink="/jobs">Open jobs</a>
     </div>
   </ng-container>
 </nz-modal>

@@ -3,9 +3,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
 
+from rq import get_current_job
 from sqlalchemy import delete, select, Sequence
 from sqlalchemy.orm import Session
-from rq import get_current_job
 
 from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import EmbeddedFile, ReviewResult
@@ -61,10 +61,10 @@ def embed_text_files(source_path: str) -> List[EmbeddedFile]:
 
 
 def delete_previous_submit(
-    session: Session,
-    source_path: str,
-    prompt_path: str,
-    rater_id: int | None = None,
+        session: Session,
+        source_path: str,
+        prompt_path: str,
+        rater_id: int | None = None,
 ) -> None:
     conditions = [
         Submit.source_path == source_path,
@@ -89,11 +89,11 @@ def delete_previous_submit(
 
 
 def run_submit_analysis(
-    source_path: str,
-    prompt_path: str,
-    model: str,
-    rater_id: int | None = None,
-    published: bool = False,
+        source_path: str,
+        prompt_path: str,
+        model: str,
+        rater_id: int | None = None,
+        published: bool = False,
 ) -> None:
     session: Session = SessionLocal()
     job = get_current_job()

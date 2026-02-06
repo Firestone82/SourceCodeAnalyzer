@@ -1,6 +1,5 @@
 from collections.abc import Generator
 
-
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
@@ -22,6 +21,3 @@ def get_database() -> Generator[Session, None, None]:
         yield session
     finally:
         session.close()
-
-
-

@@ -22,6 +22,27 @@ export class SyntaxHighlighterService {
     return this.highlighterPromise;
   }
 
+  public async codeToHtml(
+    code: string,
+    language: BundledLanguage,
+    theme: BundledTheme = this.defaultTheme
+  ): Promise<string> {
+    const highlighterInstance: Highlighter = await this.getSourceHighlighter();
+
+    return highlighterInstance.codeToHtml(code, {
+      lang: language,
+      theme,
+    });
+  }
+
+  public async markdownToHtml(
+    markdown: string,
+    theme: BundledTheme = this.defaultTheme
+  ): Promise<string> {
+    const markdownParserInstance: MarkdownIt = await this.getMarkdownParser(theme);
+    return markdownParserInstance.render(markdown);
+  }
+
   private async getMarkdownParser(theme: BundledTheme): Promise<MarkdownIt> {
     if (this.markdownParser !== null) {
       return this.markdownParser;
@@ -46,26 +67,5 @@ export class SyntaxHighlighterService {
 
     this.markdownParser = markdownParserInstance;
     return markdownParserInstance;
-  }
-
-  public async codeToHtml(
-    code: string,
-    language: BundledLanguage,
-    theme: BundledTheme = this.defaultTheme
-  ): Promise<string> {
-    const highlighterInstance: Highlighter = await this.getSourceHighlighter();
-
-    return highlighterInstance.codeToHtml(code, {
-      lang: language,
-      theme,
-    });
-  }
-
-  public async markdownToHtml(
-    markdown: string,
-    theme: BundledTheme = this.defaultTheme
-  ): Promise<string> {
-    const markdownParserInstance: MarkdownIt = await this.getMarkdownParser(theme);
-    return markdownParserInstance.render(markdown);
   }
 }

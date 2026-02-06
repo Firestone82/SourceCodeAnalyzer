@@ -65,20 +65,6 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   ) {
   }
 
-  public ngOnInit(): void {
-    this.loadSources();
-    this.authService.rater$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((rater) => {
-        this.isAdmin = Boolean(rater?.admin);
-      });
-  }
-
-  public ngOnDestroy(): void {
-    this.destroy$.next();
-    this.destroy$.complete();
-  }
-
   public get selectedFileContent(): string {
     if (!this.selectedFileName) {
       return '';
@@ -94,32 +80,25 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     return index >= 0 ? index : 0;
   }
 
+  public ngOnInit(): void {
+    this.loadSources();
+    this.authService.rater$
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((rater) => {
+        this.isAdmin = Boolean(rater?.admin);
+      });
+  }
+
+  public ngOnDestroy(): void {
+    this.destroy$.next();
+    this.destroy$.complete();
+  }
+
   public onFileTabChange(index: number): void {
     const fileName = this.fileNames[index];
     if (fileName && fileName !== this.selectedFileName) {
       this.selectedFileName = fileName;
     }
-  }
-
-  private loadSources(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
-
-    this.sourcesApiService
-      .getSourcePaths()
-      .pipe(
-        catchError(() => {
-          this.errorMessage = 'Failed to load sources.';
-          return of<SourcePathsResponseDto>({source_paths: []});
-        }),
-        finalize(() => {
-          this.isLoading = false;
-        })
-      )
-      .subscribe((response: SourcePathsResponseDto) => {
-        this.sourcePaths = response.source_paths;
-        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
-      });
   }
 
   public openReviewModal(): void {
@@ -194,8 +173,29 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       });
   }
 
+  private loadSources(): void {
+    this.isLoading = true;
+    this.errorMessage = null;
+
+    this.sourcesApiService
+      .getSourcePaths()
+      .pipe(
+        catchError(() => {
+          this.errorMessage = 'Failed to load sources.';
+          return of<SourcePathsResponseDto>({source_paths: []});
+        }),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe((response: SourcePathsResponseDto) => {
+        this.sourcePaths = response.source_paths;
+        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+      });
+  }
+
   private buildSourceTreeNodes(sourcePaths: string[]): NzTreeNodeOptions[] {
-    type SourceTreeEntry = {children: Map<string, SourceTreeEntry>; path: string};
+    type SourceTreeEntry = { children: Map<string, SourceTreeEntry>; path: string };
     const root: SourceTreeEntry = {children: new Map(), path: ''};
 
     for (const sourcePath of sourcePaths) {

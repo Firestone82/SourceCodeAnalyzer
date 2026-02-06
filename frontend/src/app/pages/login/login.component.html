@@ -3,9 +3,9 @@
     <div class="flex flex-col gap-4">
       <div class="flex flex-col items-center justify-center gap-3">
         <img
+          alt="Source Code Analyzer icon"
           class="w-70 rounded-xl object-contain"
           src="/robot-icon.png"
-          alt="Source Code Analyzer icon"
         />
 
         <h3 nz-typography>Enter your API key to continue.</h3>
@@ -14,11 +14,11 @@
       <div class="flex flex-col gap-2">
         <label nz-typography>API key</label>
         <input
-          nz-input
-          type="password"
-          placeholder="Enter API key"
-          [(ngModel)]="apiKey"
           (keyup.enter)="submit()"
+          [(ngModel)]="apiKey"
+          nz-input
+          placeholder="Enter API key"
+          type="password"
         />
       </div>
 
@@ -26,7 +26,7 @@
         <div nz-typography nzType="danger">{{ errorMessage }}</div>
       }
 
-      <button nz-button nzType="primary" [disabled]="isSubmitting" (click)="submit()">
+      <button (click)="submit()" [disabled]="isSubmitting" nz-button nzType="primary">
         {{ isSubmitting ? 'Signing in...' : 'Sign in' }}
       </button>
     </div>

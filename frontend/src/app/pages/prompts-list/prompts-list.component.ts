@@ -76,6 +76,11 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   ) {
   }
 
+  public get pagedPromptPaths(): string[] {
+    const startIndex = (this.pageIndex - 1) * this.pageSize;
+    return this.promptPaths.slice(startIndex, startIndex + this.pageSize);
+  }
+
   public ngOnInit(): void {
     this.loadPrompts();
     this.authService.rater$
@@ -88,38 +93,6 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
-  }
-
-  public get pagedPromptPaths(): string[] {
-    const startIndex = (this.pageIndex - 1) * this.pageSize;
-    return this.promptPaths.slice(startIndex, startIndex + this.pageSize);
-  }
-
-  private loadPrompts(): void {
-    this.isLoading = true;
-    this.errorMessage = null;
-
-    this.promptsApiService
-      .getPromptPaths()
-      .pipe(
-        catchError(() => {
-          this.errorMessage = 'Failed to load prompts.';
-          return of<PromptNamesResponseDto>({prompt_paths: []});
-        }),
-        finalize(() => {
-          this.isLoading = false;
-        })
-      )
-      .subscribe((response: PromptNamesResponseDto) => {
-        this.promptPaths = response.prompt_paths;
-        const requestedPrompt: string | null = this.activatedRoute.snapshot.queryParamMap.get('prompt');
-        const shouldSelectPrompt: string | null =
-          (requestedPrompt && this.promptPaths.includes(requestedPrompt)) ? requestedPrompt : null;
-        if (shouldSelectPrompt) {
-          this.updatePageForPrompt(shouldSelectPrompt);
-          this.selectPrompt(shouldSelectPrompt);
-        }
-      });
   }
 
   public onPromptPageChange(pageIndex: number): void {
@@ -169,6 +142,51 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     }
   }
 
+  public openReviewModal(): void {
+    if (!this.selectedPromptPath) {
+      this.errorMessage = 'Select a prompt before starting a review.';
+      return;
+    }
+    if (!this.isAdmin) {
+      this.nzMessageService.error('Only admins can start reviews.');
+      return;
+    }
+
+    this.isReviewModalVisible = true;
+  }
+
+  public handleReviewsQueued(responses: AnalyzeSourceResponseDto[]): void {
+    this.jobModalIds = responses.map((response) => response.job_id);
+    this.isJobModalVisible = true;
+  }
+
+  private loadPrompts(): void {
+    this.isLoading = true;
+    this.errorMessage = null;
+
+    this.promptsApiService
+      .getPromptPaths()
+      .pipe(
+        catchError(() => {
+          this.errorMessage = 'Failed to load prompts.';
+          return of<PromptNamesResponseDto>({prompt_paths: []});
+        }),
+        finalize(() => {
+          this.isLoading = false;
+        })
+      )
+      .subscribe((response: PromptNamesResponseDto) => {
+        this.promptPaths = response.prompt_paths;
+        const requestedPrompt: string | null = this.activatedRoute.snapshot.queryParamMap.get('prompt');
+        const shouldSelectPrompt: string | null =
+          (requestedPrompt && this.promptPaths.includes(requestedPrompt)) ? requestedPrompt : null;
+        if (shouldSelectPrompt) {
+          this.updatePageForPrompt(shouldSelectPrompt);
+          this.selectPrompt(shouldSelectPrompt);
+        }
+      });
+  }
+
   private renderMarkdownContent(): void {
     if (!this.isMarkdownView) {
       return;
@@ -193,24 +211,6 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       .finally(() => {
         this.isMarkdownRendering = false;
       });
-  }
-
-  public openReviewModal(): void {
-    if (!this.selectedPromptPath) {
-      this.errorMessage = 'Select a prompt before starting a review.';
-      return;
-    }
-    if (!this.isAdmin) {
-      this.nzMessageService.error('Only admins can start reviews.');
-      return;
-    }
-
-    this.isReviewModalVisible = true;
-  }
-
-  public handleReviewsQueued(responses: AnalyzeSourceResponseDto[]): void {
-    this.jobModalIds = responses.map((response) => response.job_id);
-    this.isJobModalVisible = true;
   }
 
   private updatePageForPrompt(promptPath: string): void {

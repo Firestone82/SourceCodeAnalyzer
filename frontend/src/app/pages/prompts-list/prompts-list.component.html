@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4">
-  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
     <div class="flex items-center justify-between">
       <div>
         <div nz-typography nzType="secondary">Prompts Viewer</div>
@@ -7,16 +7,16 @@
       </div>
 
       <button
+        (click)="openReviewModal()"
         nz-button
         nzType="primary"
-        (click)="openReviewModal()"
       >
         Start review
       </button>
     </div>
 
     @if (errorMessage) {
-      <div nz-typography nzType="danger" class="mt-3">{{ errorMessage }}</div>
+      <div class="mt-3" nz-typography nzType="danger">{{ errorMessage }}</div>
     }
   </nz-card>
 
@@ -29,9 +29,9 @@
           <ul nz-menu nzMode="inline" nzSelectable>
             @for (promptPath of pagedPromptPaths; track promptPath) {
               <li
-                nz-menu-item
-                [nzSelected]="promptPath === selectedPromptPath"
                 (click)="selectPrompt(promptPath)"
+                [nzSelected]="promptPath === selectedPromptPath"
+                nz-menu-item
               >
                 <span>{{ promptPath }}</span>
               </li>
@@ -40,10 +40,10 @@
 
           <div class="mt-3 flex justify-center">
             <nz-pagination
-              [nzPageIndex]="pageIndex"
-              [nzTotal]="promptPaths.length"
-              [nzPageSize]="pageSize"
               (nzPageIndexChange)="onPromptPageChange($event)"
+              [nzPageIndex]="pageIndex"
+              [nzPageSize]="pageSize"
+              [nzTotal]="promptPaths.length"
             ></nz-pagination>
           </div>
         </nz-card>
@@ -61,26 +61,27 @@
                 <div class="mb-3 flex items-center justify-between">
                   <div>
                     <div nz-typography nzType="secondary">Prompt content</div>
-                    <div nz-typography class="text-xs text-slate-500">
+                    <div class="text-xs text-slate-500" nz-typography>
                       Switch between the raw prompt and rendered markdown preview.
                     </div>
                   </div>
 
                   <nz-segmented
-                    [nzOptions]="promptViewOptions"
-                    [(ngModel)]="promptViewMode"
                     (ngModelChange)="onPromptViewChange($event)"
+                    [(ngModel)]="promptViewMode"
+                    [nzOptions]="promptViewOptions"
                   ></nz-segmented>
                 </div>
 
                 @if (isMarkdownView) {
                   <nz-spin [nzSpinning]="isMarkdownRendering" nzTip="Rendering markdown...">
-                    <div class="markdown-content rounded-md border border-slate-200 bg-slate-50 p-4 text-sm"
-                         [innerHTML]="renderedContent"
+                    <div [innerHTML]="renderedContent"
+                         class="markdown-content rounded-md border border-slate-200 bg-slate-50 p-4 text-sm"
                     ></div>
                   </nz-spin>
                 } @else {
-                  <pre class="whitespace-pre-wrap break-words rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">{{ content }}</pre>
+                  <pre
+                    class="whitespace-pre-wrap break-words rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">{{ content }}</pre>
                 }
               }
             </nz-spin>
@@ -92,14 +93,14 @@
 </div>
 
 <app-prompt-review-modal
-  [isVisible]="isReviewModalVisible"
   (isVisibleChange)="isReviewModalVisible = $event"
-  [selectedPromptPath]="selectedPromptPath"
   (reviewsQueued)="handleReviewsQueued($event)"
+  [isVisible]="isReviewModalVisible"
+  [selectedPromptPath]="selectedPromptPath"
 />
 
 <app-job-created-modal
-  [isVisible]="isJobModalVisible"
   (isVisibleChange)="isJobModalVisible = $event"
+  [isVisible]="isJobModalVisible"
   [jobIds]="jobModalIds"
 />

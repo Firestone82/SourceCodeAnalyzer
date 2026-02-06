@@ -1,20 +1,20 @@
 <nz-modal
+  (nzOnCancel)="closeModal()"
+  [nzFooter]="footerTemplate"
   [nzVisible]="isVisible"
   nzTitle="Upload submit"
   nzWidth="700px"
-  (nzOnCancel)="closeModal()"
-  [nzFooter]="footerTemplate"
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-4">
       <div>
         <label class="mb-1 block text-sm font-medium">Model</label>
         <input
+          (ngModelChange)="handleModelChange($event)"
+          [ngModel]="uploadModel"
+          [nzAutocomplete]="modelAuto"
           nz-input
           placeholder="Model name"
-          [ngModel]="uploadModel"
-          (ngModelChange)="handleModelChange($event)"
-          [nzAutocomplete]="modelAuto"
         />
         <nz-autocomplete #modelAuto>
           @for (model of filteredModelOptions; track model) {
@@ -25,7 +25,7 @@
 
       <div>
         <label class="mb-1 block text-sm font-medium">Source bundle (.zip)</label>
-        <input type="file" accept=".zip" (change)="handleSourceFileInput($event)"/>
+        <input (change)="handleSourceFileInput($event)" accept=".zip" type="file"/>
         @if (sourceFileName) {
           <div class="mt-1 text-xs text-slate-500">{{ sourceFileName }}</div>
         }
@@ -34,20 +34,20 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Source name (optional)</label>
         <input
+          (ngModelChange)="handleSourceNameChange($event)"
+          [ngModel]="sourceName"
           nz-input
           placeholder="Friendly source name"
-          [ngModel]="sourceName"
-          (ngModelChange)="handleSourceNameChange($event)"
         />
       </div>
 
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt template</label>
         <nz-select
-          class="w-full"
-          [nzLoading]="isPromptOptionsLoading"
-          [ngModel]="selectedPromptPath"
           (ngModelChange)="handlePromptSelection($event)"
+          [ngModel]="selectedPromptPath"
+          [nzLoading]="isPromptOptionsLoading"
+          class="w-full"
           nzAllowClear
           nzPlaceHolder="Select an existing prompt"
         >
@@ -60,21 +60,21 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt content</label>
         <textarea
-          nz-input
-          rows="12"
-          placeholder="Prompt content"
-          [ngModel]="promptDraft"
           (ngModelChange)="handlePromptDraftChange($event)"
+          [ngModel]="promptDraft"
+          nz-input
+          placeholder="Prompt content"
+          rows="12"
         ></textarea>
       </div>
 
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt name (optional)</label>
         <input
+          (ngModelChange)="handlePromptNameChange($event)"
+          [ngModel]="promptName"
           nz-input
           placeholder="Prompt name for upload"
-          [ngModel]="promptName"
-          (ngModelChange)="handlePromptNameChange($event)"
         />
       </div>
 
@@ -91,10 +91,10 @@
 
 <ng-template #footerTemplate>
   <app-submit-footer
-    submitLabel="Upload"
-    [isSubmitting]="isSubmitting"
-    [isDisabled]="!canSubmit"
     (cancel)="closeModal()"
     (submit)="handleSubmit()"
+    [isDisabled]="!canSubmit"
+    [isSubmitting]="isSubmitting"
+    submitLabel="Upload"
   ></app-submit-footer>
 </ng-template>

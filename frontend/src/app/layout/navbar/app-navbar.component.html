@@ -1,29 +1,29 @@
 <div class="app-nav-container">
   <div class="app-nav-left">
     <div class="app-brand">
-      <img class="app-brand-icon" src="/robot-icon.png" alt="Source Code Analyzer icon" />
+      <img alt="Source Code Analyzer icon" class="app-brand-icon" src="/robot-icon.png"/>
       <span class="app-brand-name">LLM Review Rater</span>
     </div>
-    <ul nz-menu nzMode="horizontal" class="app-nav">
+    <ul class="app-nav" nz-menu nzMode="horizontal">
       <li nz-menu-item>
-        <a routerLink="/submits" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <a [routerLinkActiveOptions]="{exact: true}" routerLink="/submits" routerLinkActive="active">
           Submits
         </a>
       </li>
       <li nz-menu-item>
-        <a routerLink="/prompts" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <a [routerLinkActiveOptions]="{exact: true}" routerLink="/prompts" routerLinkActive="active">
           Prompts
         </a>
       </li>
       <li nz-menu-item>
-        <a routerLink="/sources" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+        <a [routerLinkActiveOptions]="{exact: true}" routerLink="/sources" routerLinkActive="active">
           Sources
         </a>
       </li>
       @if (authService.rater$ | async; as rater) {
         @if (rater.admin) {
           <li nz-menu-item>
-            <a routerLink="/jobs" routerLinkActive="active" [routerLinkActiveOptions]="{exact: true}">
+            <a [routerLinkActiveOptions]="{exact: true}" routerLink="/jobs" routerLinkActive="active">
               Jobs
             </a>
           </li>
@@ -42,11 +42,11 @@
         }
       </span>
       <button
+        (click)="logout()"
+        class="app-logout-button"
         nz-button
         nzType="default"
-        class="app-logout-button"
         type="button"
-        (click)="logout()"
       >
         Logout
       </button>

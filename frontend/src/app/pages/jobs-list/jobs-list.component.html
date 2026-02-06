@@ -1,5 +1,5 @@
 <div class="flex flex-col gap-4">
-  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div>
         <div nz-typography nzType="secondary">Jobs</div>
@@ -8,12 +8,12 @@
     </div>
   </nz-card>
 
-  <nz-card nzSize="small" class="ml-[5px] w-full max-w-none rounded-[10px]">
+  <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
     <div class="mb-4 flex flex-wrap items-center gap-3">
       <nz-select
-        class="w-[200px]"
-        [ngModel]="statusFilter"
         (ngModelChange)="statusFilter = $event; applyFilters()"
+        [ngModel]="statusFilter"
+        class="w-[200px]"
         nzAllowClear
         nzPlaceHolder="All statuses"
       >
@@ -24,20 +24,20 @@
     </div>
 
     <nz-table
-      class="jobs-table"
-      [nzData]="jobs"
-      [nzLoading]="isLoading"
-      nzSize="small"
-      nzBordered
-      [nzFrontPagination]="false"
-      [nzTotal]="totalJobs"
-      [nzPageSize]="pageSize"
-      [nzPageIndex]="pageIndex"
-      [nzShowSizeChanger]="true"
-      [nzPageSizeOptions]="[10, 20, 50]"
-      [nzScroll]="{ y: '520px' }"
       (nzPageIndexChange)="onPageIndexChange($event)"
       (nzPageSizeChange)="onPageSizeChange($event)"
+      [nzData]="jobs"
+      [nzFrontPagination]="false"
+      [nzLoading]="isLoading"
+      [nzPageIndex]="pageIndex"
+      [nzPageSizeOptions]="[10, 20, 50]"
+      [nzPageSize]="pageSize"
+      [nzScroll]="{ y: '520px' }"
+      [nzShowSizeChanger]="true"
+      [nzTotal]="totalJobs"
+      class="jobs-table"
+      nzBordered
+      nzSize="small"
     >
       <thead>
       <tr>
@@ -56,9 +56,9 @@
             <td class="whitespace-nowrap">
               <span [title]="job.job_id">{{ shortJobId(job.job_id) }}</span>
             </td>
-            <td class="truncate max-w-[160px]" [title]="job.model || '-'">{{ job.model || '-' }}</td>
-            <td class="truncate max-w-[200px]" [title]="job.prompt_path || '-'">{{ job.prompt_path || '-' }}</td>
-            <td class="truncate max-w-[200px]" [title]="job.source_path || '-'">{{ job.source_path || '-' }}</td>
+            <td [title]="job.model || '-'" class="truncate max-w-[160px]">{{ job.model || '-' }}</td>
+            <td [title]="job.prompt_path || '-'" class="truncate max-w-[200px]">{{ job.prompt_path || '-' }}</td>
+            <td [title]="job.source_path || '-'" class="truncate max-w-[200px]">{{ job.source_path || '-' }}</td>
             <td>{{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
             <td class="text-center">
               <nz-tag [nzColor]="statusColor(job.status)">
@@ -67,7 +67,7 @@
             </td>
             <td>
               @if (job.submit_id) {
-                <a nz-button nzType="link" [routerLink]="['/submits', job.submit_id]">Open</a>
+                <a [routerLink]="['/submits', job.submit_id]" nz-button nzType="link">Open</a>
               } @else {
                 <span>-</span>
               }

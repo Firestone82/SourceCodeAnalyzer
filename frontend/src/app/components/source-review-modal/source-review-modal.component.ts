@@ -10,7 +10,12 @@ import {catchError, finalize, of} from 'rxjs';
 import {KNOWN_MODELS} from '../../shared/model-options';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
-import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto, PromptUploadResponseDto} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  PromptContentResponseDto,
+  PromptNamesResponseDto,
+  PromptUploadResponseDto
+} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 
 @Component({
@@ -51,12 +56,6 @@ export class SourceReviewModalComponent implements OnChanges {
   ) {
   }
 
-  public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['isVisible']?.currentValue) {
-      this.initializeModal();
-    }
-  }
-
   public get filteredModelOptions(): string[] {
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
@@ -73,6 +72,12 @@ export class SourceReviewModalComponent implements OnChanges {
       && !this.isSubmittingReview
       && !this.isPromptOptionsLoading
     );
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['isVisible']?.currentValue) {
+      this.initializeModal();
+    }
   }
 
   public closeModal(): void {

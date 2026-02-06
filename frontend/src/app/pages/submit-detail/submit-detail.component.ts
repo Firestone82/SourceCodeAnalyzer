@@ -148,6 +148,11 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     this.isReviewModalVisible = true;
   }
 
+  public handleReviewQueued(response: AnalyzeSourceResponseDto): void {
+    this.jobModalIds = [response.job_id];
+    this.isJobModalVisible = true;
+  }
+
   private loadSubmit(submitId: number): void {
     this.isLoading = true;
     this.nextUnratedSubmitId = null;
@@ -199,11 +204,6 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     };
 
     fetchPage(1);
-  }
-
-  public handleReviewQueued(response: AnalyzeSourceResponseDto): void {
-    this.jobModalIds = [response.job_id];
-    this.isJobModalVisible = true;
   }
 
   private recalculateRemainingIssues(): void {
