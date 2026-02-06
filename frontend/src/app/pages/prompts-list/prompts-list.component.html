@@ -3,7 +3,7 @@
     <div class="flex items-center justify-between">
       <div>
         <div nz-typography nzType="secondary">Prompts Viewer</div>
-        <div nz-typography>Browse available prompt templates.</div>
+        <div nz-typography>Browse prompt sources and preview their raw or markdown content.</div>
       </div>
 
       <button
@@ -25,6 +25,9 @@
       <div class="col-span-2">
         <nz-card class="prompts-menu-container">
           <div nz-typography nzType="secondary">Found sources</div>
+          <div nz-typography class="mb-2 text-xs text-slate-500">
+            Click a source to load its content in the preview pane.
+          </div>
 
           <ul nz-menu nzMode="inline" nzSelectable>
             @for (promptPath of pagedPromptPaths; track promptPath) {
@@ -52,18 +55,25 @@
       <div class="col-span-6">
         <nz-card>
           @if (!selectedPromptPath) {
-            <div nz-typography>Select a prompt to view its content.</div>
+            <div nz-typography>Select a source from the list to load its content.</div>
           } @else {
             <nz-spin [nzSpinning]="isPromptLoading" nzTip="Loading prompt...">
               @if (promptErrorMessage) {
                 <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
               } @else {
                 <div class="mb-3 flex items-center justify-between">
-                  <div nz-typography nzType="secondary">Prompt content</div>
+                  <div>
+                    <div nz-typography nzType="secondary">Prompt content</div>
+                    <div nz-typography class="text-xs text-slate-500">
+                      Switch between the raw prompt and rendered markdown preview.
+                    </div>
+                  </div>
 
-                  <button nz-button nzType="default" (click)="togglePromptView()">
-                    {{ isMarkdownView ? 'View raw' : 'View markdown' }}
-                  </button>
+                  <nz-segmented
+                    [nzOptions]="promptViewOptions"
+                    [(ngModel)]="promptViewMode"
+                    (ngModelChange)="onPromptViewChange($event)"
+                  ></nz-segmented>
                 </div>
 
                 @if (isMarkdownView) {
@@ -73,10 +83,7 @@
                     ></div>
                   </nz-spin>
                 } @else {
-                  <pre
-                    class="whitespace-pre-wrap break-words rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">
-                    {{ content }}
-                  </pre>
+                  <pre class="whitespace-pre-wrap break-words rounded-md border border-slate-200 bg-slate-50 p-4 text-sm">{{ content }}</pre>
                 }
               }
             </nz-spin>

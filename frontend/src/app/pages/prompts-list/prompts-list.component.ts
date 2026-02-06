@@ -12,6 +12,7 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzMessageService} from 'ng-zorro-antd/message';
+import {NzSegmentedModule} from 'ng-zorro-antd/segmented';
 
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
@@ -32,6 +33,7 @@ import {AuthService} from '../../service/auth/auth.service';
     NzSpinModule,
     NzTypographyModule,
     NzButtonModule,
+    NzSegmentedModule,
     PromptReviewModalComponent,
     JobCreatedModalComponent
   ],
@@ -49,6 +51,11 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   public content: string = '';
   public renderedContent: SafeHtml | null = null;
   public isMarkdownView: boolean = true;
+  public promptViewMode: 'markdown' | 'raw' = 'markdown';
+  public promptViewOptions: Array<{ label: string; value: 'markdown' | 'raw' }> = [
+    {label: 'Markdown', value: 'markdown'},
+    {label: 'Raw', value: 'raw'}
+  ];
   public pageIndex: number = 1;
   public pageSize: number = 12;
 
@@ -111,9 +118,6 @@ export class PromptsListComponent implements OnInit, OnDestroy {
         if (shouldSelectPrompt) {
           this.updatePageForPrompt(shouldSelectPrompt);
           this.selectPrompt(shouldSelectPrompt);
-        } else if (this.promptPaths.length > 0) {
-          this.pageIndex = 1;
-          this.selectPrompt(this.promptPaths[0]);
         }
       });
   }
@@ -149,7 +153,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe((response: PromptContentResponseDto) => {
-        this.content = response.content.trim();
+        this.content = response.content;
 
         if (this.isMarkdownView) {
           this.renderMarkdownContent();
@@ -157,8 +161,9 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       });
   }
 
-  public togglePromptView(): void {
-    this.isMarkdownView = !this.isMarkdownView;
+  public onPromptViewChange(mode: 'markdown' | 'raw'): void {
+    this.isMarkdownView = mode === 'markdown';
+    this.promptViewMode = mode;
     if (this.isMarkdownView) {
       this.renderMarkdownContent();
     }
@@ -169,7 +174,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!this.content.trim()) {
+    if (this.content.length === 0) {
       this.renderedContent = '';
       this.isMarkdownRendering = false;
       return;
