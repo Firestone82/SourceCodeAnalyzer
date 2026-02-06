@@ -119,14 +119,6 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       .subscribe((response: SourcePathsResponseDto) => {
         this.sourcePaths = response.source_paths;
         this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
-        const requestedSource: string | null = this.activatedRoute.snapshot.queryParamMap.get('source');
-        const shouldSelectSource: string | null =
-          (requestedSource && this.sourcePaths.includes(requestedSource)) ? requestedSource : null;
-        if (shouldSelectSource) {
-          this.selectSource(shouldSelectSource);
-        } else if (this.sourcePaths.length > 0) {
-          this.selectSource(this.sourcePaths[0]);
-        }
       });
   }
 

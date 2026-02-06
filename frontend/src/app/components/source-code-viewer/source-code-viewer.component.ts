@@ -82,10 +82,9 @@ export class SourceCodeViewerComponent implements OnChanges {
     for (let index: number = 0; index < contentLines.length; index++) {
       const lineNumber: number = index + 1;
 
-
       lines.push({
         lineNumber,
-        text: contentLines[index].trim(),
+        text: contentLines[index],
         issues: issuesByLine.get(lineNumber) ?? [],
         highlightedHtml: undefined,
       });
