@@ -3,8 +3,8 @@
 **Author:** Pavel Mikula
 
 A FastAPI + Angular application for submitting source archives, running LLM-based code analysis jobs, and rating the
-reported issues. The backend stores results in SQLite (or another SQLAlchemy-supported database) and offloads analysis
-to an RQ worker backed by Redis.
+reported issues. The backend stores results in SQLite (or another SQLAlchemy-supported database, such as Postgres) and
+offloads analysis to an RQ worker backed by Redis.
 
 ## 🚀 Features
 
@@ -47,7 +47,7 @@ to an RQ worker backed by Redis.
    - API: `http://localhost:4100`
    - Frontend: `http://localhost:4200`
 
-> Data is persisted to local folders (`./data` and `./redis-data`) via bind mounts.
+> Data is persisted to local folders (for SQLite) and Docker volumes (for Redis/Postgres).
 
 ### Separate containers (Docker run)
 
@@ -101,6 +101,13 @@ to an RQ worker backed by Redis.
 If you want to run Redis in Docker but everything else locally, use:
 ```bash
 docker compose -f docker-compose.redis.yml up -d
+```
+
+### Postgres (optional)
+
+Postgres is available behind an opt-in profile so it does not start by default:
+```bash
+docker compose --profile postgres up -d postgres
 ```
 
 ## 🛠 Local Installation & Setup
@@ -161,6 +168,7 @@ DATA_DIR=data
 
 # Database
 DATABASE_URL=sqlite:///./dev.db
+# DATABASE_URL=postgresql+psycopg2://analyzer:analyzer@localhost:5432/analyzer
 
 # Queue
 REDIS_URL=redis://localhost:6379/0
@@ -178,6 +186,15 @@ For local frontend development, regenerate `frontend/public/env.js` when you cha
 
 `CORS_ORIGINS` is a comma-separated list of allowed browser origins for the API (for example,
 `http://localhost:4200,http://127.0.0.1:4200`). Update it if your frontend runs on a different host.
+
+### Using Postgres instead of SQLite
+
+1. Start Postgres (included in the default `docker-compose.yml` behind the `postgres` profile).
+2. Set `DATABASE_URL` in your `.env`:
+   ```bash
+   DATABASE_URL=postgresql+psycopg2://analyzer:analyzer@localhost:5432/analyzer
+   ```
+3. Restart the API/worker containers or processes.
 
 ## 📜 Logs
 

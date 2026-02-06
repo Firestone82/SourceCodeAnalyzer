@@ -6,7 +6,21 @@ services:
       - "6379:6379"
     command: ["redis-server", "--appendonly", "yes"]
     volumes:
-      - ./redis-data:/data
+      - redis-data:/data
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: analyzer-postgres
+    profiles: ["postgres"]
+    environment:
+      POSTGRES_DB: analyzer
+      POSTGRES_USER: analyzer
+      POSTGRES_PASSWORD: analyzer
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
     restart: unless-stopped
 
   api:
@@ -17,7 +31,7 @@ services:
     env_file: .env
     environment:
       PORT: 4100
-      DATABASE_URL: sqlite:///./data/dev.db
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./data/dev.db}
       REDIS_URL: redis://redis:6379/0
     ports:
       - "${BACKEND_PORT:-4100}:4100"
@@ -36,7 +50,7 @@ services:
     env_file: .env
     environment:
       PORT: 4100
-      DATABASE_URL: sqlite:///./data/dev.db
+      DATABASE_URL: ${DATABASE_URL:-sqlite:///./data/dev.db}
       REDIS_URL: redis://redis:6379/0
     volumes:
       - ./data:/app/data
@@ -57,3 +71,7 @@ services:
     depends_on:
       - api
     restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:

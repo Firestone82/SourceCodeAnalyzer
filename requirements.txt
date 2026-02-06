@@ -25,6 +25,7 @@ python-dotenv==1.2.1
 python-multipart==0.0.22
 pytz==2025.2
 PyYAML==6.0.3
+psycopg2-binary==2.9.10
 redis==7.1.0
 rq==2.6.1
 six==1.17.0

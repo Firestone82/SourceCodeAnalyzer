@@ -3,7 +3,9 @@ from collections.abc import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
-DATABASE_URL: str = "sqlite:///./dev.db"
+from app.settings import settings
+
+DATABASE_URL: str = settings.database_url
 
 engine = create_engine(
     DATABASE_URL,

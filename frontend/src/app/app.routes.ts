@@ -15,6 +15,11 @@ export const routes: Routes = [
     canActivateChild: [AuthGuard],
     children: [
       {
+        path: '',
+        pathMatch: 'full',
+        redirectTo: 'submits'
+      },
+      {
         path: 'submits',
         component: SubmitsListComponent
       },
