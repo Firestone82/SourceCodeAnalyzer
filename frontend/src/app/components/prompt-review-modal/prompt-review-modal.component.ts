@@ -40,9 +40,13 @@ export class PromptReviewModalComponent implements OnChanges {
   public selectedSourceKeys: NzTreeNodeKey[] = [];
   public selectedSourceLeafKeys: string[] = [];
   public isSourceOptionsLoading: boolean = false;
+  public isLoadingMoreSources: boolean = false;
   public isSubmittingReview: boolean = false;
   public reviewSubmitError: string | null = null;
   private sourceTreeLeafMap: Map<string, string[]> = new Map();
+  private sourcePaths: string[] = [];
+  private nextOffset: number | null = null;
+  private readonly pageSize: number = 200;
 
   public constructor(
     private readonly sourcesApiService: SourcesApiService
@@ -86,6 +90,23 @@ export class PromptReviewModalComponent implements OnChanges {
   public handleSourceKeysChange(keys: NzTreeNodeKey[]): void {
     this.selectedSourceKeys = keys;
     this.selectedSourceLeafKeys = this.expandSourceKeys(keys);
+  }
+
+  public handleSourceScroll(event: Event): void {
+    if (this.isSourceOptionsLoading || this.isLoadingMoreSources || this.nextOffset === null) {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+
+    const threshold = 120;
+    const position = target.scrollTop + target.clientHeight;
+    if (position >= target.scrollHeight - threshold) {
+      this.loadMoreSources();
+    }
   }
 
   public handleSubmit(): void {
@@ -146,28 +167,70 @@ export class PromptReviewModalComponent implements OnChanges {
     this.selectedSourceKeys = [];
     this.selectedSourceLeafKeys = [];
     this.isSourceOptionsLoading = false;
+    this.isLoadingMoreSources = false;
     this.isSubmittingReview = false;
     this.reviewSubmitError = null;
     this.sourceTreeLeafMap = new Map();
+    this.sourcePaths = [];
+    this.nextOffset = null;
   }
 
   private loadSourcePaths(): void {
     this.isSourceOptionsLoading = true;
+    this.sourcePaths = [];
+    this.sourceTreeNodes = [];
+    this.nextOffset = 0;
 
     this.sourcesApiService
-      .getSourcePaths()
+      .getSourcePaths({offset: 0, limit: this.pageSize})
       .pipe(
         catchError(() => {
           this.reviewSubmitError = 'Failed to load sources.';
-          return of<SourcePathsResponseDto>({source_paths: []});
+          return of<SourcePathsResponseDto>({source_paths: [], total: 0, next_offset: null});
         }),
         finalize(() => {
           this.isSourceOptionsLoading = false;
         })
       )
-      .subscribe((response: SourcePathsResponseDto) => {
-        this.sourceTreeNodes = this.buildSourceTreeNodes(response.source_paths);
-        this.sourceTreeLeafMap = this.buildSourceTreeLeafMap(response.source_paths);
+      .subscribe((response: SourcePathsResponseDto | null) => {
+        if (!response) {
+          return;
+        }
+        this.sourcePaths = response.source_paths;
+        this.nextOffset = response.next_offset ?? null;
+        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+        this.sourceTreeLeafMap = this.buildSourceTreeLeafMap(this.sourcePaths);
+      });
+  }
+
+  private loadMoreSources(): void {
+    if (this.nextOffset === null) {
+      return;
+    }
+
+    this.isLoadingMoreSources = true;
+    const offset = this.nextOffset;
+
+    this.sourcesApiService
+      .getSourcePaths({offset, limit: this.pageSize})
+      .pipe(
+        catchError(() => {
+          this.reviewSubmitError = 'Failed to load more sources.';
+          return of<SourcePathsResponseDto>({source_paths: [], total: this.sourcePaths.length, next_offset: null});
+        }),
+        finalize(() => {
+          this.isLoadingMoreSources = false;
+        })
+      )
+      .subscribe((response: SourcePathsResponseDto | null) => {
+        if (!response) {
+          return;
+        }
+        const newPaths = response.source_paths ?? [];
+        this.sourcePaths = [...this.sourcePaths, ...newPaths];
+        this.nextOffset = response.next_offset ?? null;
+        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+        this.sourceTreeLeafMap = this.buildSourceTreeLeafMap(this.sourcePaths);
       });
   }
 

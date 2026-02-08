@@ -14,8 +14,13 @@ export class SourcesApiService {
   public constructor(private readonly apiClient: ApiClientService) {
   }
 
-  public getSourcePaths(): Observable<SourcePathsResponseDto> {
-    return this.apiClient.get<SourcePathsResponseDto>('/sources');
+  public getSourcePaths(options?: {offset?: number; limit?: number}): Observable<SourcePathsResponseDto> {
+    return this.apiClient.get<SourcePathsResponseDto>('/sources', {
+      queryParams: {
+        offset: options?.offset,
+        limit: options?.limit
+      }
+    });
   }
 
   public getSourceFiles(sourcePath: string): Observable<SourceFilesResponseDto> {

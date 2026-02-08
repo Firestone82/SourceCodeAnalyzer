@@ -1,3 +1,9 @@
 ::ng-deep .source-tree-container > div {
   padding-left: 1rem !important;
 }
+
+.source-tree-scroll {
+  max-height: 60vh;
+  overflow: auto;
+  padding-right: 0.5rem;
+}

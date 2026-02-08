@@ -2,7 +2,7 @@ import os
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyze_job import run_submit_analysis
@@ -38,7 +38,10 @@ def store_prompt_content(prompt_path: str, content: str) -> str:
 
 
 @router.get("")
-def list_source_paths() -> SourcePathsResponse:
+def list_source_paths(
+        offset: int = Query(0, ge=0),
+        limit: int | None = Query(None, ge=1),
+) -> SourcePathsResponse:
     file_paths: List[str] = []
 
     for directory_path, directory_names, file_names in os.walk(SOURCES_ROOT):
@@ -48,8 +51,20 @@ def list_source_paths() -> SourcePathsResponse:
                 relative_path: Path = full_path.relative_to(SOURCES_ROOT)
                 file_paths.append(relative_path.as_posix())
 
+    sorted_paths = sorted(file_paths)
+    total = len(sorted_paths)
+    if limit is not None:
+        paged_paths = sorted_paths[offset:offset + limit]
+    else:
+        paged_paths = sorted_paths[offset:]
+    next_offset = None
+    if limit is not None and offset + limit < total:
+        next_offset = offset + limit
+
     return SourcePathsResponse(
-        source_paths=sorted(file_paths)
+        source_paths=paged_paths,
+        total=total,
+        next_offset=next_offset,
     )
 
 

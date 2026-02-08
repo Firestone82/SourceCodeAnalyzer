@@ -40,6 +40,7 @@ import {AuthService} from '../../service/auth/auth.service';
 export class SourcesListComponent implements OnInit, OnDestroy {
   public sourcePaths: string[] = [];
   public isLoading: boolean = false;
+  public isLoadingMore: boolean = false;
   public isSourceLoading: boolean = false;
   public errorMessage: string | null = null;
   public sourceErrorMessage: string | null = null;
@@ -49,6 +50,9 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public files: Record<string, string> = {};
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
+  public totalSources: number | null = null;
+  public nextOffset: number | null = null;
+  private readonly pageSize: number = 200;
 
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
@@ -173,23 +177,79 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       });
   }
 
+  public handleSourceTreeScroll(event: Event): void {
+    if (this.isLoadingMore || this.isLoading || this.nextOffset === null) {
+      return;
+    }
+
+    const target = event.target as HTMLElement | null;
+    if (!target) {
+      return;
+    }
+
+    const threshold = 120;
+    const position = target.scrollTop + target.clientHeight;
+    if (position >= target.scrollHeight - threshold) {
+      this.loadMoreSources();
+    }
+  }
+
   private loadSources(): void {
     this.isLoading = true;
     this.errorMessage = null;
+    this.sourcePaths = [];
+    this.sourceTreeNodes = [];
+    this.nextOffset = 0;
 
     this.sourcesApiService
-      .getSourcePaths()
+      .getSourcePaths({offset: 0, limit: this.pageSize})
       .pipe(
         catchError(() => {
           this.errorMessage = 'Failed to load sources.';
-          return of<SourcePathsResponseDto>({source_paths: []});
+          return of<SourcePathsResponseDto>({source_paths: [], total: 0, next_offset: null});
         }),
         finalize(() => {
           this.isLoading = false;
         })
       )
-      .subscribe((response: SourcePathsResponseDto) => {
+      .subscribe((response: SourcePathsResponseDto | null) => {
+        if (!response) {
+          return;
+        }
         this.sourcePaths = response.source_paths;
+        this.totalSources = response.total ?? this.sourcePaths.length;
+        this.nextOffset = response.next_offset ?? null;
+        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+      });
+  }
+
+  private loadMoreSources(): void {
+    if (this.nextOffset === null) {
+      return;
+    }
+
+    this.isLoadingMore = true;
+    const offset = this.nextOffset;
+
+    this.sourcesApiService
+      .getSourcePaths({offset, limit: this.pageSize})
+      .pipe(
+        catchError(() => {
+          this.errorMessage = 'Failed to load more sources.';
+          return of<SourcePathsResponseDto>({source_paths: [], total: this.totalSources ?? 0, next_offset: null});
+        }),
+        finalize(() => {
+          this.isLoadingMore = false;
+        })
+      )
+      .subscribe((response: SourcePathsResponseDto | null) => {
+        if (!response) {
+          return;
+        }
+        const newPaths = response.source_paths ?? [];
+        this.sourcePaths = [...this.sourcePaths, ...newPaths];
+        this.totalSources = response.total ?? this.totalSources;
+        this.nextOffset = response.next_offset ?? null;
         this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
       });
   }

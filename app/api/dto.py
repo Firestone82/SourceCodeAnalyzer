@@ -52,6 +52,8 @@ class PromptAnalysisResponse(BaseModel):
 
 class SourcePathsResponse(BaseModel):
     source_paths: list[str]
+    total: Optional[int] = None
+    next_offset: Optional[int] = None
 
 
 class SourceFilesResponse(BaseModel):

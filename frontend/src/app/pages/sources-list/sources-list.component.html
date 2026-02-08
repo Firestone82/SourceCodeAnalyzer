@@ -25,15 +25,19 @@
         <nz-card class="source-tree-container">
           <div nz-typography nzType="secondary">Found sources</div>
 
-          <nz-tree
-            (nzClick)="handleSourceNodeClick($event)"
-            [nzData]="sourceTreeNodes"
-            [nzSelectedKeys]="selectedSourceKeys"
-            [nzTreeTemplate]="sourceTreeNodeTemplate"
-            nzBlockNode
-            nzShowLine
-            nzVirtualHeight="60vh"
-          ></nz-tree>
+          <div class="source-tree-scroll" (scroll)="handleSourceTreeScroll($event)">
+            <nz-tree
+              (nzClick)="handleSourceNodeClick($event)"
+              [nzData]="sourceTreeNodes"
+              [nzSelectedKeys]="selectedSourceKeys"
+              [nzTreeTemplate]="sourceTreeNodeTemplate"
+              nzBlockNode
+              nzShowLine
+            ></nz-tree>
+            @if (isLoadingMore) {
+              <div class="mt-2 text-center text-xs text-slate-500">Loading more sources…</div>
+            }
+          </div>
           <ng-template #sourceTreeNodeTemplate let-node>
             <span>{{ node.title }}</span>
           </ng-template>

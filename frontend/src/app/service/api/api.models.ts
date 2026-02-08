@@ -23,6 +23,8 @@ export interface PromptContentResponseDto {
 
 export interface SourcePathsResponseDto {
   source_paths: string[];
+  total?: number;
+  next_offset?: number | null;
 }
 
 export interface SourceFilesResponseDto {
