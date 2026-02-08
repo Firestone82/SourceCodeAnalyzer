@@ -56,7 +56,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       return environment.models ?? [];
     }
 
-    return (environment.models ?? []).filter((model) => model.toLowerCase().includes(query));
+    return (environment.models ?? []).filter((model: string) => model.toLowerCase().includes(query));
   }
 
   public get sourceFileName(): string | null {
