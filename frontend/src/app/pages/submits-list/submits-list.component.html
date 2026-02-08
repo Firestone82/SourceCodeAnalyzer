@@ -63,15 +63,15 @@
     >
       <thead>
       <tr>
-        <th nzWidth="50px">Id</th>
-        <th>Model</th>
+        <th nzWidth="40px">Id</th>
+        <th nzWidth="150px">Model</th>
         <th>Prompt path</th>
         <th>Source path</th>
-        <th>Submit date</th>
-        <th nzWidth="100px">Visibility</th>
-        <th nzWidth="80px">Rated</th>
-        <th nzWidth="100px">Total issues</th>
-        <th></th>
+        <th nzWidth="150px">Submit date</th>
+        <th nzWidth="80px" nzAlign="center">Visibility</th>
+        <th nzWidth="80px" nzAlign="center">Rated</th>
+        <th nzWidth="60px" nzAlign="center">Issues</th>
+        <th nzWidth="150px"></th>
       </tr>
       </thead>
 
@@ -117,6 +117,7 @@
                   [routerLink]="['/submits', submit.id]"
                   class="w-full"
                   nz-button
+                  nzSize="small"
                   nzType="primary"
                 >
                   Rate
@@ -128,6 +129,7 @@
                     [disabled]="publishingSubmitIds.has(submit.id)"
                     class="w-full"
                     nz-button
+                    nzSize="small"
                     nzType="default"
                   >
                     {{ submit.published ? 'Unpublish' : 'Publish' }}

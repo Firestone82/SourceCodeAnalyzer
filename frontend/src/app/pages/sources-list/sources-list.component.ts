@@ -103,7 +103,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
   public openReviewModal(): void {
     if (!this.selectedSourcePath) {
-      this.errorMessage = 'Select a source before starting a review.';
+      this.nzMessageService.error('Select a source before starting a review.');
       return;
     }
     if (!this.isAdmin) {

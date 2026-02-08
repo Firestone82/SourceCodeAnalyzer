@@ -158,7 +158,7 @@ export class SourceReviewModalComponent implements OnChanges {
     };
 
     if (hasPromptChanged) {
-      const uploadName = this.buildPromptUploadName(this.selectedPromptPath);
+      const uploadName = this.buildPromptUploadName();
       finalizeSubmission(uploadName, trimmedPromptDraft);
     } else {
       finalizeSubmission(this.selectedPromptPath);
@@ -233,9 +233,14 @@ export class SourceReviewModalComponent implements OnChanges {
       });
   }
 
-  private buildPromptUploadName(promptPath: string): string {
-    const baseName = promptPath.split('/').filter(Boolean).pop() ?? 'prompt';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `custom/${baseName}-${timestamp}`;
+  private buildPromptUploadName(): string {
+    return `upload/prompt-${this.buildUploadTimestamp()}`;
+  }
+
+  private buildUploadTimestamp(): string {
+    const iso = new Date().toISOString();
+    const date = iso.slice(0, 10);
+    const time = iso.slice(11, 16).replace(':', '-');
+    return `${date}-${time}`;
   }
 }

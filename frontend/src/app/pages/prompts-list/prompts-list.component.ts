@@ -154,7 +154,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
 
   public openReviewModal(): void {
     if (!this.selectedPromptPath) {
-      this.errorMessage = 'Select a prompt before starting a review.';
+      this.nzMessageService.error('Select a prompt before starting a review.');
       return;
     }
     if (!this.isAdmin) {
