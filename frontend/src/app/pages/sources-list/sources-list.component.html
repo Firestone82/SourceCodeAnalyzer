@@ -42,8 +42,12 @@
 
       <div class="col-span-6">
         <nz-card>
+          <div>
+            <div nz-typography nzType="secondary">Source content</div>
+          </div>
+
           @if (!selectedSourcePath) {
-            <div nz-typography>No content is viewed.</div>
+            <div nz-typography>Select prompt from the list to load its content.</div>
           } @else {
             <nz-spin [nzSpinning]="isSourceLoading" nzTip="Loading source...">
               @if (sourceErrorMessage) {

@@ -44,6 +44,10 @@
 
       <div class="col-span-6">
         <nz-card>
+          <div>
+            <div nz-typography nzType="secondary">Prompt content</div>
+          </div>
+
           @if (!selectedPromptPath) {
             <div nz-typography>Select a source from the list to load its content.</div>
           } @else {
@@ -52,12 +56,6 @@
                 <div nz-typography nzType="danger">{{ promptErrorMessage }}</div>
               } @else {
                 <div class="mb-3 flex items-center justify-between">
-                  <div>
-                    <div nz-typography nzType="secondary">Prompt content</div>
-                    <div class="text-xs text-slate-500" nz-typography>
-                      Switch between the raw prompt and rendered markdown preview.
-                    </div>
-                  </div>
 
                   <nz-segmented
                     (ngModelChange)="onPromptViewChange($event)"
