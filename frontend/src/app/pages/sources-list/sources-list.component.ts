@@ -10,7 +10,7 @@ import {NzTabsModule} from 'ng-zorro-antd/tabs';
 import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
-import {NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
+import {NzTreeNode, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
@@ -53,6 +53,8 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public totalSources: number | null = null;
   public nextOffset: number | null = null;
   private readonly pageSize: number = 200;
+  private sourceTreeIndex: Map<string, Map<string, SourceTreeEntry>> = new Map();
+  private readonly expandedKeys = new Set<string>();
 
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
@@ -129,7 +131,12 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     }
 
     if (!node.isLeaf) {
-      node.isExpanded = !node.isExpanded;
+      const shouldExpand = !node.isExpanded;
+      node.isExpanded = shouldExpand;
+      this.updateExpandedKeys(node.key?.toString() ?? '', shouldExpand);
+      if (shouldExpand) {
+        this.loadChildrenForNode(node);
+      }
       return;
     }
 
@@ -140,6 +147,18 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
     this.selectedSourceKeys = [key];
     this.selectSource(key);
+  }
+
+  public handleSourceNodeExpand(event: NzFormatEmitEvent): void {
+    const node = event.node;
+    if (!node) {
+      return;
+    }
+    const isExpanded = node.isExpanded;
+    this.updateExpandedKeys(node.key?.toString() ?? '', isExpanded);
+    if (isExpanded) {
+      this.loadChildrenForNode(node);
+    }
   }
 
   public selectSource(sourcePath: string): void {
@@ -219,7 +238,8 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         this.sourcePaths = response.source_paths;
         this.totalSources = response.total ?? this.sourcePaths.length;
         this.nextOffset = response.next_offset ?? null;
-        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+        this.sourceTreeIndex = this.buildSourceTreeIndex(this.sourcePaths);
+        this.sourceTreeNodes = this.buildSourceTreeNodes();
       });
   }
 
@@ -250,51 +270,97 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         this.sourcePaths = [...this.sourcePaths, ...newPaths];
         this.totalSources = response.total ?? this.totalSources;
         this.nextOffset = response.next_offset ?? null;
-        this.sourceTreeNodes = this.buildSourceTreeNodes(this.sourcePaths);
+        this.sourceTreeIndex = this.buildSourceTreeIndex(this.sourcePaths);
+        this.sourceTreeNodes = this.buildSourceTreeNodes();
       });
   }
 
-  private buildSourceTreeNodes(sourcePaths: string[]): NzTreeNodeOptions[] {
-    type SourceTreeEntry = { children: Map<string, SourceTreeEntry>; path: string };
-    const root: SourceTreeEntry = {children: new Map(), path: ''};
+  private buildSourceTreeNodes(): NzTreeNodeOptions[] {
+    return this.buildTreeNodesForParent('');
+  }
+
+  private buildTreeNodesForParent(parentPath: string): NzTreeNodeOptions[] {
+    const entries = Array.from(this.sourceTreeIndex.get(parentPath)?.values() ?? []);
+    return entries
+      .sort((left, right) => {
+        if (left.isLeaf !== right.isLeaf) {
+          return left.isLeaf ? 1 : -1;
+        }
+        return left.name.localeCompare(right.name);
+      })
+      .map((entry) => {
+        const isExpanded = this.expandedKeys.has(entry.path);
+        const children = !entry.isLeaf && isExpanded
+          ? this.buildTreeNodesForParent(entry.path)
+          : undefined;
+        return {
+          title: entry.name,
+          key: entry.path,
+          children,
+          isLeaf: entry.isLeaf,
+          expanded: isExpanded
+        };
+      });
+  }
+
+  private buildSourceTreeIndex(sourcePaths: string[]): Map<string, Map<string, SourceTreeEntry>> {
+    const index = new Map<string, Map<string, SourceTreeEntry>>();
+    index.set('', new Map());
 
     for (const sourcePath of sourcePaths) {
       const parts = sourcePath.split('/').filter(Boolean);
-      let current = root;
-      let currentPath = '';
+      let parentPath = '';
 
-      for (const part of parts) {
-        currentPath = currentPath ? `${currentPath}/${part}` : part;
-        if (!current.children.has(part)) {
-          current.children.set(part, {children: new Map(), path: currentPath});
+      parts.forEach((part, indexPart) => {
+        const currentPath = parentPath ? `${parentPath}/${part}` : part;
+        const isLeaf = indexPart === parts.length - 1;
+        const parentMap = index.get(parentPath) ?? new Map<string, SourceTreeEntry>();
+        if (!index.has(parentPath)) {
+          index.set(parentPath, parentMap);
         }
-        current = current.children.get(part)!;
-      }
+
+        const existing = parentMap.get(part);
+        if (!existing) {
+          parentMap.set(part, {name: part, path: currentPath, isLeaf});
+        } else if (existing.isLeaf && !isLeaf) {
+          existing.isLeaf = false;
+        }
+
+        if (!isLeaf && !index.has(currentPath)) {
+          index.set(currentPath, new Map());
+        }
+        parentPath = currentPath;
+      });
     }
 
-    const buildNodes = (node: SourceTreeEntry): NzTreeNodeOptions[] => {
-      return Array.from(node.children.entries())
-        .sort(([leftName, leftChild], [rightName, rightChild]) => {
-          const leftIsLeaf = leftChild.children.size === 0;
-          const rightIsLeaf = rightChild.children.size === 0;
-          if (leftIsLeaf !== rightIsLeaf) {
-            return leftIsLeaf ? 1 : -1;
-          }
-          return leftName.localeCompare(rightName);
-        })
-        .map(([name, child]) => {
-          const children = buildNodes(child);
-          const isLeaf = children.length === 0;
-          return {
-            title: name,
-            key: child.path,
-            children,
-            isLeaf,
-            expanded: name === 'upload'
-          };
-        });
-    };
+    return index;
+  }
 
-    return buildNodes(root);
+  private updateExpandedKeys(key: string, isExpanded: boolean): void {
+    if (!key) {
+      return;
+    }
+    if (isExpanded) {
+      this.expandedKeys.add(key);
+    } else {
+      this.expandedKeys.delete(key);
+    }
+  }
+
+  private loadChildrenForNode(node: NzTreeNode): void {
+    if (node.isLeaf) {
+      return;
+    }
+    if (node.children && node.children.length > 0) {
+      return;
+    }
+    const key = node.key?.toString() ?? '';
+    if (!key) {
+      return;
+    }
+    const children = this.buildTreeNodesForParent(key);
+    node.addChildren(children);
   }
 }
+
+type SourceTreeEntry = { name: string; path: string; isLeaf: boolean };

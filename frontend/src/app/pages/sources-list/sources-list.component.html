@@ -28,7 +28,9 @@
           <div class="source-tree-scroll" (scroll)="handleSourceTreeScroll($event)">
             <nz-tree
               (nzClick)="handleSourceNodeClick($event)"
+              (nzExpandChange)="handleSourceNodeExpand($event)"
               [nzData]="sourceTreeNodes"
+              [nzAsyncData]="true"
               [nzSelectedKeys]="selectedSourceKeys"
               [nzTreeTemplate]="sourceTreeNodeTemplate"
               nzBlockNode
