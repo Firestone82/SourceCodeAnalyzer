@@ -60,11 +60,6 @@
         },
         "serve": {
           "builder": "@angular/build:dev-server",
-          "options": {
-            "allowedHosts": [
-              "argexpr2.vsb.cz"
-            ]
-          },
           "configurations": {
             "production": {
               "buildTarget": "frontend:build:production"

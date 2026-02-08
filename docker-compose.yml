@@ -4,7 +4,7 @@ services:
     container_name: analyzer-redis
     ports:
       - "6379:6379"
-    command: ["redis-server", "--appendonly", "yes"]
+    command: [ "redis-server", "--appendonly", "yes" ]
     volumes:
       - redis-data:/data
     restart: unless-stopped
@@ -12,7 +12,7 @@ services:
   postgres:
     image: postgres:16-alpine
     container_name: analyzer-postgres
-    profiles: ["postgres"]
+    profiles: [ "postgres" ]
     environment:
       POSTGRES_DB: analyzer
       POSTGRES_USER: analyzer
@@ -29,6 +29,7 @@ services:
       dockerfile: Dockerfile
     container_name: analyzer-api
     env_file: .env
+    user: "177366:10000"
     ports:
       - "${BACKEND_PORT:-4100}:4100"
     volumes:
@@ -42,8 +43,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: analyzer-worker
-    command: ["python", "worker.py"]
+    command: [ "python", "worker.py" ]
     env_file: .env
+    user: "177366:10000"
     volumes:
       - ./data:/app/data
     depends_on:
@@ -56,8 +58,7 @@ services:
       dockerfile: Dockerfile
     container_name: analyzer-frontend
     env_file: .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+    user: "177366:10000"
     ports:
       - "${FRONTEND_PORT:-4200}:80"
     depends_on:
