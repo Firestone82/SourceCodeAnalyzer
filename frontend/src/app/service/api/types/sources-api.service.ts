@@ -6,6 +6,8 @@ import {
   AnalyzeSourceRequestDto,
   AnalyzeSourceResponseDto,
   SourceFilesResponseDto,
+  SourceFolderChildrenResponseDto,
+  SourceFoldersResponseDto,
   SourcePathsResponseDto
 } from '../api.models';
 
@@ -25,6 +27,23 @@ export class SourcesApiService {
 
   public getSourceFiles(sourcePath: string): Observable<SourceFilesResponseDto> {
     return this.apiClient.get<SourceFilesResponseDto>(`/sources/${encodeURIComponent(sourcePath)}`);
+  }
+
+  public getSourceFolders(): Observable<SourceFoldersResponseDto> {
+    return this.apiClient.get<SourceFoldersResponseDto>('/sources/folders');
+  }
+
+  public getSourceFolderChildren(
+    folderPath: string | null,
+    options?: {offset?: number; limit?: number}
+  ): Observable<SourceFolderChildrenResponseDto> {
+    return this.apiClient.get<SourceFolderChildrenResponseDto>('/sources/folders/children', {
+      queryParams: {
+        folder_path: folderPath || undefined,
+        offset: options?.offset,
+        limit: options?.limit
+      }
+    });
   }
 
   public analyzeSource(

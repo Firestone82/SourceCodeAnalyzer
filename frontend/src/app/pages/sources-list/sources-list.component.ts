@@ -13,7 +13,12 @@ import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzTreeNode, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
-import {AnalyzeSourceResponseDto, SourceFilesResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  SourceFilesResponseDto,
+  SourceFolderChildEntryDto,
+  SourceFolderChildrenResponseDto
+} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
@@ -38,9 +43,7 @@ import {AuthService} from '../../service/auth/auth.service';
   styleUrl: './sources-list.component.css',
 })
 export class SourcesListComponent implements OnInit, OnDestroy {
-  public sourcePaths: string[] = [];
   public isLoading: boolean = false;
-  public isLoadingMore: boolean = false;
   public isSourceLoading: boolean = false;
   public errorMessage: string | null = null;
   public sourceErrorMessage: string | null = null;
@@ -50,11 +53,11 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public files: Record<string, string> = {};
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
-  public totalSources: number | null = null;
-  public nextOffset: number | null = null;
-  private readonly pageSize: number = 200;
-  private sourceTreeIndex: Map<string, Map<string, SourceTreeEntry>> = new Map();
   private readonly expandedKeys = new Set<string>();
+  private readonly folderPagination = new Map<string, FolderPaginationState>();
+  private readonly loadingFolders = new Set<string>();
+  private readonly loadedFolders = new Set<string>();
+  private readonly pageSize: number = 50;
 
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
@@ -130,12 +133,12 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    if (!node.isLeaf) {
-      const shouldExpand = !node.isExpanded;
-      node.isExpanded = shouldExpand;
-      this.updateExpandedKeys(node.key?.toString() ?? '', shouldExpand);
-      if (shouldExpand) {
-        this.loadChildrenForNode(node);
+    const origin = node.origin as SourceTreeNodeOrigin;
+    if (origin?.isLoadMore) {
+      const parentPath = origin.parentPath ?? '';
+      const nextOffset = this.folderPagination.get(parentPath)?.nextOffset ?? null;
+      if (nextOffset !== null) {
+        this.loadFolderChildren(parentPath, node.parentNode, nextOffset, true);
       }
       return;
     }
@@ -145,13 +148,29 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       return;
     }
 
-    this.selectedSourceKeys = [key];
-    this.selectSource(key);
+    if (origin?.hasChildren && !origin.hasSource) {
+      const shouldExpand = !node.isExpanded;
+      node.isExpanded = shouldExpand;
+      this.updateExpandedKeys(key, shouldExpand);
+      if (shouldExpand) {
+        this.loadChildrenForNode(node);
+      }
+    }
+
+    if (origin?.hasSource) {
+      this.selectedSourceKeys = [key];
+      this.selectSource(key);
+    }
   }
 
   public handleSourceNodeExpand(event: NzFormatEmitEvent): void {
     const node = event.node;
     if (!node) {
+      return;
+    }
+    const origin = node.origin as SourceTreeNodeOrigin;
+    if (origin?.hasSource) {
+      node.isExpanded = false;
       return;
     }
     const isExpanded = node.isExpanded;
@@ -196,144 +215,28 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       });
   }
 
-  public handleSourceTreeScroll(event: Event): void {
-    if (this.isLoadingMore || this.isLoading || this.nextOffset === null) {
-      return;
-    }
-
-    const target = event.target as HTMLElement | null;
-    if (!target) {
-      return;
-    }
-
-    const threshold = 120;
-    const position = target.scrollTop + target.clientHeight;
-    if (position >= target.scrollHeight - threshold) {
-      this.loadMoreSources();
-    }
-  }
-
   private loadSources(): void {
-    this.isLoading = true;
     this.errorMessage = null;
-    this.sourcePaths = [];
     this.sourceTreeNodes = [];
-    this.nextOffset = 0;
+    this.isLoading = true;
 
     this.sourcesApiService
-      .getSourcePaths({offset: 0, limit: this.pageSize})
+      .getSourceFolderChildren(null, {offset: 0, limit: this.pageSize})
       .pipe(
         catchError(() => {
           this.errorMessage = 'Failed to load sources.';
-          return of<SourcePathsResponseDto>({source_paths: [], total: 0, next_offset: null});
+          return of<SourceFolderChildrenResponseDto>({children: [], total: 0, next_offset: null});
         }),
         finalize(() => {
           this.isLoading = false;
         })
       )
-      .subscribe((response: SourcePathsResponseDto | null) => {
+      .subscribe((response: SourceFolderChildrenResponseDto | null) => {
         if (!response) {
           return;
         }
-        this.sourcePaths = response.source_paths;
-        this.totalSources = response.total ?? this.sourcePaths.length;
-        this.nextOffset = response.next_offset ?? null;
-        this.sourceTreeIndex = this.buildSourceTreeIndex(this.sourcePaths);
-        this.sourceTreeNodes = this.buildSourceTreeNodes();
+        this.applyRootChildren(response, false);
       });
-  }
-
-  private loadMoreSources(): void {
-    if (this.nextOffset === null) {
-      return;
-    }
-
-    this.isLoadingMore = true;
-    const offset = this.nextOffset;
-
-    this.sourcesApiService
-      .getSourcePaths({offset, limit: this.pageSize})
-      .pipe(
-        catchError(() => {
-          this.errorMessage = 'Failed to load more sources.';
-          return of<SourcePathsResponseDto>({source_paths: [], total: this.totalSources ?? 0, next_offset: null});
-        }),
-        finalize(() => {
-          this.isLoadingMore = false;
-        })
-      )
-      .subscribe((response: SourcePathsResponseDto | null) => {
-        if (!response) {
-          return;
-        }
-        const newPaths = response.source_paths ?? [];
-        this.sourcePaths = [...this.sourcePaths, ...newPaths];
-        this.totalSources = response.total ?? this.totalSources;
-        this.nextOffset = response.next_offset ?? null;
-        this.sourceTreeIndex = this.buildSourceTreeIndex(this.sourcePaths);
-        this.sourceTreeNodes = this.buildSourceTreeNodes();
-      });
-  }
-
-  private buildSourceTreeNodes(): NzTreeNodeOptions[] {
-    return this.buildTreeNodesForParent('');
-  }
-
-  private buildTreeNodesForParent(parentPath: string): NzTreeNodeOptions[] {
-    const entries = Array.from(this.sourceTreeIndex.get(parentPath)?.values() ?? []);
-    return entries
-      .sort((left, right) => {
-        if (left.isLeaf !== right.isLeaf) {
-          return left.isLeaf ? 1 : -1;
-        }
-        return left.name.localeCompare(right.name);
-      })
-      .map((entry) => {
-        const isExpanded = this.expandedKeys.has(entry.path);
-        const children = !entry.isLeaf && isExpanded
-          ? this.buildTreeNodesForParent(entry.path)
-          : undefined;
-        return {
-          title: entry.name,
-          key: entry.path,
-          children,
-          isLeaf: entry.isLeaf,
-          expanded: isExpanded
-        };
-      });
-  }
-
-  private buildSourceTreeIndex(sourcePaths: string[]): Map<string, Map<string, SourceTreeEntry>> {
-    const index = new Map<string, Map<string, SourceTreeEntry>>();
-    index.set('', new Map());
-
-    for (const sourcePath of sourcePaths) {
-      const parts = sourcePath.split('/').filter(Boolean);
-      let parentPath = '';
-
-      parts.forEach((part, indexPart) => {
-        const currentPath = parentPath ? `${parentPath}/${part}` : part;
-        const isLeaf = indexPart === parts.length - 1;
-        const parentMap = index.get(parentPath) ?? new Map<string, SourceTreeEntry>();
-        if (!index.has(parentPath)) {
-          index.set(parentPath, parentMap);
-        }
-
-        const existing = parentMap.get(part);
-        if (!existing) {
-          parentMap.set(part, {name: part, path: currentPath, isLeaf});
-        } else if (existing.isLeaf && !isLeaf) {
-          existing.isLeaf = false;
-        }
-
-        if (!isLeaf && !index.has(currentPath)) {
-          index.set(currentPath, new Map());
-        }
-        parentPath = currentPath;
-      });
-    }
-
-    return index;
   }
 
   private updateExpandedKeys(key: string, isExpanded: boolean): void {
@@ -351,16 +254,138 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     if (node.isLeaf) {
       return;
     }
-    if (node.children && node.children.length > 0) {
+    const origin = node.origin as SourceTreeNodeOrigin;
+    if (origin?.hasSource) {
       return;
     }
     const key = node.key?.toString() ?? '';
     if (!key) {
       return;
     }
-    const children = this.buildTreeNodesForParent(key);
-    node.addChildren(children);
+    if (this.loadingFolders.has(key) || this.loadedFolders.has(key)) {
+      return;
+    }
+    this.loadFolderChildren(key, node, 0, false);
+  }
+
+  private loadFolderChildren(
+    folderPath: string,
+    node: NzTreeNode | null,
+    offset: number,
+    append: boolean
+  ): void {
+    if (this.loadingFolders.has(folderPath)) {
+      return;
+    }
+    this.loadingFolders.add(folderPath);
+
+    this.sourcesApiService
+      .getSourceFolderChildren(folderPath || null, {offset, limit: this.pageSize})
+      .pipe(
+        catchError(() => {
+          if (!append) {
+            this.errorMessage = 'Failed to load sources.';
+          }
+          return of<SourceFolderChildrenResponseDto>({children: [], total: 0, next_offset: null});
+        }),
+        finalize(() => {
+          this.loadingFolders.delete(folderPath);
+        })
+      )
+      .subscribe((response: SourceFolderChildrenResponseDto | null) => {
+        if (!response) {
+          return;
+        }
+        if (node) {
+          this.applyNodeChildren(node, folderPath, response, append);
+        } else {
+          this.applyRootChildren(response, append);
+        }
+      });
+  }
+
+  private applyRootChildren(response: SourceFolderChildrenResponseDto, append: boolean): void {
+    const nodes = this.buildTreeNodes(response.children ?? []);
+    if (append) {
+      this.sourceTreeNodes = this.stripLoadMore(this.sourceTreeNodes);
+      this.sourceTreeNodes = [...this.sourceTreeNodes, ...nodes];
+    } else {
+      this.sourceTreeNodes = nodes;
+      this.loadedFolders.add('');
+    }
+    this.updatePagination('', response);
+  }
+
+  private applyNodeChildren(
+    node: NzTreeNode,
+    folderPath: string,
+    response: SourceFolderChildrenResponseDto,
+    append: boolean
+  ): void {
+    const nodes = this.buildTreeNodes(response.children ?? []);
+    const existing = node.children ?? [];
+    const cleaned = this.stripLoadMore(existing);
+    node.clearChildren();
+    if (append) {
+      node.addChildren([...cleaned, ...nodes]);
+    } else {
+      node.addChildren(nodes);
+      this.loadedFolders.add(folderPath);
+    }
+    this.updatePagination(folderPath, response, node);
+  }
+
+  private buildTreeNodes(entries: SourceFolderChildEntryDto[]): NzTreeNodeOptions[] {
+    return entries.map((entry) => ({
+      title: entry.name,
+      key: entry.path,
+      isLeaf: entry.has_source || !entry.has_children,
+      hasSource: entry.has_source,
+      hasChildren: entry.has_children && !entry.has_source
+    }));
+  }
+
+  private updatePagination(
+    folderPath: string,
+    response: SourceFolderChildrenResponseDto,
+    node?: NzTreeNode
+  ): void {
+    const nextOffset = response.next_offset ?? null;
+    this.folderPagination.set(folderPath, {nextOffset, total: response.total ?? null});
+    if (nextOffset !== null) {
+      const loadMoreNode: NzTreeNodeOptions = {
+        title: 'Load more…',
+        key: this.buildLoadMoreKey(folderPath, nextOffset),
+        isLeaf: true,
+        selectable: false,
+        isLoadMore: true,
+        parentPath: folderPath
+      };
+      if (node) {
+        node.addChildren([loadMoreNode]);
+      } else {
+        this.sourceTreeNodes = [...this.sourceTreeNodes, loadMoreNode];
+      }
+    }
+  }
+
+  private stripLoadMore(nodes: NzTreeNodeOptions[] | NzTreeNode[]): NzTreeNodeOptions[] {
+    return nodes.filter((child) => !(child as SourceTreeNodeOrigin)?.isLoadMore) as NzTreeNodeOptions[];
+  }
+
+  private buildLoadMoreKey(folderPath: string, offset: number): string {
+    return `__load_more__:${folderPath}:${offset}`;
   }
 }
 
-type SourceTreeEntry = { name: string; path: string; isLeaf: boolean };
+type SourceTreeNodeOrigin = {
+  hasSource?: boolean;
+  hasChildren?: boolean;
+  isLoadMore?: boolean;
+  parentPath?: string;
+};
+
+type FolderPaginationState = {
+  nextOffset: number | null;
+  total: number | null;
+};

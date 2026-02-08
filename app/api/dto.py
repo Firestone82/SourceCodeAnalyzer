@@ -56,6 +56,28 @@ class SourcePathsResponse(BaseModel):
     next_offset: Optional[int] = None
 
 
+class SourceFolderEntry(BaseModel):
+    path: str
+    has_source: bool
+
+
+class SourceFoldersResponse(BaseModel):
+    folders: list[SourceFolderEntry]
+
+
+class SourceFolderChildEntry(BaseModel):
+    name: str
+    path: str
+    has_source: bool
+    has_children: bool
+
+
+class SourceFolderChildrenResponse(BaseModel):
+    children: list[SourceFolderChildEntry]
+    total: Optional[int] = None
+    next_offset: Optional[int] = None
+
+
 class SourceFilesResponse(BaseModel):
     source_path: str
     files: dict[str, str]

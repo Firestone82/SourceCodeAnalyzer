@@ -27,6 +27,28 @@ export interface SourcePathsResponseDto {
   next_offset?: number | null;
 }
 
+export interface SourceFolderEntryDto {
+  path: string;
+  has_source: boolean;
+}
+
+export interface SourceFoldersResponseDto {
+  folders: SourceFolderEntryDto[];
+}
+
+export interface SourceFolderChildEntryDto {
+  name: string;
+  path: string;
+  has_source: boolean;
+  has_children: boolean;
+}
+
+export interface SourceFolderChildrenResponseDto {
+  children: SourceFolderChildEntryDto[];
+  total?: number;
+  next_offset?: number | null;
+}
+
 export interface SourceFilesResponseDto {
   source_path: string;
   files: Record<string, string>;

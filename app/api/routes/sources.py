@@ -6,7 +6,16 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyze_job import run_submit_analysis
-from app.api.dto import AnalyzeRequest, SourcePathsResponse, AnalyzeSourceResponse, SourceFilesResponse
+from app.api.dto import (
+    AnalyzeRequest,
+    SourcePathsResponse,
+    AnalyzeSourceResponse,
+    SourceFilesResponse,
+    SourceFolderEntry,
+    SourceFoldersResponse,
+    SourceFolderChildEntry,
+    SourceFolderChildrenResponse,
+)
 from app.api.security import get_current_rater
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater
@@ -37,6 +46,19 @@ def store_prompt_content(prompt_path: str, content: str) -> str:
     return normalized_prompt_path
 
 
+def normalize_folder_path(folder_path: str) -> str:
+    candidate = folder_path.strip()
+
+    if not candidate:
+        return ""
+
+    candidate_path = Path(candidate)
+    if candidate_path.is_absolute() or ".." in candidate_path.parts:
+        raise HTTPException(status_code=400, detail="Invalid folder path")
+
+    return candidate_path.as_posix()
+
+
 @router.get("")
 def list_source_paths(
         offset: int = Query(0, ge=0),
@@ -63,6 +85,77 @@ def list_source_paths(
 
     return SourcePathsResponse(
         source_paths=paged_paths,
+        total=total,
+        next_offset=next_offset,
+    )
+
+
+@router.get("/folders")
+def list_source_folders() -> SourceFoldersResponse:
+    folders: dict[str, bool] = {}
+
+    for directory_path, _, file_names in os.walk(SOURCES_ROOT):
+        full_path: Path = Path(directory_path).resolve()
+        relative_path: Path = full_path.relative_to(SOURCES_ROOT)
+        folder_path = relative_path.as_posix()
+        if folder_path == ".":
+            continue
+
+        if folder_path not in folders:
+            folders[folder_path] = False
+
+        if "src.zip" in file_names:
+            folders[folder_path] = True
+
+    folder_entries = [
+        SourceFolderEntry(path=path, has_source=has_source)
+        for path, has_source in sorted(folders.items())
+    ]
+
+    return SourceFoldersResponse(folders=folder_entries)
+
+
+@router.get("/folders/children")
+def list_source_folder_children(
+        folder_path: str | None = Query(None),
+        offset: int = Query(0, ge=0),
+        limit: int | None = Query(None, ge=1),
+) -> SourceFolderChildrenResponse:
+    normalized_folder_path = normalize_folder_path(folder_path or "")
+    base_path = SOURCES_ROOT if not normalized_folder_path else safe_join(SOURCES_ROOT, normalized_folder_path)
+
+    if not base_path.exists() or not base_path.is_dir():
+        raise HTTPException(status_code=404, detail="Folder not found")
+
+    children: list[SourceFolderChildEntry] = []
+    with os.scandir(base_path) as entries:
+        for entry in entries:
+            if not entry.is_dir():
+                continue
+            entry_path = Path(entry.path)
+            relative_path = entry_path.relative_to(SOURCES_ROOT).as_posix()
+            has_source = (entry_path / "src.zip").exists()
+            with os.scandir(entry_path) as child_entries:
+                has_children = any(child.is_dir() for child in child_entries)
+            children.append(SourceFolderChildEntry(
+                name=entry.name,
+                path=relative_path,
+                has_source=has_source,
+                has_children=has_children,
+            ))
+
+    children.sort(key=lambda child: child.name)
+    total = len(children)
+    if limit is not None:
+        paged_children = children[offset:offset + limit]
+    else:
+        paged_children = children[offset:]
+    next_offset = None
+    if limit is not None and offset + limit < total:
+        next_offset = offset + limit
+
+    return SourceFolderChildrenResponse(
+        children=paged_children,
         total=total,
         next_offset=next_offset,
     )
