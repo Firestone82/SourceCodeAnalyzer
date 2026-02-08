@@ -21,15 +21,6 @@ export interface PromptContentResponseDto {
   content: string;
 }
 
-export interface PromptUploadRequestDto {
-  prompt_path: string;
-  content: string;
-}
-
-export interface PromptUploadResponseDto {
-  prompt_path: string;
-}
-
 export interface SourcePathsResponseDto {
   source_paths: string[];
 }
@@ -42,6 +33,7 @@ export interface SourceFilesResponseDto {
 export interface AnalyzeSourceRequestDto {
   model: string;
   prompt_path: string;
+  prompt_content?: string;
 }
 
 export interface AnalyzeSourceResponseDto {

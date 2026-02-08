@@ -11,8 +11,7 @@ import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
   AnalyzeSourceResponseDto,
   PromptContentResponseDto,
-  PromptNamesResponseDto,
-  PromptUploadResponseDto
+  PromptNamesResponseDto
 } from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {environment} from '../../../environments/environment';
@@ -133,12 +132,13 @@ export class SourceReviewModalComponent implements OnChanges {
     const trimmedPromptContent = this.promptContent.trim();
     const hasPromptChanged = trimmedPromptDraft !== trimmedPromptContent;
 
-    const finalizeSubmission = (promptPath: string): void => {
+    const finalizeSubmission = (promptPath: string, promptContent?: string): void => {
+      const requestPayload = promptContent
+        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent}
+        : {model: this.reviewModel.trim(), prompt_path: promptPath};
+
       this.sourcesApiService
-        .analyzeSource(this.selectedSourcePath!, {
-          model: this.reviewModel.trim(),
-          prompt_path: promptPath
-        })
+        .analyzeSource(this.selectedSourcePath!, requestPayload)
         .pipe(
           catchError(() => {
             this.reviewSubmitError = 'Failed to submit review.';
@@ -159,24 +159,7 @@ export class SourceReviewModalComponent implements OnChanges {
 
     if (hasPromptChanged) {
       const uploadName = this.buildPromptUploadName(this.selectedPromptPath);
-      this.promptsApiService
-        .uploadPrompt({
-          prompt_path: uploadName,
-          content: trimmedPromptDraft
-        })
-        .pipe(
-          catchError(() => {
-            this.reviewSubmitError = 'Failed to upload updated prompt.';
-            return of<PromptUploadResponseDto | null>(null);
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            this.isSubmittingReview = false;
-            return;
-          }
-          finalizeSubmission(response.prompt_path);
-        });
+      finalizeSubmission(uploadName, trimmedPromptDraft);
     } else {
       finalizeSubmission(this.selectedPromptPath);
     }

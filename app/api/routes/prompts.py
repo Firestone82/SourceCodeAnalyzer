@@ -1,13 +1,11 @@
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
 from app.api.dto import (
     BatchAnalyzeRequest,
-    PromptUploadRequest,
-    PromptUploadResponse,
     PromptAnalysisJob,
     PromptAnalysisResponse,
     PromptContentResponse,
@@ -17,7 +15,7 @@ from app.api.security import get_current_rater
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater
 from app.database.rq_queue import get_analysis_queue
-from app.utils.files import PROMPTS_ROOT, find_prompt_file, safe_join
+from app.utils.files import PROMPTS_ROOT, find_prompt_file
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])
 
@@ -46,29 +44,6 @@ def get_prompt_content(prompt_path: str) -> PromptContentResponse:
         prompt_path=prompt_path,
         content=content
     )
-
-
-def normalize_prompt_path(prompt_path: str) -> str:
-    candidate = prompt_path.strip()
-
-    if not candidate:
-        raise HTTPException(status_code=400, detail="Prompt path is required")
-
-    candidate_path = Path(candidate)
-    if candidate_path.is_absolute() or ".." in candidate_path.parts:
-        raise HTTPException(status_code=400, detail="Invalid prompt path")
-
-    return candidate_path.as_posix()
-
-
-@router.post("/upload")
-def upload_prompt(request: PromptUploadRequest) -> PromptUploadResponse:
-    normalized_prompt_path = normalize_prompt_path(request.prompt_path)
-    prompt_file_path = safe_join(PROMPTS_ROOT, f"{normalized_prompt_path}.txt")
-    prompt_file_path.parent.mkdir(parents=True, exist_ok=True)
-    prompt_file_path.write_text(request.content, encoding="utf-8")
-
-    return PromptUploadResponse(prompt_path=normalized_prompt_path)
 
 
 @router.post("/{prompt_path}")

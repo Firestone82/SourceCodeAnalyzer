@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 class AnalyzeRequest(BaseModel):
     model: str = Field(min_length=1)
     prompt_path: str = Field(min_length=1)
+    prompt_content: Optional[str] = None
 
 
 class BatchAnalyzeRequest(BaseModel):
@@ -35,15 +36,6 @@ class PromptNamesResponse(BaseModel):
 class PromptContentResponse(BaseModel):
     prompt_path: str
     content: str
-
-
-class PromptUploadRequest(BaseModel):
-    prompt_path: str = Field(min_length=1)
-    content: str = Field(min_length=1)
-
-
-class PromptUploadResponse(BaseModel):
-    prompt_path: str
 
 
 class PromptAnalysisJob(BaseModel):

@@ -8,12 +8,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {catchError, finalize, of} from 'rxjs';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {
-  AnalyzeSourceResponseDto,
-  PromptContentResponseDto,
-  PromptNamesResponseDto,
-  PromptUploadResponseDto
-} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {environment} from '../../../environments/environment';
 
@@ -158,13 +153,12 @@ export class SubmitUploadModalComponent implements OnChanges {
     const trimmedContent = this.promptContent.trim();
     const hasPromptChanged = !this.selectedPromptPath || trimmedDraft !== trimmedContent;
 
-    const finalizeUpload = (promptPath: string): void => {
+    const finalizeUpload = (promptPath: string, promptFile?: File): void => {
       const formData = new FormData();
       formData.append('model', this.uploadModel.trim());
 
-      const sourcePath = this.sourceName.trim()
-        ? this.ensureUploadPath(this.sourceName.trim())
-        : this.buildSourceUploadName();
+      const normalizedSourceName = this.normalizeUploadName(this.sourceName.trim());
+      const sourcePath = normalizedSourceName || this.buildSourceUploadName();
       formData.append('source_path', sourcePath);
 
       if (this.sourceFile) {
@@ -172,6 +166,9 @@ export class SubmitUploadModalComponent implements OnChanges {
       }
 
       formData.append('prompt_path', promptPath);
+      if (promptFile) {
+        formData.append('prompt_file', promptFile);
+      }
 
       this.submitsApiService
         .uploadSubmit(formData)
@@ -194,27 +191,10 @@ export class SubmitUploadModalComponent implements OnChanges {
     };
 
     if (hasPromptChanged) {
-      const uploadName = this.promptName.trim()
-        ? this.ensureUploadPath(this.promptName.trim())
-        : this.buildPromptUploadName();
-      this.promptsApiService
-        .uploadPrompt({
-          prompt_path: uploadName,
-          content: trimmedDraft
-        })
-        .pipe(
-          catchError(() => {
-            this.uploadErrorMessage = 'Failed to upload prompt.';
-            return of<PromptUploadResponseDto | null>(null);
-          })
-        )
-        .subscribe((response) => {
-          if (!response) {
-            this.isSubmitting = false;
-            return;
-          }
-          finalizeUpload(response.prompt_path);
-        });
+      const normalizedPromptName = this.normalizeUploadName(this.promptName.trim());
+      const uploadName = normalizedPromptName || this.buildPromptUploadName();
+      const promptFile = new File([trimmedDraft], `${uploadName}.txt`, {type: 'text/plain'});
+      finalizeUpload(uploadName, promptFile);
     } else if (this.selectedPromptPath) {
       finalizeUpload(this.selectedPromptPath);
     }
@@ -263,11 +243,11 @@ export class SubmitUploadModalComponent implements OnChanges {
   }
 
   private buildPromptUploadName(): string {
-    return `upload/prompt-${this.buildUploadTimestamp()}`;
+    return `prompt-${this.buildUploadTimestamp()}`;
   }
 
   private buildSourceUploadName(): string {
-    return `upload/src-${this.buildUploadTimestamp()}`;
+    return `src-${this.buildUploadTimestamp()}`;
   }
 
   private buildUploadTimestamp(): string {
@@ -277,10 +257,13 @@ export class SubmitUploadModalComponent implements OnChanges {
     return `${date}-${time}`;
   }
 
-  private ensureUploadPath(name: string): string {
-    if (name.startsWith('upload/')) {
-      return name;
+  private normalizeUploadName(name: string): string {
+    if (!name) {
+      return '';
     }
-    return `upload/${name}`;
+    if (name.startsWith('upload/')) {
+      return name.slice('upload/'.length);
+    }
+    return name;
   }
 }
