@@ -229,7 +229,8 @@ export class SourcesListComponent implements OnInit, OnDestroy {
             title: name,
             key: child.path,
             children,
-            isLeaf
+            isLeaf,
+            expanded: name === 'upload'
           };
         });
     };

@@ -8,11 +8,10 @@ import {NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzTreeNodeKey, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 import {catchError, finalize, forkJoin, of} from 'rxjs';
-
-import {KNOWN_MODELS} from '../../shared/model-options';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
+import {environment} from '../../../environments/environment';
 
 @Component({
   selector: 'app-prompt-review-modal',
@@ -53,9 +52,10 @@ export class PromptReviewModalComponent implements OnChanges {
   public get filteredModelOptions(): string[] {
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
-      return KNOWN_MODELS;
+      return environment.models ?? [];
     }
-    return KNOWN_MODELS.filter((model) => model.toLowerCase().includes(query));
+
+    return (environment.models ?? []).filter((model) => model.toLowerCase().includes(query));
   }
 
   public get canSubmitBulkReview(): boolean {
@@ -206,7 +206,8 @@ export class PromptReviewModalComponent implements OnChanges {
             title: name,
             key: child.path,
             children,
-            isLeaf
+            isLeaf,
+            expanded: name === 'upload'
           };
         });
     };

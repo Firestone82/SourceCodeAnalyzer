@@ -259,7 +259,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
             key: child.path,
             children,
             isLeaf,
-            expanded: true
+            expanded: name === 'upload'
           };
         });
     };

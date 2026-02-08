@@ -6,8 +6,6 @@ import {NzModalModule} from 'ng-zorro-antd/modal';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {catchError, finalize, of} from 'rxjs';
-
-import {KNOWN_MODELS} from '../../shared/model-options';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
 import {
@@ -17,6 +15,7 @@ import {
   PromptUploadResponseDto
 } from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
+import {environment} from '../../../environments/environment';
 
 @Component({
   selector: 'app-submit-upload-modal',
@@ -59,9 +58,10 @@ export class SubmitUploadModalComponent implements OnChanges {
   public get filteredModelOptions(): string[] {
     const query = this.uploadModel.trim().toLowerCase();
     if (!query) {
-      return KNOWN_MODELS;
+      return environment.models ?? [];
     }
-    return KNOWN_MODELS.filter((model) => model.toLowerCase().includes(query));
+
+    return (environment.models ?? []).filter((model) => model.toLowerCase().includes(query));
   }
 
   public get sourceFileName(): string | null {
@@ -162,9 +162,10 @@ export class SubmitUploadModalComponent implements OnChanges {
       const formData = new FormData();
       formData.append('model', this.uploadModel.trim());
 
-      if (this.sourceName.trim()) {
-        formData.append('source_path', this.sourceName.trim());
-      }
+      const sourcePath = this.sourceName.trim()
+        ? this.ensureUploadPath(this.sourceName.trim())
+        : this.buildSourceUploadName();
+      formData.append('source_path', sourcePath);
 
       if (this.sourceFile) {
         formData.append('source_file', this.sourceFile);
@@ -194,8 +195,8 @@ export class SubmitUploadModalComponent implements OnChanges {
 
     if (hasPromptChanged) {
       const uploadName = this.promptName.trim()
-        ? this.promptName.trim()
-        : this.buildPromptUploadName(this.selectedPromptPath);
+        ? this.ensureUploadPath(this.promptName.trim())
+        : this.buildPromptUploadName();
       this.promptsApiService
         .uploadPrompt({
           prompt_path: uploadName,
@@ -261,9 +262,25 @@ export class SubmitUploadModalComponent implements OnChanges {
       });
   }
 
-  private buildPromptUploadName(promptPath: string | null): string {
-    const baseName = promptPath?.split('/').filter(Boolean).pop() ?? 'prompt';
-    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    return `custom/${baseName}-${timestamp}`;
+  private buildPromptUploadName(): string {
+    return `upload/prompt-${this.buildUploadTimestamp()}`;
+  }
+
+  private buildSourceUploadName(): string {
+    return `upload/src-${this.buildUploadTimestamp()}`;
+  }
+
+  private buildUploadTimestamp(): string {
+    const iso = new Date().toISOString();
+    const date = iso.slice(0, 10);
+    const time = iso.slice(11, 16).replace(':', '-');
+    return `${date}-${time}`;
+  }
+
+  private ensureUploadPath(name: string): string {
+    if (name.startsWith('upload/')) {
+      return name;
+    }
+    return `upload/${name}`;
   }
 }

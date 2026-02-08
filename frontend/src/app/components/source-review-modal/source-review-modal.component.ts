@@ -6,8 +6,6 @@ import {NzModalModule} from 'ng-zorro-antd/modal';
 import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {catchError, finalize, of} from 'rxjs';
-
-import {KNOWN_MODELS} from '../../shared/model-options';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
@@ -17,6 +15,7 @@ import {
   PromptUploadResponseDto
 } from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
+import {environment} from '../../../environments/environment';
 
 @Component({
   selector: 'app-source-review-modal',
@@ -59,9 +58,10 @@ export class SourceReviewModalComponent implements OnChanges {
   public get filteredModelOptions(): string[] {
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
-      return KNOWN_MODELS;
+      return environment.models ?? [];
     }
-    return KNOWN_MODELS.filter((model) => model.toLowerCase().includes(query));
+
+    return (environment.models ?? []).filter((model) => model.toLowerCase().includes(query));
   }
 
   public get canSubmitReview(): boolean {
