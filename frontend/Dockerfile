@@ -1,4 +1,4 @@
-FROM node:20-alpine
+FROM node:20-alpine AS build
 
 WORKDIR /app
 
@@ -6,11 +6,14 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+RUN npm run build -- --configuration production
 
-EXPOSE 4200
+FROM nginx:1.27-alpine
 
-COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+COPY --from=build /app/dist/frontend /usr/share/nginx/html
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY docker-entrypoint-env.sh /docker-entrypoint.d/99-env.sh
 
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["npm", "run", "start", "--", "--host", "0.0.0.0", "--poll", "2000", "--port", "4200"]
+RUN chmod +x /docker-entrypoint.d/99-env.sh
+
+EXPOSE 80

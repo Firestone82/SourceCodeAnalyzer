@@ -29,10 +29,6 @@ services:
       dockerfile: Dockerfile
     container_name: analyzer-api
     env_file: .env
-    environment:
-      PORT: 4100
-      DATABASE_URL: ${DATABASE_URL:-sqlite:///./data/dev.db}
-      REDIS_URL: redis://redis:6379/0
     ports:
       - "${BACKEND_PORT:-4100}:4100"
     volumes:
@@ -48,10 +44,6 @@ services:
     container_name: analyzer-worker
     command: ["python", "worker.py"]
     env_file: .env
-    environment:
-      PORT: 4100
-      DATABASE_URL: ${DATABASE_URL:-sqlite:///./data/dev.db}
-      REDIS_URL: redis://redis:6379/0
     volumes:
       - ./data:/app/data
     depends_on:
@@ -64,10 +56,10 @@ services:
       dockerfile: Dockerfile
     container_name: analyzer-frontend
     env_file: .env
-    environment:
-      API_BASE_URL: ${API_BASE_URL:-http://localhost:4100}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
-      - "${FRONTEND_PORT:-4200}:4200"
+      - "${FRONTEND_PORT:-4200}:80"
     depends_on:
       - api
     restart: unless-stopped

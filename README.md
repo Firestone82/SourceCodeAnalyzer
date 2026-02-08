@@ -45,7 +45,9 @@ offloads analysis to an RQ worker backed by Redis.
    ```
 3. **Open the app**
    - API: `http://localhost:4100`
-   - Frontend: `http://localhost:4200`
+   - Frontend: `http://localhost:4200` (served by Nginx in the container)
+   - When running the frontend in Docker with `API_BASE_URL` pointing at `localhost`, the container rewrites it to
+     `host.docker.internal` so it can still reach the backend.
 
 > Data is persisted to local folders (for SQLite) and Docker volumes (for Redis/Postgres).
 
@@ -88,8 +90,9 @@ offloads analysis to an RQ worker backed by Redis.
 6. **Build and run the frontend**
    ```bash
    docker build -t analyzer-frontend ./frontend
-   docker run -d --name analyzer-frontend --network analyzer-net -p 4200:4200 \
+   docker run -d --name analyzer-frontend --network analyzer-net -p 4200:80 \
      --env-file .env \
+     --add-host host.docker.internal:host-gateway \
      analyzer-frontend
    ```
 7. **Open the app**
@@ -143,7 +146,7 @@ docker compose --profile postgres up -d postgres
 7. **Run the frontend**
    ```bash
    cd frontend
-   ../scripts/generate-frontend-env.sh
+   ../scripts/generate-frontend-env.sh ../.env
    npm install
    ng serve
    ```
@@ -154,12 +157,11 @@ docker compose --profile postgres up -d postgres
 Edit `.env` or set corresponding environment variables.
 
 ```bash
-# API
+## Backend configuration
 APP_NAME=analyzer-backend
 APP_ENV=dev
 LOG_LEVEL=INFO
 BACKEND_PORT=4100
-FRONTEND_PORT=4200
 API_BASE_URL=http://localhost:4100
 CORS_ORIGINS=http://localhost:4200,http://127.0.0.1:4200
 
@@ -177,15 +179,18 @@ RQ_QUEUE_NAME=analysis
 # Analyzer (OpenAI-compatible)
 ANALYZER_BASE_URL=http://localhost:11434/v1
 ANALYZER_API_KEY=
+
+## Frontend configuration
+FRONTEND_PORT=4200
 ```
 
 For local frontend development, regenerate `frontend/public/env.js` when you change `API_BASE_URL`:
 ```bash
-./scripts/generate-frontend-env.sh
+./scripts/generate-frontend-env.sh .env
 ```
 
 `CORS_ORIGINS` is a comma-separated list of allowed browser origins for the API (for example,
-`http://localhost:4200,http://127.0.0.1:4200`). Update it if your frontend runs on a different host.
+`http://localhost:4200,http://127.0.0.1:4200`). Update it in `.env` if your frontend runs on a different host.
 
 ### Using Postgres instead of SQLite
 
