@@ -1,6 +1,7 @@
 import {SafeHtml} from '@angular/platform-browser';
 
 export type IssueSeverity = 'low' | 'medium' | 'high';
+export type SubmitRatingState = 'not_rated' | 'partially_rated' | 'rated';
 
 export interface LoginRequestDto {
   key: string;
@@ -94,7 +95,7 @@ export interface SubmitListItemDto {
   model: string;
   prompt_path: string;
   source_path: string;
-  rated: boolean;
+  rating_state: SubmitRatingState;
   total_issues: number;
   created_at: string;
   published: boolean;
@@ -114,6 +115,7 @@ export interface SubmitDto {
   source_path: string;
   files: Record<string, string>;
   created_at: string;
+  rating_state: SubmitRatingState;
   published: boolean;
 }
 
@@ -124,7 +126,8 @@ export interface SubmitDetailsDto {
     id: number | null;
     explanation: string;
     highlightedExplanation?: SafeHtml;
-    rating: number | null;
+    relevance_rating: number | null;
+    quality_rating: number | null;
     rated_at: string | null;
   };
   issues: IssueDto[];
@@ -137,12 +140,14 @@ export interface IssueDto {
   line: number;
   explanation: string;
   highlightedExplanation?: SafeHtml;
-  rating: number | null;
+  relevance_rating: number | null;
+  quality_rating: number | null;
   rated_at: string | null;
 }
 
 export interface RateIssueRequestDto {
-  rating: number;
+  relevance_rating?: number;
+  quality_rating?: number;
 }
 
 export interface SubmitPublishRequestDto {

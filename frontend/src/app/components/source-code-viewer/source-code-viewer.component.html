@@ -1,44 +1,56 @@
 <div class="flex flex-col">
   @for (line of lines; track line.lineNumber) {
     <div class="flex items-stretch leading-[18px]">
-      <!-- line number -->
       <div
         class="flex items-end min-w-[40px] self-stretch select-none border-r border-black/30 px-[5px] justify-end text-sm">
         <span>{{ line.lineNumber }}</span>
       </div>
 
       <div class="flex flex-1 flex-col">
-        <!-- issues -->
         @if (line.issues.length > 0) {
           <div class="grid gap-2 p-[5px]">
             @for (issue of line.issues; track issue.id) {
               <nz-card
-                class="ml-[5px] w-fit max-w-[90%] rounded-[10px]"
+                class="issue-card ml-[5px] w-fit max-w-[90%] rounded-[10px]"
                 nzSize="small"
               >
-                <div class="mb-2 flex items-center justify-between gap-2.5">
+                <div class="mb-2 flex items-start justify-between gap-2.5">
                   <div class="flex items-center gap-2">
                     <nz-tag [nzColor]="severityColor(issue.severity)">
                       {{ issue.severity }}
                     </nz-tag>
+
                     <span nz-typography nzType="secondary">
                       Line {{ issue.line }} · Issue #{{ issue.id }}
                     </span>
                   </div>
 
-                  <div class="flex items-center leading-[5px]">
-                    @if (issue.rated_at) {
-                      <span class="mr-2 text-xs text-gray-500">
-                        {{ issue.rated_at | date:'yyyy-MM-dd' }}
-                      </span>
-                    }
-                    <nz-rate
-                      (ngModelChange)="onRatingChange(issue, $event)"
-                      [ngModel]="(issue.rating ?? 0) / 2"
-                      [nzAllowClear]="false"
-                      [nzAllowHalf]="true"
-                      [nzCount]="5"
-                    />
+                  <div class="flex items-start leading-[5px]">
+                    <div class="rating-box rating-criteria-grid">
+                      <div class="rating-criterion">
+                        <span class="text-xs font-semibold">Relevance</span>
+
+                        <nz-rate
+                          (ngModelChange)="onRatingChange(issue, 'relevance', $event)"
+                          [ngModel]="(issue.relevance_rating ?? 0) / 2"
+                          [nzAllowClear]="false"
+                          [nzAllowHalf]="true"
+                          [nzCount]="5"
+                        />
+                      </div>
+
+                      <div class="rating-criterion quality-rating-box">
+                        <span class="text-xs font-semibold">Quality</span>
+
+                        <nz-rate
+                          (ngModelChange)="onRatingChange(issue, 'quality', $event)"
+                          [ngModel]="(issue.quality_rating ?? 0) / 2"
+                          [nzAllowClear]="false"
+                          [nzAllowHalf]="true"
+                          [nzCount]="5"
+                        />
+                      </div>
+                    </div>
                   </div>
                 </div>
 
@@ -54,7 +66,6 @@
           </div>
         }
 
-        <!-- code line -->
         <div class="px-[5px] font-mono whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
           @if (line.highlightedHtml) {
             <span [innerHTML]="line.highlightedHtml" class="code-text"></span>

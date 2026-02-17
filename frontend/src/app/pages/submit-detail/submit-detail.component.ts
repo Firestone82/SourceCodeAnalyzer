@@ -44,13 +44,10 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
 })
 export class SubmitDetailComponent implements OnInit, OnDestroy {
   public isLoading: boolean = false;
-
   public submit: SubmitDto | null = null;
   public submitDetails: SubmitDetailsDto | null = null;
-
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
-
   public remainingIssuesByFile: Record<string, number> = {};
   public nextUnratedSubmitId: number | null = null;
   public isReviewModalVisible: boolean = false;
@@ -97,34 +94,50 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     this.selectedFileName = fileName;
   }
 
-  public handleRate(issue: IssueDto, rating: number): void {
-    const previousRating: number | null = issue.rating;
+  public handleRate(issue: IssueDto, criterion: 'relevance' | 'quality', rating: number): void {
+    const previousRelevanceRating: number | null = issue.relevance_rating;
+    const previousQualityRating: number | null = issue.quality_rating;
 
-    issue.rating = rating;
+    if (criterion === 'relevance') {
+      issue.relevance_rating = rating;
+    } else {
+      issue.quality_rating = rating;
+    }
 
-    this.submitsApiService.rateIssue(issue.id, rating).subscribe({
+    this.submitsApiService.rateIssue(issue.id, {
+      relevance_rating: issue.relevance_rating ?? undefined,
+      quality_rating: issue.quality_rating ?? undefined
+    }).subscribe({
       next: () => {
-        if (previousRating === null) {
-          this.recalculateRemainingIssues();
-        }
+        this.recalculateRemainingIssues();
       },
       error: () => {
-        issue.rating = previousRating;
+        issue.relevance_rating = previousRelevanceRating;
+        issue.quality_rating = previousQualityRating;
         this.nzMessageService.error('Failed to save rating.');
       }
     });
   }
 
-  public handleSummaryRate(newValue: number): void {
+  public handleSummaryRate(criterion: 'relevance' | 'quality', newValue: number): void {
     if (!this.submitDetails?.summary.id) {
       return;
     }
 
-    const previousRating: number | null = this.submitDetails.summary.rating;
+    const previousRelevanceRating: number | null = this.submitDetails.summary.relevance_rating;
+    const previousQualityRating: number | null = this.submitDetails.summary.quality_rating;
     const normalized: number = this.normalizeStarRating(newValue);
-    this.submitDetails.summary.rating = normalized;
 
-    this.submitsApiService.rateIssue(this.submitDetails.summary.id, normalized).subscribe({
+    if (criterion === 'relevance') {
+      this.submitDetails.summary.relevance_rating = normalized;
+    } else {
+      this.submitDetails.summary.quality_rating = normalized;
+    }
+
+    this.submitsApiService.rateIssue(this.submitDetails.summary.id, {
+      relevance_rating: this.submitDetails.summary.relevance_rating ?? undefined,
+      quality_rating: this.submitDetails.summary.quality_rating ?? undefined
+    }).subscribe({
       next: () => {
         if (!this.submitDetails?.summary) {
           return;
@@ -133,7 +146,8 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
       },
       error: () => {
         if (this.submitDetails?.summary) {
-          this.submitDetails.summary.rating = previousRating;
+          this.submitDetails.summary.relevance_rating = previousRelevanceRating;
+          this.submitDetails.summary.quality_rating = previousQualityRating;
         }
         this.nzMessageService.error('Failed to save summary rating.');
       }
@@ -184,9 +198,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     const fetchPage = (page: number): void => {
       this.submitsApiService
         .getSubmits(page, pageSize, true, '')
-        .pipe(
-          catchError(() => of({items: [], total: 0, page, page_size: pageSize}))
-        )
+        .pipe(catchError(() => of({items: [], total: 0, page, page_size: pageSize})))
         .subscribe((response) => {
           const index = response.items.findIndex((item) => item.id === currentSubmitId);
 
@@ -217,7 +229,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
       if (!remaining[issue.file]) {
         remaining[issue.file] = 0;
       }
-      if (issue.rating === null) {
+      if (issue.relevance_rating === null || issue.quality_rating === null) {
         remaining[issue.file] += 1;
       }
     }

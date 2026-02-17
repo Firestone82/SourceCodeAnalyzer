@@ -8,7 +8,7 @@ import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, SubmitListItemDto, SubmitListResponseDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, SubmitListItemDto, SubmitListResponseDto, SubmitRatingState} from '../../service/api/api.models';
 import {catchError, finalize, interval, merge, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {SubmitUploadModalComponent} from '../../components/submit-upload-modal/submit-upload-modal.component';
@@ -99,6 +99,32 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     this.pageSize = pageSize;
     this.pageIndex = 1;
     this.loadSubmits();
+  }
+
+
+
+  public ratingStateLabel(state: SubmitRatingState): string {
+    if (state === 'rated') {
+      return 'Rated';
+    }
+
+    if (state === 'partially_rated') {
+      return 'Partialy rated';
+    }
+
+    return 'Not rated';
+  }
+
+  public ratingStateColor(state: SubmitRatingState): string {
+    if (state === 'rated') {
+      return 'green';
+    }
+
+    if (state === 'partially_rated') {
+      return 'gold';
+    }
+
+    return 'red';
   }
 
   public openUploadModal(): void {

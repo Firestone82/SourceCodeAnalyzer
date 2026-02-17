@@ -142,7 +142,6 @@ def get_submits(
         source_path: str | None = Query(None),
         prompt_path: str | None = Query(None),
 ) -> SubmitListResponse:
-    # total issues per submit
     total_issues_subquery = (
         select(
             Issue.submit_id.label("submit_id"),
@@ -152,44 +151,57 @@ def get_submits(
         .subquery()
     )
 
-    # issues rated by this rater per submit
-    rated_issues_subquery = (
+    started_issues_subquery = (
         select(
             Issue.submit_id.label("submit_id"),
-            func.count(func.distinct(IssueRating.issue_id)).label("rated_issues"),
+            func.count(func.distinct(IssueRating.issue_id)).label("started_issues"),
         )
         .join(Issue, Issue.id == IssueRating.issue_id)
         .where(IssueRating.rater_id == current_rater.id)
         .where(IssueRating.issue_id.is_not(None))
+        .where(or_(IssueRating.relevance_rating.is_not(None), IssueRating.quality_rating.is_not(None)))
+        .group_by(Issue.submit_id)
+        .subquery()
+    )
+
+    fully_rated_issues_subquery = (
+        select(
+            Issue.submit_id.label("submit_id"),
+            func.count(func.distinct(IssueRating.issue_id)).label("fully_rated_issues"),
+        )
+        .join(Issue, Issue.id == IssueRating.issue_id)
+        .where(IssueRating.rater_id == current_rater.id)
+        .where(IssueRating.issue_id.is_not(None))
+        .where(IssueRating.relevance_rating.is_not(None))
+        .where(IssueRating.quality_rating.is_not(None))
         .group_by(Issue.submit_id)
         .subquery()
     )
 
     total_issues_column = func.coalesce(total_issues_subquery.c.total_issues, 0)
-    rated_issues_column = func.coalesce(rated_issues_subquery.c.rated_issues, 0)
+    started_issues_column = func.coalesce(started_issues_subquery.c.started_issues, 0)
+    fully_rated_issues_column = func.coalesce(fully_rated_issues_subquery.c.fully_rated_issues, 0)
 
-    # if there are 0 issues, treat as fully rated (nothing to do)
-    is_fully_rated_column = case(
-        (total_issues_column == 0, True),
-        (rated_issues_column >= total_issues_column, True),
-        else_=False,
-    ).label("is_fully_rated")
+    rating_state_column = case(
+        (total_issues_column == 0, "rated"),
+        (fully_rated_issues_column >= total_issues_column, "rated"),
+        (started_issues_column > 0, "partially_rated"),
+        else_="not_rated",
+    ).label("rating_state")
 
     statement: Select = (
         select(
             Submit,
             total_issues_column.label("total_issues"),
-            rated_issues_column.label("rated_issues"),
-            is_fully_rated_column,
+            rating_state_column,
         )
         .outerjoin(total_issues_subquery, total_issues_subquery.c.submit_id == Submit.id)
-        .outerjoin(rated_issues_subquery, rated_issues_subquery.c.submit_id == Submit.id)
+        .outerjoin(started_issues_subquery, started_issues_subquery.c.submit_id == Submit.id)
+        .outerjoin(fully_rated_issues_subquery, fully_rated_issues_subquery.c.submit_id == Submit.id)
     )
 
     if not current_rater.admin:
-        statement = statement.where(
-            or_(Submit.published.is_(True), Submit.created_by_id == current_rater.id)
-        )
+        statement = statement.where(or_(Submit.published.is_(True), Submit.created_by_id == current_rater.id))
 
     if model is not None and model.strip():
         statement = statement.where(Submit.model.ilike(f"%{model.strip()}%"))
@@ -201,22 +213,15 @@ def get_submits(
         statement = statement.where(Submit.prompt_path.ilike(f"%{prompt_path.strip()}%"))
 
     if only_unrated:
-        statement = statement.where(is_fully_rated_column.is_(False))
+        statement = statement.where(rating_state_column != "rated")
 
-    total_count = session.execute(
-        select(func.count()).select_from(statement.order_by(None).subquery())
-    ).scalar_one()
+    total_count = session.execute(select(func.count()).select_from(statement.order_by(None).subquery())).scalar_one()
 
     offset = (page - 1) * page_size
-    rows = session.execute(
-        statement
-        .order_by(Submit.created_at.desc())
-        .limit(page_size)
-        .offset(offset)
-    ).all()
+    rows = session.execute(statement.order_by(Submit.created_at.desc()).limit(page_size).offset(offset)).all()
 
     submits: list[SubmitListItemResponse] = []
-    for submit, total_issues, rated_issues, is_fully_rated in rows:
+    for submit, total_issues, rating_state in rows:
         submits.append(
             SubmitListItemResponse(
                 id=submit.id,
@@ -224,18 +229,13 @@ def get_submits(
                 source_path=submit.source_path,
                 prompt_path=submit.prompt_path,
                 created_at=submit.created_at,
-                rated=is_fully_rated,
+                rating_state=rating_state,
                 total_issues=total_issues,
                 published=submit.published,
             )
         )
 
-    return SubmitListResponse(
-        items=submits,
-        total=total_count,
-        page=page,
-        page_size=page_size,
-    )
+    return SubmitListResponse(items=submits, total=total_count, page=page, page_size=page_size)
 
 
 @router.get("/{submit_id}")
@@ -244,41 +244,48 @@ def get_submit(
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> SubmitResponse:
-    total_issues_subquery = (
-        select(func.count(Issue.id))
-        .where(Issue.submit_id == submit_id)
-        .scalar_subquery()
-    )
+    total_issues_subquery = select(func.count(Issue.id)).where(Issue.submit_id == submit_id).scalar_subquery()
 
-    rated_issues_subquery = (
+    started_issues_subquery = (
         select(func.count(func.distinct(IssueRating.issue_id)))
         .join(Issue, Issue.id == IssueRating.issue_id)
         .where(Issue.submit_id == submit_id)
         .where(IssueRating.rater_id == current_rater.id)
         .where(IssueRating.issue_id.is_not(None))
+        .where(or_(IssueRating.relevance_rating.is_not(None), IssueRating.quality_rating.is_not(None)))
+        .scalar_subquery()
+    )
+
+    fully_rated_issues_subquery = (
+        select(func.count(func.distinct(IssueRating.issue_id)))
+        .join(Issue, Issue.id == IssueRating.issue_id)
+        .where(Issue.submit_id == submit_id)
+        .where(IssueRating.rater_id == current_rater.id)
+        .where(IssueRating.issue_id.is_not(None))
+        .where(IssueRating.relevance_rating.is_not(None))
+        .where(IssueRating.quality_rating.is_not(None))
         .scalar_subquery()
     )
 
     total_issues_column = func.coalesce(total_issues_subquery, 0)
-    rated_issues_column = func.coalesce(rated_issues_subquery, 0)
+    started_issues_column = func.coalesce(started_issues_subquery, 0)
+    fully_rated_issues_column = func.coalesce(fully_rated_issues_subquery, 0)
 
-    is_fully_rated_column = case(
-        (total_issues_column == 0, True),
-        (rated_issues_column >= total_issues_column, True),
-        else_=False,
-    ).label("is_fully_rated")
+    rating_state_column = case(
+        (total_issues_column == 0, "rated"),
+        (fully_rated_issues_column >= total_issues_column, "rated"),
+        (started_issues_column > 0, "partially_rated"),
+        else_="not_rated",
+    ).label("rating_state")
 
-    statement: Select = (
-        select(Submit, is_fully_rated_column)
-        .where(Submit.id == submit_id)
-    )
+    statement: Select = select(Submit, rating_state_column).where(Submit.id == submit_id)
 
     row = session.execute(statement).one_or_none()
     if row is None:
         raise HTTPException(status_code=404, detail="Submit not found")
 
     submit: Submit = row[0]
-    is_fully_rated: bool = row[1]
+    rating_state: str = row[1]
 
     if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=404, detail="Submit not found")
@@ -292,7 +299,7 @@ def get_submit(
         prompt_path=submit.prompt_path,
         files=files,
         created_at=submit.created_at,
-        rated=is_fully_rated,
+        rating_state=rating_state,
         published=submit.published,
     )
 
@@ -324,19 +331,22 @@ def get_submit_details(
     summary = SubmitSummary(
         id=None,
         explanation="Failed to load summary rating",
-        rating=None,
+        relevance_rating=None,
+        quality_rating=None,
         rated_at=None,
     )
 
     for issue, rating in rater_issues:
-        rate = None if rating is None else rating.rating
+        relevance_rating = None if rating is None else rating.relevance_rating
+        quality_rating = None if rating is None else rating.quality_rating
         rated_at = None if rating is None else rating.created_at
 
         if issue.file is None and issue.line is None:
             summary = SubmitSummary(
                 id=issue.id,
                 explanation=issue.explanation,
-                rating=rate,
+                relevance_rating=relevance_rating,
+                quality_rating=quality_rating,
                 rated_at=rated_at,
             )
         else:
@@ -346,7 +356,8 @@ def get_submit_details(
                 severity=issue.severity,
                 line=issue.line,
                 explanation=issue.explanation,
-                rating=rate,
+                relevance_rating=relevance_rating,
+                quality_rating=quality_rating,
                 rated_at=rated_at,
             ))
 

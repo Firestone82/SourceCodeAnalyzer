@@ -3,6 +3,7 @@ import {map, Observable} from 'rxjs';
 import {ApiClientService} from '../api-client.service';
 import {
   AnalyzeSourceResponseDto,
+  RateIssueRequestDto,
   SubmitDetailsDto,
   SubmitDto,
   SubmitListResponseDto,
@@ -69,11 +70,8 @@ export class SubmitsApiService {
       );
   }
 
-  public rateIssue(issueId: number, rating: number): Observable<void> {
-    return this.apiClientService.post<void, { rating: number }>(
-      `/ratings/issues/${issueId}`,
-      {rating}
-    );
+  public rateIssue(issueId: number, payload: RateIssueRequestDto): Observable<void> {
+    return this.apiClientService.post<void, RateIssueRequestDto>(`/ratings/issues/${issueId}`, payload);
   }
 
   public uploadSubmit(formData: FormData): Observable<AnalyzeSourceResponseDto> {

@@ -69,7 +69,7 @@
         <th>Source path</th>
         <th nzWidth="150px">Submit date</th>
         <th nzWidth="80px" nzAlign="center">Visibility</th>
-        <th nzWidth="80px" nzAlign="center">Rated</th>
+        <th nzWidth="140px" nzAlign="center">Rating status</th>
         <th nzWidth="60px" nzAlign="center">Issues</th>
         <th nzWidth="150px"></th>
       </tr>
@@ -105,8 +105,8 @@
               </nz-tag>
             </td>
             <td class="text-center m-0">
-              <nz-tag [nzColor]="submit.rated ? 'green' : 'red'">
-                {{ submit.rated ? 'Yes' : 'No' }}
+              <nz-tag [nzColor]="ratingStateColor(submit.rating_state)">
+                {{ ratingStateLabel(submit.rating_state) }}
               </nz-tag>
             </td>
             <td class="text-center">{{ submit.total_issues }}</td>

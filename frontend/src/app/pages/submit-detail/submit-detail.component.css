@@ -1,0 +1,34 @@
+.rating-box {
+  background: #f8f8f8;
+  border-radius: 8px;
+  padding: 6px;
+}
+
+.rating-criteria-grid {
+  display: flex;
+  gap: 8px;
+}
+
+.rating-criterion {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 4px 6px;
+  border-radius: 6px;
+}
+
+.quality-rating-box {
+  background: #d9eafd;
+}
+
+::ng-deep .quality-rating-box .ant-rate-star-full .ant-rate-star-first,
+::ng-deep .quality-rating-box .ant-rate-star-half .ant-rate-star-first,
+::ng-deep .quality-rating-box .ant-rate-star-full .ant-rate-star-second {
+  color: #1677ff;
+}
+
+::ng-deep .ant-rate-star-second {
+  color: #ddd;
+}

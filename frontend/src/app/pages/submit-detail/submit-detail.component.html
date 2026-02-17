@@ -61,24 +61,40 @@
       </div>
 
       <div class="summary">
-        <div class="flex items-center justify-between">
+        <div class="flex items-center justify-between mb-2 ">
           <div nz-typography nzType="secondary">Summary</div>
+
           <div class="flex items-center leading-[5px]">
-            @if (submitDetails.summary.rated_at) {
-              <span class="mr-2 text-xs text-gray-500">
-                {{ submitDetails.summary.rated_at | date:'yyyy-MM-dd' }}
-              </span>
-            }
-            <nz-rate
-              (ngModelChange)="handleSummaryRate($event)"
-              [ngModel]="(submitDetails.summary.rating ?? 0) / 2"
-              [nzAllowClear]="false"
-              [nzAllowHalf]="true"
-              [nzCount]="5"
-              [nzDisabled]="!submitDetails.summary.id"
-            />
+             <div class="rating-box rating-criteria-grid">
+              <div class="rating-criterion">
+                <span class="text-xs font-semibold">Relevance</span>
+
+                <nz-rate
+                  (ngModelChange)="handleSummaryRate('relevance', $event)"
+                  [ngModel]="(submitDetails.summary.relevance_rating ?? 0) / 2"
+                  [nzAllowClear]="false"
+                  [nzAllowHalf]="true"
+                  [nzCount]="5"
+                  [nzDisabled]="!submitDetails.summary.id"
+                />
+              </div>
+
+              <div class="rating-criterion quality-rating-box">
+                <span class="text-xs font-semibold">Quality</span>
+
+                <nz-rate
+                  (ngModelChange)="handleSummaryRate('quality', $event)"
+                  [ngModel]="(submitDetails.summary.quality_rating ?? 0) / 2"
+                  [nzAllowClear]="false"
+                  [nzAllowHalf]="true"
+                  [nzCount]="5"
+                  [nzDisabled]="!submitDetails.summary.id"
+                />
+              </div>
+            </div>
           </div>
         </div>
+
         @if (submitDetails.summary.highlightedExplanation) {
           <span [innerHTML]="submitDetails.summary.highlightedExplanation" class="issue-text"></span>
         } @else {
@@ -112,7 +128,7 @@
           <nz-card>
             @if (selectedFileName && submit) {
               <app-file-viewer
-                (rate)="handleRate($event.issue, $event.rating)"
+                (rate)="handleRate($event.issue, $event.criterion, $event.rating)"
                 [fileContent]="submit.files[selectedFileName] || ''"
                 [fileName]="selectedFileName"
                 [issues]="issuesBySelectedFile">

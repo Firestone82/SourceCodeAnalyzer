@@ -11,7 +11,6 @@ import {IssueDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 
-
 interface LineViewModel {
   lineNumber: number;
   text: string;
@@ -31,7 +30,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   @Input({required: true}) public fileContent: string = '';
   @Input({required: true}) public issues: IssueDto[] = [];
 
-  @Output() public rate: EventEmitter<{ issue: IssueDto; rating: number }> = new EventEmitter();
+  @Output() public rate: EventEmitter<{ issue: IssueDto; criterion: 'relevance' | 'quality'; rating: number }> = new EventEmitter();
 
   public lines: LineViewModel[] = [];
 
@@ -47,9 +46,9 @@ export class SourceCodeViewerComponent implements OnChanges {
     }
   }
 
-  public onRatingChange(issue: IssueDto, newValue: number): void {
+  public onRatingChange(issue: IssueDto, criterion: 'relevance' | 'quality', newValue: number): void {
     const normalized: number = Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
-    this.rate.emit({issue, rating: normalized});
+    this.rate.emit({issue, criterion, rating: normalized});
   }
 
   public severityColor(severity: string): string {
@@ -90,7 +89,6 @@ export class SourceCodeViewerComponent implements OnChanges {
       });
     }
 
-    // Apply late syntax highlighting
     for (const line of lines) {
       this.syntaxHighlightService
         .codeToHtml(line.text, 'c')

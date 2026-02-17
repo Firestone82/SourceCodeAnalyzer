@@ -9,9 +9,12 @@ from app.database.models import Issue, IssueRating, Rater, Submit
 router = APIRouter(prefix="/ratings", tags=["ratings"])
 
 
-def validate_rating_value(request: IssueRatingRequest) -> None:
-    if request.rating < 1 or request.rating > 10:
-        raise HTTPException(status_code=400, detail="Rating must be between 1 and 10")
+def validate_rating_value(value: int | None, label: str) -> None:
+    if value is None:
+        return
+
+    if value < 1 or value > 10:
+        raise HTTPException(status_code=400, detail=f"{label} must be between 1 and 10")
 
 
 def upsert_issue_rating(
@@ -19,7 +22,8 @@ def upsert_issue_rating(
         *,
         rater_id: int,
         issue_id: int | None,
-        rating_value: int,
+        relevance_rating: int | None,
+        quality_rating: int | None,
 ) -> IssueRating:
     existing_rating: IssueRating | None = (
         session.query(IssueRating)
@@ -34,14 +38,16 @@ def upsert_issue_rating(
         rating: IssueRating = IssueRating(
             issue_id=issue_id,
             rater_id=rater_id,
-            rating=rating_value,
+            relevance_rating=relevance_rating,
+            quality_rating=quality_rating,
         )
         session.add(rating)
         session.commit()
         session.refresh(rating)
         return rating
 
-    existing_rating.rating = rating_value
+    existing_rating.relevance_rating = relevance_rating
+    existing_rating.quality_rating = quality_rating
     session.commit()
     session.refresh(existing_rating)
     return existing_rating
@@ -65,12 +71,14 @@ def rate_issue(
     if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=403, detail="Submit not available for rating")
 
-    validate_rating_value(request)
+    validate_rating_value(request.relevance_rating, "Relevance rating")
+    validate_rating_value(request.quality_rating, "Quality rating")
 
     rating: IssueRating = upsert_issue_rating(
         session,
         rater_id=current_rater.id,
-        rating_value=request.rating,
+        relevance_rating=request.relevance_rating,
+        quality_rating=request.quality_rating,
         issue_id=issue_id,
     )
 
@@ -78,7 +86,8 @@ def rate_issue(
         id=rating.id,
         issue_id=rating.issue_id,
         rater_id=rating.rater_id,
-        rating=rating.rating,
+        relevance_rating=rating.relevance_rating,
+        quality_rating=rating.quality_rating,
         created_at=rating.created_at,
     )
 
@@ -97,12 +106,14 @@ def rate_submit_summary(
     if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=403, detail="Submit not available for rating")
 
-    validate_rating_value(request)
+    validate_rating_value(request.relevance_rating, "Relevance rating")
+    validate_rating_value(request.quality_rating, "Quality rating")
 
     rating: IssueRating = upsert_issue_rating(
         session,
         rater_id=current_rater.id,
-        rating_value=request.rating,
+        relevance_rating=request.relevance_rating,
+        quality_rating=request.quality_rating,
         issue_id=None,
     )
 
@@ -110,6 +121,7 @@ def rate_submit_summary(
         id=rating.id,
         issue_id=rating.issue_id,
         rater_id=rating.rater_id,
-        rating=rating.rating,
+        relevance_rating=rating.relevance_rating,
+        quality_rating=rating.quality_rating,
         created_at=rating.created_at,
     )

@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
@@ -16,7 +16,8 @@ class BatchAnalyzeRequest(BaseModel):
 
 
 class IssueRatingRequest(BaseModel):
-    rating: int
+    relevance_rating: Optional[int] = None
+    quality_rating: Optional[int] = None
 
 
 class LoginRequest(BaseModel):
@@ -118,7 +119,7 @@ class SubmitResponse(BaseModel):
     source_path: str
     prompt_path: str
     files: dict[str, str]
-    rated: bool
+    rating_state: Literal["not_rated", "partially_rated", "rated"]
     created_at: datetime
     published: bool
 
@@ -128,7 +129,7 @@ class SubmitListItemResponse(BaseModel):
     model: str
     source_path: str
     prompt_path: str
-    rated: bool
+    rating_state: Literal["not_rated", "partially_rated", "rated"]
     total_issues: int
     created_at: datetime
     published: bool
@@ -152,7 +153,8 @@ class SubmitDetailsIssue(BaseModel):
 class SubmitSummary(BaseModel):
     id: Optional[int]
     explanation: str
-    rating: Optional[int]
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
     rated_at: Optional[datetime]
 
 
@@ -162,7 +164,8 @@ class SubmitIssue(BaseModel):
     severity: str
     line: int
     explanation: str
-    rating: Optional[int]
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
     rated_at: Optional[datetime]
 
 
@@ -185,6 +188,7 @@ class SubmitPublishResponse(BaseModel):
 class RatingResponse(BaseModel):
     id: int
     rater_id: int
-    rating: int
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
     created_at: datetime
-    issue_id: int
+    issue_id: Optional[int]
