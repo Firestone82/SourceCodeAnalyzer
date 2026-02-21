@@ -155,6 +155,7 @@ export interface SubmitDetailsDto {
     highlightedExplanation?: SafeHtml;
     relevance_rating: number | null;
     quality_rating: number | null;
+    comment: string | null;
     rated_at: string | null;
   };
   issues: IssueDto[];
@@ -175,6 +176,38 @@ export interface IssueDto {
 export interface RateIssueRequestDto {
   relevance_rating?: number;
   quality_rating?: number;
+}
+
+export interface RateSubmitSummaryRequestDto {
+  relevance_rating?: number;
+  quality_rating?: number;
+  comment?: string | null;
+}
+
+export interface SubmitRaterSuggestionRatingDto {
+  issue_id: number;
+  file: string;
+  line: number;
+  severity: IssueSeverity;
+  explanation: string;
+  relevance_rating: number | null;
+  quality_rating: number | null;
+  rated_at: string | null;
+}
+
+export interface SubmitRaterRatingDto {
+  rater_id: number;
+  rater_name: string;
+  relevance_rating: number | null;
+  quality_rating: number | null;
+  comment: string | null;
+  rated_at: string | null;
+  suggestions: SubmitRaterSuggestionRatingDto[];
+}
+
+export interface SubmitRaterRatingsResponseDto {
+  submit_id: number;
+  raters: SubmitRaterRatingDto[];
 }
 
 export interface SubmitPublishRequestDto {

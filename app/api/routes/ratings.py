@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.api.dto import IssueRatingRequest, RatingResponse
+from app.api.dto import IssueRatingRequest, RatingResponse, SubmitRatingRequest
 from app.api.security import get_current_rater
 from app.database.db import get_database
-from app.database.models import Issue, IssueRating, Rater, Submit
+from app.database.models import Issue, IssueRating, Rater, Submit, SubmitRating
 
 router = APIRouter(prefix="/ratings", tags=["ratings"])
 
@@ -95,7 +95,7 @@ def rate_issue(
 @router.post("/submits/{submit_id}")
 def rate_submit_summary(
         submit_id: int,
-        request: IssueRatingRequest,
+        request: SubmitRatingRequest,
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> RatingResponse:
@@ -109,19 +109,43 @@ def rate_submit_summary(
     validate_rating_value(request.relevance_rating, "Relevance rating")
     validate_rating_value(request.quality_rating, "Quality rating")
 
-    rating: IssueRating = upsert_issue_rating(
-        session,
-        rater_id=current_rater.id,
-        relevance_rating=request.relevance_rating,
-        quality_rating=request.quality_rating,
-        issue_id=None,
+    comment: str | None = request.comment.strip() if request.comment is not None else None
+    if comment == "":
+        comment = None
+
+    existing_rating: SubmitRating | None = (
+        session.query(SubmitRating)
+        .filter(
+            SubmitRating.rater_id == current_rater.id,
+            SubmitRating.submit_id == submit_id,
+        )
+        .one_or_none()
     )
 
+    if existing_rating is None:
+        summary_rating = SubmitRating(
+            submit_id=submit_id,
+            rater_id=current_rater.id,
+            relevance_rating=request.relevance_rating,
+            quality_rating=request.quality_rating,
+            comment=comment,
+        )
+        session.add(summary_rating)
+        session.commit()
+        session.refresh(summary_rating)
+    else:
+        existing_rating.relevance_rating = request.relevance_rating
+        existing_rating.quality_rating = request.quality_rating
+        existing_rating.comment = comment
+        session.commit()
+        session.refresh(existing_rating)
+        summary_rating = existing_rating
+
     return RatingResponse(
-        id=rating.id,
-        issue_id=rating.issue_id,
-        rater_id=rating.rater_id,
-        relevance_rating=rating.relevance_rating,
-        quality_rating=rating.quality_rating,
-        created_at=rating.created_at,
+        id=summary_rating.id,
+        issue_id=None,
+        rater_id=summary_rating.rater_id,
+        relevance_rating=summary_rating.relevance_rating,
+        quality_rating=summary_rating.quality_rating,
+        created_at=summary_rating.created_at,
     )

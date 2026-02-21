@@ -46,6 +46,7 @@ class Rater(Base):
     admin: Mapped[bool] = mapped_column(Boolean, nullable=False, default=False)
 
     ratings: Mapped[list["IssueRating"]] = relationship(back_populates="rater", cascade="all, delete-orphan")
+    submit_ratings: Mapped[list["SubmitRating"]] = relationship(back_populates="rater", cascade="all, delete-orphan")
 
 
 class IssueRating(Base):
@@ -63,6 +64,24 @@ class IssueRating(Base):
 
     issue: Mapped["Issue"] = relationship(back_populates="ratings")
     rater: Mapped["Rater"] = relationship(back_populates="ratings")
+
+
+class SubmitRating(Base):
+    __tablename__ = "submit_rating"
+    __table_args__ = (
+        UniqueConstraint("submit_id", "rater_id", name="uq_submit_rater"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    submit_id: Mapped[int] = mapped_column(ForeignKey("submit.id", ondelete="CASCADE"), nullable=False)
+    rater_id: Mapped[int] = mapped_column(ForeignKey("rater.id"), nullable=False)
+    relevance_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quality_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+
+    submit: Mapped["Submit"] = relationship()
+    rater: Mapped["Rater"] = relationship(back_populates="submit_ratings")
 
 
 

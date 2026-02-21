@@ -17,10 +17,13 @@ from app.api.dto import (
     SubmitPublishRequest,
     SubmitPublishResponse,
     SubmitDeleteResponse,
+    SubmitRaterRatingsResponse,
+    SubmitRaterRating,
+    SubmitRaterSuggestionRating,
 )
 from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob, SourceTag
+from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob, SourceTag, SubmitRating
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import (
     PROMPTS_ROOT,
@@ -342,12 +345,19 @@ def get_submit_details(
     ).all()
 
     issues = []
+    summary_rating: SubmitRating | None = (
+        session.query(SubmitRating)
+        .filter(SubmitRating.submit_id == submit_id, SubmitRating.rater_id == current_rater.id)
+        .one_or_none()
+    )
+
     summary = SubmitSummary(
         id=None,
         explanation="Failed to load summary rating",
-        relevance_rating=None,
-        quality_rating=None,
-        rated_at=None,
+        relevance_rating=None if summary_rating is None else summary_rating.relevance_rating,
+        quality_rating=None if summary_rating is None else summary_rating.quality_rating,
+        comment=None if summary_rating is None else summary_rating.comment,
+        rated_at=None if summary_rating is None else summary_rating.created_at,
     )
 
     for issue, rating in rater_issues:
@@ -359,9 +369,10 @@ def get_submit_details(
             summary = SubmitSummary(
                 id=issue.id,
                 explanation=issue.explanation,
-                relevance_rating=relevance_rating,
-                quality_rating=quality_rating,
-                rated_at=rated_at,
+                relevance_rating=summary.relevance_rating,
+                quality_rating=summary.quality_rating,
+                comment=summary.comment,
+                rated_at=summary.rated_at,
             )
         else:
             issues.append(SubmitIssue(
@@ -380,6 +391,78 @@ def get_submit_details(
         rater_id=current_rater.id,
         summary=summary,
         issues=issues,
+    )
+
+
+@router.get("/{submit_id}/ratings")
+def get_submit_ratings_by_rater(
+        submit_id: int,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SubmitRaterRatingsResponse:
+    del current_rater
+
+    submit: Submit | None = session.get(Submit, submit_id)
+    if submit is None:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
+    issue_ratings = session.execute(
+        select(IssueRating, Issue, Rater)
+        .join(Issue, Issue.id == IssueRating.issue_id)
+        .join(Rater, Rater.id == IssueRating.rater_id)
+        .where(Issue.submit_id == submit_id)
+        .where(Issue.file.is_not(None), Issue.line.is_not(None))
+        .order_by(Rater.name.asc(), Issue.id.asc())
+    ).all()
+
+    summary_ratings = session.execute(
+        select(SubmitRating, Rater)
+        .join(Rater, Rater.id == SubmitRating.rater_id)
+        .where(SubmitRating.submit_id == submit_id)
+        .order_by(Rater.name.asc())
+    ).all()
+
+    raters: dict[int, SubmitRaterRating] = {}
+
+    for summary_rating, rater in summary_ratings:
+        raters[rater.id] = SubmitRaterRating(
+            rater_id=rater.id,
+            rater_name=rater.name,
+            relevance_rating=summary_rating.relevance_rating,
+            quality_rating=summary_rating.quality_rating,
+            comment=summary_rating.comment,
+            rated_at=summary_rating.created_at,
+            suggestions=[],
+        )
+
+    for rating, issue, rater in issue_ratings:
+        if rater.id not in raters:
+            raters[rater.id] = SubmitRaterRating(
+                rater_id=rater.id,
+                rater_name=rater.name,
+                relevance_rating=None,
+                quality_rating=None,
+                comment=None,
+                rated_at=None,
+                suggestions=[],
+            )
+
+        raters[rater.id].suggestions.append(
+            SubmitRaterSuggestionRating(
+                issue_id=issue.id,
+                file=issue.file,
+                line=issue.line,
+                severity=issue.severity,
+                explanation=issue.explanation,
+                relevance_rating=rating.relevance_rating,
+                quality_rating=rating.quality_rating,
+                rated_at=rating.created_at,
+            )
+        )
+
+    return SubmitRaterRatingsResponse(
+        submit_id=submit_id,
+        raters=sorted(raters.values(), key=lambda rating: rating.rater_name.lower()),
     )
 
 

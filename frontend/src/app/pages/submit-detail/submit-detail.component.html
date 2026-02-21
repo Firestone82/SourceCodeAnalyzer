@@ -50,7 +50,11 @@
         </div>
 
         <div class="flex gap-2">
-          <button (click)="openReviewModal()" nz-button>Reevaluate submit</button>
+          @if (isAdmin) {
+            <button (click)="openReviewModal()" nz-button>Reevaluate submit</button>
+            <button (click)="openAdminRatingsModal()" nz-button>View rater ratings</button>
+          }
+
           <a
             [disabled]="!nextSubmitId"
             [routerLink]="['/submits', nextSubmitId]"
@@ -102,6 +106,22 @@
         } @else {
           <span>{{ submitDetails.summary.explanation }}</span>
         }
+
+        <div class="mt-3 flex flex-col gap-2">
+          <div nz-typography nzType="secondary" class="mb-0!">Comment (optional)</div>
+
+          <textarea
+            [(ngModel)]="summaryCommentInput"
+            class="p-2 bg-gray-50 border border-gray-200"
+            placeholder="Leave optional comment about this submit"
+            rows="3"
+          ></textarea>
+
+          <div class="flex justify-end">
+            <button (click)="submitSummaryRating()" nz-button nzType="primary">Save comment</button>
+          </div>
+        </div>
+
       </div>
     </nz-card>
 
@@ -157,3 +177,10 @@
   [(isVisible)]="isJobModalVisible"
   [jobIds]="jobModalIds"
 ></app-job-created-modal>
+
+
+<app-submit-rater-ratings-modal
+  [(isVisible)]="isAdminRatingsModalVisible"
+  [isLoading]="isAdminRatingsLoading"
+  [ratings]="submitRatingsByRater"
+></app-submit-rater-ratings-modal>

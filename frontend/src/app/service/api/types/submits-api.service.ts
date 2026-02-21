@@ -4,12 +4,14 @@ import {ApiClientService} from '../api-client.service';
 import {
   AnalyzeSourceResponseDto,
   RateIssueRequestDto,
+  RateSubmitSummaryRequestDto,
   SubmitDetailsDto,
   SubmitDto,
   SubmitListResponseDto,
   SubmitPublishRequestDto,
   SubmitPublishResponseDto,
-  SubmitDeleteResponseDto
+  SubmitDeleteResponseDto,
+  SubmitRaterRatingsResponseDto
 } from '../api.models';
 import {SyntaxHighlighterService} from '../../syntax-highlighting.service';
 import {DomSanitizer} from '@angular/platform-browser';
@@ -75,6 +77,14 @@ export class SubmitsApiService {
 
   public rateIssue(issueId: number, payload: RateIssueRequestDto): Observable<void> {
     return this.apiClientService.post<void, RateIssueRequestDto>(`/ratings/issues/${issueId}`, payload);
+  }
+
+  public rateSubmitSummary(submitId: number, payload: RateSubmitSummaryRequestDto): Observable<void> {
+    return this.apiClientService.post<void, RateSubmitSummaryRequestDto>(`/ratings/submits/${submitId}`, payload);
+  }
+
+  public getSubmitRatingsByRater(submitId: number): Observable<SubmitRaterRatingsResponseDto> {
+    return this.apiClientService.get<SubmitRaterRatingsResponseDto>(`/submits/${submitId}/ratings`);
   }
 
   public uploadSubmit(formData: FormData): Observable<AnalyzeSourceResponseDto> {

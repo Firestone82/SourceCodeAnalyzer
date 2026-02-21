@@ -13,12 +13,14 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzRateModule} from 'ng-zorro-antd/rate';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, IssueDto, SubmitDetailsDto, SubmitDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, IssueDto, SubmitDetailsDto, SubmitDto, SubmitRaterRatingDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzButtonComponent} from 'ng-zorro-antd/button';
 import {SourceReviewModalComponent} from '../../components/source-review-modal/source-review-modal.component';
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
+import {SubmitRaterRatingsModalComponent} from '../../components/submit-rater-ratings-modal/submit-rater-ratings-modal.component';
+import {AuthService} from '../../service/auth/auth.service';
 
 @Component({
   selector: 'app-submit-detail',
@@ -37,7 +39,8 @@ import {JobCreatedModalComponent} from '../../components/job-created-modal/job-c
     NzButtonComponent,
     RouterLink,
     SourceReviewModalComponent,
-    JobCreatedModalComponent
+    JobCreatedModalComponent,
+    SubmitRaterRatingsModalComponent
   ],
   templateUrl: './submit-detail.component.html',
   styleUrl: './submit-detail.component.css'
@@ -53,12 +56,17 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
+  public summaryCommentInput: string = "";
+  public isAdminRatingsModalVisible: boolean = false;
+  public isAdminRatingsLoading: boolean = false;
+  public submitRatingsByRater: SubmitRaterRatingDto[] = [];
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
     private readonly activatedRoute: ActivatedRoute,
     private readonly submitsApiService: SubmitsApiService,
-    private readonly nzMessageService: NzMessageService
+    private readonly nzMessageService: NzMessageService,
+    private readonly authService: AuthService
   ) {
   }
 
@@ -124,34 +132,70 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
       return;
     }
 
-    const previousRelevanceRating: number | null = this.submitDetails.summary.relevance_rating;
-    const previousQualityRating: number | null = this.submitDetails.summary.quality_rating;
     const normalized: number = this.normalizeStarRating(newValue);
-
     if (criterion === 'relevance') {
       this.submitDetails.summary.relevance_rating = normalized;
     } else {
       this.submitDetails.summary.quality_rating = normalized;
     }
+  }
 
-    this.submitsApiService.rateIssue(this.submitDetails.summary.id, {
+  public submitSummaryRating(): void {
+    if (!this.submitDetails || !this.submit) {
+      return;
+    }
+
+    const previousRelevanceRating: number | null = this.submitDetails.summary.relevance_rating;
+    const previousQualityRating: number | null = this.submitDetails.summary.quality_rating;
+    const previousComment: string | null = this.submitDetails.summary.comment;
+    const trimmedComment: string = this.summaryCommentInput.trim();
+
+    this.submitsApiService.rateSubmitSummary(this.submit.id, {
       relevance_rating: this.submitDetails.summary.relevance_rating ?? undefined,
-      quality_rating: this.submitDetails.summary.quality_rating ?? undefined
+      quality_rating: this.submitDetails.summary.quality_rating ?? undefined,
+      comment: trimmedComment ? trimmedComment : null
     }).subscribe({
       next: () => {
-        if (!this.submitDetails?.summary) {
+        if (!this.submitDetails) {
           return;
         }
-        this.submitDetails.summary.rated_at = this.submitDetails.summary.rated_at ?? new Date().toISOString();
+        this.submitDetails.summary.rated_at = new Date().toISOString();
+        this.submitDetails.summary.comment = trimmedComment ? trimmedComment : null;
+        this.nzMessageService.success('Summary rating submitted.');
       },
       error: () => {
-        if (this.submitDetails?.summary) {
+        if (this.submitDetails) {
           this.submitDetails.summary.relevance_rating = previousRelevanceRating;
           this.submitDetails.summary.quality_rating = previousQualityRating;
+          this.submitDetails.summary.comment = previousComment;
         }
         this.nzMessageService.error('Failed to save summary rating.');
       }
     });
+  }
+
+  public openAdminRatingsModal(): void {
+    if (!this.submit) {
+      return;
+    }
+
+    this.isAdminRatingsModalVisible = true;
+    this.isAdminRatingsLoading = true;
+
+    this.submitsApiService.getSubmitRatingsByRater(this.submit.id).subscribe({
+      next: (response) => {
+        this.submitRatingsByRater = response.raters;
+        this.isAdminRatingsLoading = false;
+      },
+      error: () => {
+        this.isAdminRatingsLoading = false;
+        this.nzMessageService.error('Failed to load submit ratings by rater.');
+      }
+    });
+  }
+
+  public get isAdmin(): boolean {
+    return Boolean(this.authService.currentRater?.admin);
   }
 
   public openReviewModal(): void {
@@ -183,6 +227,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
 
         this.recalculateRemainingIssues();
+        this.summaryCommentInput = this.submitDetails.summary.comment ?? "";
         this.isLoading = false;
         this.loadNextUnratedSubmitId(submit.id);
       },

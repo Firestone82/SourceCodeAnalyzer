@@ -20,6 +20,12 @@ class IssueRatingRequest(BaseModel):
     quality_rating: Optional[int] = None
 
 
+class SubmitRatingRequest(BaseModel):
+    relevance_rating: Optional[int] = None
+    quality_rating: Optional[int] = None
+    comment: Optional[str] = None
+
+
 class LoginRequest(BaseModel):
     key: str = Field(min_length=1)
 
@@ -181,6 +187,7 @@ class SubmitSummary(BaseModel):
     explanation: str
     relevance_rating: Optional[int]
     quality_rating: Optional[int]
+    comment: Optional[str]
     rated_at: Optional[datetime]
 
 
@@ -223,3 +230,30 @@ class RatingResponse(BaseModel):
     quality_rating: Optional[int]
     created_at: datetime
     issue_id: Optional[int]
+
+
+class SubmitRaterSuggestionRating(BaseModel):
+    issue_id: int
+    file: str
+    line: int
+    severity: str
+    explanation: str
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
+    rated_at: Optional[datetime]
+
+
+class SubmitRaterRating(BaseModel):
+    rater_id: int
+    rater_name: str
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
+    comment: Optional[str]
+    rated_at: Optional[datetime]
+    suggestions: list[SubmitRaterSuggestionRating]
+
+
+class SubmitRaterRatingsResponse(BaseModel):
+    submit_id: int
+    raters: list[SubmitRaterRating]
+
