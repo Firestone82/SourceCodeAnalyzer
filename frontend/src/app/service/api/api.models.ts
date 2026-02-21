@@ -60,10 +60,17 @@ export interface SourceFolderChildrenResponseDto {
   next_offset?: number | null;
 }
 
+export interface SourceCommentDto {
+  text: string;
+  source?: string | null;
+  line?: number | null;
+}
+
 export interface SourceFilesResponseDto {
   source_path: string;
   source_tag?: string | null;
   files: Record<string, string>;
+  comments?: SourceCommentDto[];
 }
 
 export interface SourceTagRequestDto {

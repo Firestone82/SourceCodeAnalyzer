@@ -18,6 +18,7 @@ import {NzTagModule} from 'ng-zorro-antd/tag';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
   AnalyzeSourceResponseDto,
+  SourceCommentDto,
   SourceFilesResponseDto,
   SourceFolderChildEntryDto,
   SourceFolderChildrenResponseDto
@@ -62,6 +63,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public files: Record<string, string> = {};
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
+  public sourceComments: SourceCommentDto[] = [];
   private readonly expandedKeys = new Set<string>();
   private readonly folderPagination = new Map<string, FolderPaginationState>();
   private readonly loadingFolders = new Set<string>();
@@ -96,6 +98,10 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     }
     const index = this.fileNames.indexOf(this.selectedFileName);
     return index >= 0 ? index : 0;
+  }
+
+  public get globalSourceComments(): SourceCommentDto[] {
+    return this.sourceComments.filter((comment) => comment.source == null || comment.line == null);
   }
 
   public ngOnInit(): void {
@@ -216,6 +222,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     this.fileNames = [];
     this.selectedFileName = null;
     this.sourceErrorMessage = null;
+    this.sourceComments = [];
     this.isSourceLoading = true;
     void this.router.navigate([], {
       queryParams: {source: sourcePath},
@@ -227,7 +234,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       .pipe(
         catchError(() => {
           this.sourceErrorMessage = 'Failed to load source files.';
-          return of<SourceFilesResponseDto>({source_path: sourcePath, files: {}});
+          return of<SourceFilesResponseDto>({source_path: sourcePath, files: {}, comments: []});
         }),
         finalize(() => {
           this.isSourceLoading = false;
@@ -237,6 +244,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         this.files = response.files;
         this.fileNames = Object.keys(response.files).sort((left, right) => left.localeCompare(right));
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
+        this.sourceComments = response.comments ?? [];
 
         if (this.isAdmin) {
           this.sourcesApiService.getSourceTag(sourcePath).subscribe({
@@ -445,7 +453,14 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   }
 
   private stripLoadMore(nodes: NzTreeNodeOptions[] | NzTreeNode[]): NzTreeNodeOptions[] {
-    return nodes.filter((child) => !(child as SourceTreeNodeOrigin)?.isLoadMore) as NzTreeNodeOptions[];
+    return nodes
+      .filter((child) => {
+        if (child instanceof NzTreeNode) {
+          return !(child.origin as SourceTreeNodeOrigin)?.isLoadMore;
+        }
+        return !(child as SourceTreeNodeOrigin)?.isLoadMore;
+      })
+      .map((child) => child instanceof NzTreeNode ? (child.origin as NzTreeNodeOptions) : child as NzTreeNodeOptions);
   }
 
   private buildLoadMoreKey(folderPath: string, offset: number): string {

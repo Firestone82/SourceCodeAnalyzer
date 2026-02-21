@@ -1,4 +1,5 @@
 import zipfile
+import json
 from pathlib import Path
 
 PROMPTS_ROOT: Path = Path("data/prompts").resolve()
@@ -49,6 +50,44 @@ def find_source_files_or_extract(submit_source_path: str) -> dict[str, str]:
             files[relative_path.as_posix()] = path.read_text(encoding="utf-8", errors="replace")
 
     return files
+
+
+def find_source_comments(submit_source_path: str) -> list[dict[str, str | int | None]]:
+    source_root: Path = safe_join(SOURCES_ROOT, submit_source_path)
+    comments_path: Path = source_root / "comments.json"
+
+    if not comments_path.exists() or not comments_path.is_file():
+        return []
+
+    try:
+        raw_data = json.loads(comments_path.read_text(encoding="utf-8", errors="replace"))
+    except (json.JSONDecodeError, OSError):
+        return []
+
+    if not isinstance(raw_data, list):
+        return []
+
+    comments: list[dict[str, str | int | None]] = []
+    for item in raw_data:
+        if not isinstance(item, dict):
+            continue
+        text = item.get("text")
+        source = item.get("source")
+        line = item.get("line")
+
+        if not isinstance(text, str) or not text.strip():
+            continue
+
+        normalized_source = source if isinstance(source, str) and source.strip() else None
+        normalized_line = line if isinstance(line, int) and line > 0 else None
+
+        comments.append({
+            "text": text,
+            "source": normalized_source,
+            "line": normalized_line,
+        })
+
+    return comments
 
 
 def find_prompt_file(prompt_path: str) -> str:

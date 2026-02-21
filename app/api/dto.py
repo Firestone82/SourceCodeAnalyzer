@@ -95,9 +95,17 @@ class SourceFolderChildrenResponse(BaseModel):
     next_offset: Optional[int] = None
 
 
+class SourceComment(BaseModel):
+    text: str
+    source: Optional[str] = None
+    line: Optional[int] = None
+
+
 class SourceFilesResponse(BaseModel):
     source_path: str
     files: dict[str, str]
+    comments: list[SourceComment] = Field(default_factory=list)
+
 
 
 class SourceTagRequest(BaseModel):

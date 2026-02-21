@@ -84,6 +84,16 @@
                   </div>
                 }
 
+                @if (globalSourceComments.length > 0) {
+                  <div class="mb-3 grid gap-2">
+                    @for (comment of globalSourceComments; track $index) {
+                      <nz-card nzSize="small">
+                        <div class="text-sm">{{ comment.text }}</div>
+                      </nz-card>
+                    }
+                  </div>
+                }
+
                 @if (fileNames.length === 0) {
                   <div nz-typography>No files available for this source.</div>
                 } @else {
@@ -100,6 +110,7 @@
                   @if (selectedFileName) {
                     <app-file-viewer
                       [fileContent]="selectedFileContent"
+                      [fileComments]="sourceComments"
                       [fileName]="selectedFileName"
                       [issues]="[]"
                     />

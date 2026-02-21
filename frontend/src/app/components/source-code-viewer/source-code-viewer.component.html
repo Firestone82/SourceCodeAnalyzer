@@ -7,6 +7,16 @@
       </div>
 
       <div class="flex flex-1 flex-col">
+        @if (line.comments.length > 0) {
+          <div class="grid gap-2 p-[5px]">
+            @for (comment of line.comments; track $index) {
+              <nz-card class="teacher-comment-card ml-[5px] w-fit max-w-[90%] rounded-[10px]" nzSize="small">
+                <div class="text-sm">{{ comment.text }}</div>
+              </nz-card>
+            }
+          </div>
+        }
+
         @if (line.issues.length > 0) {
           <div class="grid gap-2 p-[5px]">
             @for (issue of line.issues; track issue.id) {

@@ -7,7 +7,7 @@ import {NzRateModule} from 'ng-zorro-antd/rate';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 
-import {IssueDto} from '../../service/api/api.models';
+import {IssueDto, SourceCommentDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 
@@ -15,6 +15,7 @@ interface LineViewModel {
   lineNumber: number;
   text: string;
   issues: IssueDto[];
+  comments: SourceCommentDto[];
   highlightedHtml?: SafeHtml;
 }
 
@@ -29,6 +30,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   @Input({required: true}) public fileName: string = '';
   @Input({required: true}) public fileContent: string = '';
   @Input({required: true}) public issues: IssueDto[] = [];
+  @Input() public fileComments: SourceCommentDto[] = [];
 
   @Output() public rate: EventEmitter<{ issue: IssueDto; criterion: 'relevance' | 'quality'; rating: number }> = new EventEmitter();
 
@@ -41,7 +43,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fileContent']) {
+    if (changes['fileContent'] || changes['fileComments']) {
       this.buildLines();
     }
   }
@@ -77,6 +79,16 @@ export class SourceCodeViewerComponent implements OnChanges {
       issuesByLine.set(issue.line, current);
     }
 
+    const commentsByLine: Map<number, SourceCommentDto[]> = new Map<number, SourceCommentDto[]>();
+    for (const comment of this.fileComments || []) {
+      if (!comment.source || comment.source !== this.fileName || comment.line == null) {
+        continue;
+      }
+      const current = commentsByLine.get(comment.line) ?? [];
+      current.push(comment);
+      commentsByLine.set(comment.line, current);
+    }
+
     const lines: LineViewModel[] = [];
     for (let index: number = 0; index < contentLines.length; index++) {
       const lineNumber: number = index + 1;
@@ -85,6 +97,7 @@ export class SourceCodeViewerComponent implements OnChanges {
         lineNumber,
         text: contentLines[index],
         issues: issuesByLine.get(lineNumber) ?? [],
+        comments: commentsByLine.get(lineNumber) ?? [],
         highlightedHtml: undefined,
       });
     }

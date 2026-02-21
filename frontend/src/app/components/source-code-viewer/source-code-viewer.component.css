@@ -44,3 +44,8 @@
 ::ng-deep .quality-rating-box .ant-rate-star-full .ant-rate-star-second {
   color: #1677ff;
 }
+
+.teacher-comment-card {
+  background: #eef9ff;
+  border-left: 3px solid #1677ff;
+}

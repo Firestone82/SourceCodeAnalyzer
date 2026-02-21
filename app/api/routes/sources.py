@@ -23,7 +23,7 @@ from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater, SourceTag
 from app.database.rq_queue import get_analysis_queue
-from app.utils.files import PROMPTS_ROOT, find_source_files_or_extract, SOURCES_ROOT, safe_join
+from app.utils.files import PROMPTS_ROOT, find_source_comments, find_source_files_or_extract, SOURCES_ROOT, safe_join
 
 router = APIRouter(prefix="/sources", tags=["sources"])
 
@@ -229,7 +229,8 @@ def delete_source_path_tag(
 @router.get("/{source_path:path}")
 def get_source_file(source_path: str) -> SourceFilesResponse:
     content: dict = find_source_files_or_extract(source_path)
-    return SourceFilesResponse(source_path=source_path, files=content)
+    comments = find_source_comments(source_path)
+    return SourceFilesResponse(source_path=source_path, files=content, comments=comments)
 
 
 @router.post("/{source_path:path}")
