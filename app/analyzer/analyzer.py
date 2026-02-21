@@ -29,11 +29,17 @@ DEFAULT_PROMPT_SUFFIX = """
         ]
     }
     ```
+    
     Use severity to indicate impact:
     - **critical** — Causes undefined behavior or data corruption.
     - **high** — Causes program to produce incorrect results or crash.
     - **medium** — Causes significant but not catastrophic performance or logical issues.
     - **low** — Minor inefficiencies or edge-case correctness problems.
+    
+    When describing code in your explanations:
+    - Wrap all **variable names**, **function names**, and **code snippets** in single backticks (e.g., `buffer`, `free(ptr)`)
+    - Use **exact line numbers** and **clear, factual reasoning**
+    - Avoid speculative language such as **"might"** or **"possibly"**
 """
 
 
