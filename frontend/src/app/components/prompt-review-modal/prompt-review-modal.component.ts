@@ -57,6 +57,11 @@ export class PromptReviewModalComponent implements OnChanges {
     return (environment.models ?? []).filter((model: string) => model.toLowerCase().includes(query));
   }
 
+
+  public get selectedSourcesCount(): number {
+    return this.selectedSourceLeafKeys.length;
+  }
+
   public get canSubmitBulkReview(): boolean {
     return Boolean(
       this.selectedPromptPath

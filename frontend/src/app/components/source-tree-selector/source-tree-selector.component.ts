@@ -32,6 +32,7 @@ export class SourceTreeSelectorComponent implements OnInit {
   private readonly pageSize: number = 50;
   private readonly tagColors: string[] = ['blue', 'green', 'red', 'orange', 'purple', 'cyan', 'magenta', 'lime'];
   private sourceTreeLeafMap: Map<string, string[]> = new Map();
+  private pendingRemovedKeys: Set<string> = new Set();
 
   public constructor(private readonly sourcesApiService: SourcesApiService) {
   }
@@ -41,7 +42,8 @@ export class SourceTreeSelectorComponent implements OnInit {
   }
 
   public handleTreeClick(event: NzFormatEmitEvent): void {
-    const node = event.node;
+    const treeEvent = event as NzFormatEmitEvent;
+    const node = treeEvent.node;
     if (!node) {
       return;
     }
@@ -79,7 +81,8 @@ export class SourceTreeSelectorComponent implements OnInit {
   }
 
   public handleTreeExpand(event: NzFormatEmitEvent): void {
-    const node = event.node;
+    const treeEvent = event as NzFormatEmitEvent;
+    const node = treeEvent.node;
     if (!node || !node.isExpanded) {
       return;
     }
@@ -102,11 +105,50 @@ export class SourceTreeSelectorComponent implements OnInit {
     return this.tagColors[hash % this.tagColors.length];
   }
 
+
+  public handleTreeCheckboxChange(event: unknown): void {
+    if (this.mode !== 'multiple') {
+      return;
+    }
+
+    const treeEvent = event as NzFormatEmitEvent;
+    const node = treeEvent.node;
+    if (!node) {
+      return;
+    }
+
+    const origin = node.origin as SourceTreeNodeOrigin;
+    if (origin?.isLoadMore) {
+      return;
+    }
+
+    const key = node.key?.toString();
+    if (!key || node.isChecked) {
+      this.pendingRemovedKeys.clear();
+      return;
+    }
+
+    const keysToRemove = this.expandSourceKeys([key]);
+    this.pendingRemovedKeys = new Set<string>([key, ...keysToRemove]);
+  }
+
   public handleCheckedKeysChange(keys: NzTreeNodeKey[]): void {
     const normalizedKeys = keys.filter((key): key is string => typeof key === 'string');
-    this.selectedKeys = normalizedKeys;
-    this.selectedKeysChange.emit(normalizedKeys);
-    this.leafSelectionChange.emit(this.expandSourceKeys(normalizedKeys));
+    const preservedSelections = new Set<string>(this.selectedKeys);
+
+    for (const removedKey of this.pendingRemovedKeys) {
+      preservedSelections.delete(removedKey);
+    }
+
+    for (const key of normalizedKeys) {
+      preservedSelections.add(key);
+    }
+
+    const nextSelectedKeys = Array.from(preservedSelections);
+    this.pendingRemovedKeys.clear();
+    this.selectedKeys = nextSelectedKeys;
+    this.selectedKeysChange.emit(nextSelectedKeys);
+    this.leafSelectionChange.emit(this.expandSourceKeys(nextSelectedKeys));
   }
 
   private loadRoot(): void {

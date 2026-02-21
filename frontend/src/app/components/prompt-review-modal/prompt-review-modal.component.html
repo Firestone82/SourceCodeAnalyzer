@@ -29,7 +29,11 @@
       </div>
 
       <div>
-        <label class="mb-1 block text-sm font-medium">Sources</label>
+        <div class="mb-1 flex items-center justify-between">
+          <label class="block text-sm font-medium">Sources</label>
+          <div class="text-xs text-slate-500">Selected: {{ selectedSourcesCount }}</div>
+        </div>
+
         <nz-spin [nzSpinning]="isSourceOptionsLoading" nzTip="Loading sources...">
           <div class="max-h-[40vh] overflow-auto rounded border border-slate-200 p-2">
             @if (isVisible) {
