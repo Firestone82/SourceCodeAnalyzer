@@ -28,25 +28,15 @@
           <div nz-typography nzType="secondary">Found sources</div>
 
           <div class="source-tree-scroll">
-            <nz-tree
-              (nzClick)="handleSourceNodeClick($event)"
-              (nzExpandChange)="handleSourceNodeExpand($event)"
-              [nzData]="sourceTreeNodes"
-              [nzAsyncData]="true"
-              [nzSelectedKeys]="selectedSourceKeys"
-              [nzTreeTemplate]="sourceTreeNodeTemplate"
-              nzBlockNode
-              nzShowLine
-            ></nz-tree>
+            <app-source-tree-selector
+              (errorChange)="handleSourceTreeError($event)"
+              (loadingChange)="handleSourceTreeLoading($event)"
+              (selectedKeysChange)="handleSelectedSourceKeysChange($event)"
+              (sourceSelected)="handleSourceSelection($event)"
+              [showTags]="true"
+              [selectedKeys]="selectedSourceKeys"
+            />
           </div>
-          <ng-template #sourceTreeNodeTemplate let-node>
-            <span class="inline-flex items-center gap-1">
-              <span>{{ node.title }}</span>
-              @if (node.origin?.sourceTag) {
-                <nz-tag class="text-[10px] leading-none" [nzColor]="sourceTagColor(node.origin?.sourceTag)">{{ node.origin?.sourceTag }}</nz-tag>
-              }
-            </span>
-          </ng-template>
         </nz-card>
       </div>
 

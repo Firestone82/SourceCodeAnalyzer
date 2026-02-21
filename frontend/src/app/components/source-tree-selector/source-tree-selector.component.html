@@ -1,0 +1,24 @@
+<nz-tree
+  (nzCheckedKeysChange)="handleCheckedKeysChange($event)"
+  (nzClick)="handleTreeClick($event)"
+  (nzExpandChange)="handleTreeExpand($event)"
+  [nzAsyncData]="true"
+  [nzCheckable]="mode === 'multiple'"
+  [nzCheckedKeys]="selectedKeys"
+  [nzData]="sourceTreeNodes"
+  [nzSelectedKeys]="selectedKeys"
+  [nzTreeTemplate]="sourceTreeNodeTemplate"
+  nzBlockNode
+  nzShowLine
+></nz-tree>
+
+<ng-template #sourceTreeNodeTemplate let-node>
+  <span class="inline-flex items-center gap-1">
+    <span>{{ node.title }}</span>
+    @if (showTags && node.origin?.sourceTag) {
+      <nz-tag class="text-[10px] leading-none" [nzColor]="resolveTagColor(node.origin?.sourceTag)">
+        {{ node.origin?.sourceTag }}
+      </nz-tag>
+    }
+  </span>
+</ng-template>

@@ -31,16 +31,17 @@
       <div>
         <label class="mb-1 block text-sm font-medium">Sources</label>
         <nz-spin [nzSpinning]="isSourceOptionsLoading" nzTip="Loading sources...">
-          <div class="max-h-[40vh] overflow-auto rounded border border-slate-200 p-2"
-               (scroll)="handleSourceScroll($event)">
-            <nz-tree
-              (nzCheckedKeysChange)="handleSourceKeysChange($event)"
-              [nzCheckedKeys]="selectedSourceKeys"
-              [nzData]="sourceTreeNodes"
-              nzCheckable
-            ></nz-tree>
-            @if (isLoadingMoreSources) {
-              <div class="mt-2 text-center text-xs text-slate-500">Loading more sources…</div>
+          <div class="max-h-[40vh] overflow-auto rounded border border-slate-200 p-2">
+            @if (isVisible) {
+              <app-source-tree-selector
+                (errorChange)="handleSourceError($event)"
+                (leafSelectionChange)="handleLeafSelectionChange($event)"
+                (loadingChange)="handleSourceLoadingChange($event)"
+                (selectedKeysChange)="handleSourceKeysChange($event)"
+                [mode]="'multiple'"
+                [selectedKeys]="selectedSourceKeys"
+                [showTags]="true"
+              />
             }
           </div>
         </nz-spin>
