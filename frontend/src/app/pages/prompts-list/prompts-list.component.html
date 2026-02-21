@@ -97,7 +97,7 @@
 
 <nz-modal
   (nzOnCancel)="closeEditModal()"
-  [nzWidth]="'80vw'"
+  [nzWidth]="'40vw'"
   (nzOnOk)="savePromptChanges()"
   [nzCancelDisabled]="isSavingPrompt || isDeletingPrompt"
   [nzOkLoading]="isSavingPrompt"
@@ -114,6 +114,7 @@
         [disabled]="isSavingPrompt || isDeletingPrompt"
         class="min-h-[60vh]"
         nz-input
+        rows="30"
         placeholder="Edit prompt content"
       ></textarea>
 
