@@ -17,43 +17,98 @@
   </nz-card>
 
   <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
-    <div class="mb-4 flex flex-wrap items-center gap-3">
-      <input
-        (keyup.enter)="applyFilters()"
-        [(ngModel)]="modelFilter"
-        class="max-w-[240px]"
-        nz-input
-        placeholder="Filter by model"
-      />
+    <div class="mb-4 flex flex-col gap-3">
+      @if (isAdmin) {
+        <div class="flex flex-wrap items-center gap-2">
+          <input
+            [(ngModel)]="massReanalyzePromptPath"
+            [nzAutocomplete]="promptPathAutoComplete"
+            class="max-w-[320px]"
+            nz-input
+            placeholder="Prompt path for reevaluation"
+          />
 
-      <input
-        (keyup.enter)="applyFilters()"
-        [(ngModel)]="promptFilter"
-        class="max-w-[240px]"
-        nz-input
-        placeholder="Filter by prompt path"
-      />
+          <button
+            (click)="massReanalyzeWithPrompt()"
+            [disabled]="selectedSubmitsCount === 0 || !massReanalyzePromptPath.trim() || isMassReanalyzing || isMassPublishing || isMassDeleting"
+            nz-button
+            nzSize="small"
+            nzType="primary"
+          >
+            Reevaluate selected
+          </button>
 
-      <input
-        (keyup.enter)="applyFilters()"
-        [(ngModel)]="sourceFilter"
-        class="max-w-[240px]"
-        nz-input
-        placeholder="Filter by source path"
-      />
+          <button
+            (click)="massSetPublishState(true)"
+            [disabled]="selectedSubmitsCount === 0 || isMassPublishing || isMassDeleting || isMassReanalyzing"
+            nz-button
+            nzSize="small"
+            nzType="default"
+          >
+            Publish selected
+          </button>
+
+          <button
+            (click)="massSetPublishState(false)"
+            [disabled]="selectedSubmitsCount === 0 || isMassPublishing || isMassDeleting || isMassReanalyzing"
+            nz-button
+            nzSize="small"
+            nzType="default"
+          >
+            Unpublish selected
+          </button>
+
+          <button
+            (click)="massDeleteSubmits()"
+            [disabled]="selectedSubmitsCount === 0 || isMassDeleting || isMassPublishing || isMassReanalyzing"
+            nz-button
+            nzDanger
+            nzSize="small"
+            nzType="default"
+          >
+            Delete selected
+          </button>
+        </div>
+      }
+
+      <div class="flex flex-wrap items-center gap-2">
+        <input
+          (keyup.enter)="applyFilters()"
+          [(ngModel)]="modelFilter"
+          class="max-w-[240px]"
+          nz-input
+          placeholder="Filter by model"
+        />
+
+        <input
+          (keyup.enter)="applyFilters()"
+          [(ngModel)]="promptFilter"
+          class="max-w-[240px]"
+          nz-input
+          placeholder="Filter by prompt path"
+        />
+
+        <input
+          (keyup.enter)="applyFilters()"
+          [(ngModel)]="sourceFilter"
+          class="max-w-[240px]"
+          nz-input
+          placeholder="Filter by source path"
+        />
 
 
-      <input
-        (keyup.enter)="applyFilters()"
-        [(ngModel)]="sourceTagFilter"
-        class="max-w-[220px]"
-        nz-input
-        placeholder="Filter by source tag"
-      />
+        <input
+          (keyup.enter)="applyFilters()"
+          [(ngModel)]="sourceTagFilter"
+          class="max-w-[220px]"
+          nz-input
+          placeholder="Filter by source tag"
+        />
 
-      <label (ngModelChange)="applyFilters()" [(ngModel)]="onlyUnrated" nz-checkbox>
-        Only not rated
-      </label>
+        <label (ngModelChange)="applyFilters()" [(ngModel)]="onlyUnrated" nz-checkbox>
+          Only not rated
+        </label>
+      </div>
     </div>
 
     <nz-table
@@ -74,6 +129,14 @@
     >
       <thead>
       <tr>
+        <th nzWidth="44px" nzAlign="center">
+          <label
+            (ngModelChange)="toggleSelectAllOnPage($event)"
+            [ngModel]="isAllOnPageSelected"
+            [nzIndeterminate]="isPartiallySelectedOnPage"
+            nz-checkbox
+          ></label>
+        </th>
         <th nzWidth="40px">Id</th>
         <th nzWidth="150px">Model</th>
         <th>Prompt path</th>
@@ -89,6 +152,14 @@
       <tbody>
         @for (submit of submits; track $index) {
           <tr>
+            <td class="text-center">
+              <label
+                (ngModelChange)="toggleSubmitSelection(submit.id, $event)"
+                [ngModel]="selectedSubmitIds.has(submit.id)"
+                nz-checkbox
+              ></label>
+            </td>
+
             <td class="col-min">
               <code>{{ submit.id }}</code>
             </td>
@@ -171,7 +242,7 @@
                     nzSize="small"
                     nzType="default"
                   >
-                    <nz-icon nzType="delete" nzTheme="outline" class="px-1" />
+                    <nz-icon nzType="delete" nzTheme="outline" class="px-1"/>
                   </button>
                 }
               </div>
@@ -180,6 +251,12 @@
         }
       </tbody>
     </nz-table>
+
+    <nz-autocomplete #promptPathAutoComplete>
+      @for (path of availablePromptPaths; track path) {
+        <nz-auto-option [nzValue]="path">{{ path }}</nz-auto-option>
+      }
+    </nz-autocomplete>
   </nz-card>
 </div>
 
