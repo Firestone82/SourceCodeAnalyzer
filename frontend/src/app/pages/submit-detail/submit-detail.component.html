@@ -1,6 +1,8 @@
 <div class="flex flex-col gap-4">
   @if (isLoading || !submitDetails || !submit) {
-    <nz-spin nzTip="Loading..."></nz-spin>
+    <nz-card class="flex items-center justify-center" style="height: 300px; padding: 120px">
+      <nz-spin nzTip="Loading..."></nz-spin>
+    </nz-card>
   } @else {
     <nz-card>
       <div class="flex gap-4 justify-between items-center mb-4">

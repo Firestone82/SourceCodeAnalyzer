@@ -80,16 +80,20 @@
         <th nzWidth="80px" nzAlign="center">Visibility</th>
         <th nzWidth="140px" nzAlign="center">Rating status</th>
         <th nzWidth="60px" nzAlign="center">Issues</th>
-        <th nzWidth="220px"></th>
+        <th nzWidth="200px"></th>
       </tr>
       </thead>
 
       <tbody>
         @for (submit of submits; track $index) {
           <tr>
-            <td class="col-min">{{ submit.id }}</td>
+            <td class="col-min">
+              <code>{{ submit.id }}</code>
+            </td>
+
             <td>{{ submit.model }}</td>
-            <td>
+
+            <td class="whitespace-normal break-all">
               <a
                 [queryParams]="{prompt: submit.prompt_path}"
                 [routerLink]="['/prompts']"
@@ -98,7 +102,8 @@
                 {{ submit.prompt_path }}
               </a>
             </td>
-            <td>
+
+            <td class="whitespace-normal break-all">
               <a
                 [queryParams]="{source: submit.source_path}"
                 [routerLink]="['/sources']"
@@ -107,24 +112,29 @@
                 {{ submit.source_path }}
               </a>
             </td>
+
             <td class="text-center m-0">
               @if (submit.source_tag) {
-                <nz-tag nzColor="blue">{{ submit.source_tag }}</nz-tag>
+                <nz-tag [nzColor]="sourceTagColor(submit.source_tag)">{{ submit.source_tag }}</nz-tag>
               } @else {
                 <span>-</span>
               }
             </td>
+
             <td class="text-center m-0">
               <nz-tag [nzColor]="submit.published ? 'green' : 'gold'">
                 {{ submit.published ? 'Published' : 'Testing' }}
               </nz-tag>
             </td>
+
             <td class="text-center m-0">
               <nz-tag [nzColor]="ratingStateColor(submit.rating_state)">
                 {{ ratingStateLabel(submit.rating_state) }}
               </nz-tag>
             </td>
+
             <td class="text-center">{{ submit.total_issues }}</td>
+
             <td class="text-center">
               <div class="flex w-full flex-row gap-2">
                 <a
@@ -149,6 +159,7 @@
                   >
                     {{ submit.published ? 'Unpublish' : 'Publish' }}
                   </button>
+
                   <button
                     (click)="deleteSubmit(submit)"
                     [disabled]="deletingSubmitIds.has(submit.id) || publishingSubmitIds.has(submit.id)"
@@ -158,7 +169,7 @@
                     nzSize="small"
                     nzType="default"
                   >
-                    Delete
+                    <nz-icon nzType="delete" nzTheme="outline" class="px-1" />
                   </button>
                 }
               </div>

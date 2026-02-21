@@ -16,6 +16,7 @@ import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {AuthService} from '../../service/auth/auth.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
+import {NzIconDirective} from 'ng-zorro-antd/icon';
 
 @Component({
   selector: 'app-submits-list',
@@ -31,9 +32,11 @@ import {NzMessageService} from 'ng-zorro-antd/message';
     NzCardComponent,
     NzTypographyModule,
     SubmitUploadModalComponent,
-    JobCreatedModalComponent
+    JobCreatedModalComponent,
+    NzIconDirective
   ],
   templateUrl: './submits-list.component.html',
+  styleUrl: './submits-list.component.css'
 })
 export class SubmitsListComponent implements OnInit, OnDestroy {
   submits: SubmitListItemDto[] = [];
@@ -59,6 +62,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   deletingSubmitIds: Set<number> = new Set<number>();
   private readonly destroy$ = new Subject<void>();
   private readonly uploadPollingStop$ = new Subject<void>();
+  private readonly sourceTagColors: string[] = ['blue', 'green', 'red', 'orange', 'purple', 'cyan', 'magenta', 'lime'];
 
   public constructor(
     private readonly submitsApiService: SubmitsApiService,
@@ -113,6 +117,14 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     }
 
     return 'Not rated';
+  }
+
+  public sourceTagColor(tag: string | null | undefined): string {
+    if (!tag) {
+      return 'default';
+    }
+    const hash = Array.from(tag).reduce((accumulator, character) => accumulator + character.charCodeAt(0), 0);
+    return this.sourceTagColors[hash % this.sourceTagColors.length];
   }
 
   public ratingStateColor(state: SubmitRatingState): string {

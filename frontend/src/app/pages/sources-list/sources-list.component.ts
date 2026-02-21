@@ -49,6 +49,7 @@ import {AuthService} from '../../service/auth/auth.service';
   styleUrl: './sources-list.component.css',
 })
 export class SourcesListComponent implements OnInit, OnDestroy {
+  private readonly sourceTagColors: string[] = ['blue', 'green', 'red', 'orange', 'purple', 'cyan', 'magenta', 'lime'];
   public isLoading: boolean = false;
   public isSourceLoading: boolean = false;
   public errorMessage: string | null = null;
@@ -99,11 +100,27 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.loadSources();
+    this.activatedRoute.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((queryParams) => {
+        const sourcePath = queryParams.get('source');
+        if (sourcePath) {
+          this.selectSource(sourcePath);
+        }
+      });
     this.authService.rater$
       .pipe(takeUntil(this.destroy$))
       .subscribe((rater) => {
         this.isAdmin = Boolean(rater?.admin);
       });
+  }
+
+  public sourceTagColor(tag: string | null | undefined): string {
+    if (!tag) {
+      return 'default';
+    }
+    const hash = Array.from(tag).reduce((accumulator, character) => accumulator + character.charCodeAt(0), 0);
+    return this.sourceTagColors[hash % this.sourceTagColors.length];
   }
 
   public ngOnDestroy(): void {
@@ -289,6 +306,10 @@ export class SourcesListComponent implements OnInit, OnDestroy {
           return;
         }
         this.applyRootChildren(response, false);
+        const sourcePath = this.activatedRoute.snapshot.queryParamMap.get('source');
+        if (sourcePath) {
+          this.selectSource(sourcePath);
+        }
       });
   }
 

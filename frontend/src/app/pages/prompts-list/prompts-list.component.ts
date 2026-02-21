@@ -84,6 +84,14 @@ export class PromptsListComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.loadPrompts();
+    this.activatedRoute.queryParamMap
+      .pipe(takeUntil(this.destroy$))
+      .subscribe((queryParams) => {
+        const promptPath = queryParams.get('prompt');
+        if (promptPath) {
+          this.selectPrompt(promptPath);
+        }
+      });
     this.authService.rater$
       .pipe(takeUntil(this.destroy$))
       .subscribe((rater) => {

@@ -20,8 +20,8 @@
   </nz-card>
 
   <nz-spin [nzSpinning]="isLoading" nzTip="Loading...">
-    <div class="grid grid-cols-8 gap-4">
-      <div class="col-span-2">
+    <div class="grid grid-cols-[minmax(220px,1fr)_minmax(0,4fr)] gap-4">
+      <div>
         <nz-card class="source-tree-container">
           <div nz-typography nzType="secondary">Found sources</div>
 
@@ -41,14 +41,14 @@
             <span class="inline-flex items-center gap-1">
               <span>{{ node.title }}</span>
               @if (node.origin?.sourceTag) {
-                <nz-tag class="text-[10px] leading-none" nzColor="blue">{{ node.origin?.sourceTag }}</nz-tag>
+                <nz-tag class="text-[10px] leading-none" [nzColor]="sourceTagColor(node.origin?.sourceTag)">{{ node.origin?.sourceTag }}</nz-tag>
               }
             </span>
           </ng-template>
         </nz-card>
       </div>
 
-      <div class="col-span-6">
+      <div>
         <nz-card>
           <div>
             <div nz-typography nzType="secondary">Source content</div>
