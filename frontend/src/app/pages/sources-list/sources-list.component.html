@@ -38,7 +38,12 @@
             ></nz-tree>
           </div>
           <ng-template #sourceTreeNodeTemplate let-node>
-            <span>{{ node.title }}</span>
+            <span class="inline-flex items-center gap-1">
+              <span>{{ node.title }}</span>
+              @if (node.origin?.sourceTag) {
+                <nz-tag class="text-[10px] leading-none" nzColor="blue">{{ node.origin?.sourceTag }}</nz-tag>
+              }
+            </span>
           </ng-template>
         </nz-card>
       </div>
@@ -56,6 +61,27 @@
               @if (sourceErrorMessage) {
                 <div nz-typography nzType="danger">{{ sourceErrorMessage }}</div>
               } @else {
+
+                @if (isAdmin) {
+                  <div class="mb-3 flex items-center gap-2">
+                    <input
+                      [(ngModel)]="sourceTag"
+                      [disabled]="isSourceTagSaving"
+                      class="max-w-[280px]"
+                      nz-input
+                      placeholder="Source tag"
+                    />
+                    <button
+                      (click)="saveSourceTag()"
+                      [disabled]="isSourceTagSaving"
+                      nz-button
+                      nzType="default"
+                    >
+                      Save tag
+                    </button>
+                  </div>
+                }
+
                 @if (fileNames.length === 0) {
                   <div nz-typography>No files available for this source.</div>
                 } @else {

@@ -1,7 +1,7 @@
 from pathlib import Path
 from typing import List
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.dto import (
@@ -9,15 +9,47 @@ from app.api.dto import (
     PromptAnalysisJob,
     PromptAnalysisResponse,
     PromptContentResponse,
+    PromptDeleteResponse,
     PromptNamesResponse,
+    PromptUpdateRequest,
 )
-from app.api.security import get_current_rater
+from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import AnalysisJob, Rater
+from app.database.models import AnalysisJob, Rater, Submit
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import PROMPTS_ROOT, find_prompt_file
 
 router = APIRouter(prefix="/prompts", tags=["prompts"])
+
+
+def normalize_prompt_path(prompt_path: str) -> str:
+    candidate = prompt_path.strip()
+
+    if not candidate:
+        raise HTTPException(status_code=400, detail="Prompt path is required")
+
+    candidate_path = Path(candidate)
+    if candidate_path.is_absolute() or ".." in candidate_path.parts:
+        raise HTTPException(status_code=400, detail="Invalid prompt path")
+
+    return candidate_path.as_posix()
+
+
+def write_prompt_file(prompt_path: str, content: str) -> str:
+    normalized_prompt_path = normalize_prompt_path(prompt_path)
+    if not content.strip():
+        raise HTTPException(status_code=400, detail="Prompt content is required")
+
+    prompt_file_path = find_prompt_file_path(normalized_prompt_path)
+    prompt_file_path.parent.mkdir(parents=True, exist_ok=True)
+    prompt_file_path.write_text(content, encoding="utf-8")
+    return normalized_prompt_path
+
+
+def find_prompt_file_path(prompt_path: str) -> Path:
+    normalized_prompt_path = normalize_prompt_path(prompt_path)
+    return (PROMPTS_ROOT / f"{normalized_prompt_path}.txt").resolve()
+
 
 
 @router.get("")
@@ -89,3 +121,47 @@ def analyze_sources_with_prompt(
         prompt_path=prompt_path,
         jobs=jobs,
     )
+
+
+@router.put("/{prompt_path:path}")
+def update_prompt_content(
+        prompt_path: str,
+        request: PromptUpdateRequest,
+        current_rater: Rater = Depends(require_admin),
+) -> PromptContentResponse:
+    del current_rater
+    normalized_prompt_path = write_prompt_file(prompt_path, request.content)
+
+    return PromptContentResponse(
+        prompt_path=normalized_prompt_path,
+        content=request.content,
+    )
+
+
+@router.delete("/{prompt_path:path}")
+def delete_prompt(
+        prompt_path: str,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> PromptDeleteResponse:
+    del current_rater
+    normalized_prompt_path = normalize_prompt_path(prompt_path)
+
+    prompt_file_path = find_prompt_file_path(normalized_prompt_path)
+    if not prompt_file_path.exists() or not prompt_file_path.is_file():
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    session.query(AnalysisJob).filter(AnalysisJob.prompt_path == normalized_prompt_path).update({AnalysisJob.submit_id: None})
+
+    related_submits = session.query(Submit).filter(Submit.prompt_path == normalized_prompt_path).all()
+    for submit in related_submits:
+        session.delete(submit)
+
+    related_jobs = session.query(AnalysisJob).filter(AnalysisJob.prompt_path == normalized_prompt_path).all()
+    for job in related_jobs:
+        session.delete(job)
+
+    prompt_file_path.unlink()
+    session.commit()
+
+    return PromptDeleteResponse(prompt_path=normalized_prompt_path, deleted=True)

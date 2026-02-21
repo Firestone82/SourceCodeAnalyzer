@@ -40,6 +40,15 @@
         placeholder="Filter by source path"
       />
 
+
+      <input
+        (keyup.enter)="applyFilters()"
+        [(ngModel)]="sourceTagFilter"
+        class="max-w-[220px]"
+        nz-input
+        placeholder="Filter by source tag"
+      />
+
       <label (ngModelChange)="applyFilters()" [(ngModel)]="onlyUnrated" nz-checkbox>
         Only not rated
       </label>
@@ -67,11 +76,11 @@
         <th nzWidth="150px">Model</th>
         <th>Prompt path</th>
         <th>Source path</th>
-        <th nzWidth="150px">Submit date</th>
+        <th nzWidth="150px">Source tag</th>
         <th nzWidth="80px" nzAlign="center">Visibility</th>
         <th nzWidth="140px" nzAlign="center">Rating status</th>
         <th nzWidth="60px" nzAlign="center">Issues</th>
-        <th nzWidth="150px"></th>
+        <th nzWidth="220px"></th>
       </tr>
       </thead>
 
@@ -98,7 +107,13 @@
                 {{ submit.source_path }}
               </a>
             </td>
-            <td>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+            <td class="text-center m-0">
+              @if (submit.source_tag) {
+                <nz-tag nzColor="blue">{{ submit.source_tag }}</nz-tag>
+              } @else {
+                <span>-</span>
+              }
+            </td>
             <td class="text-center m-0">
               <nz-tag [nzColor]="submit.published ? 'green' : 'gold'">
                 {{ submit.published ? 'Published' : 'Testing' }}
@@ -126,13 +141,24 @@
                 @if (isAdmin) {
                   <button
                     (click)="togglePublish(submit)"
-                    [disabled]="publishingSubmitIds.has(submit.id)"
+                    [disabled]="publishingSubmitIds.has(submit.id) || deletingSubmitIds.has(submit.id)"
                     class="w-full"
                     nz-button
                     nzSize="small"
                     nzType="default"
                   >
                     {{ submit.published ? 'Unpublish' : 'Publish' }}
+                  </button>
+                  <button
+                    (click)="deleteSubmit(submit)"
+                    [disabled]="deletingSubmitIds.has(submit.id) || publishingSubmitIds.has(submit.id)"
+                    class="w-full"
+                    nz-button
+                    nzDanger
+                    nzSize="small"
+                    nzType="default"
+                  >
+                    Delete
                   </button>
                 }
               </div>

@@ -8,7 +8,8 @@ import {
   SubmitDto,
   SubmitListResponseDto,
   SubmitPublishRequestDto,
-  SubmitPublishResponseDto
+  SubmitPublishResponseDto,
+  SubmitDeleteResponseDto
 } from '../api.models';
 import {SyntaxHighlighterService} from '../../syntax-highlighting.service';
 import {DomSanitizer} from '@angular/platform-browser';
@@ -28,7 +29,8 @@ export class SubmitsApiService {
     onlyUnrated: boolean,
     model: string | null,
     sourcePath: string | null = null,
-    promptPath: string | null = null
+    promptPath: string | null = null,
+    sourceTag: string | null = null
   ): Observable<SubmitListResponseDto> {
     return this.apiClientService.get<SubmitListResponseDto>('/submits', {
       queryParams: {
@@ -37,7 +39,8 @@ export class SubmitsApiService {
         only_unrated: onlyUnrated,
         model: model && model.trim() ? model.trim() : null,
         source_path: sourcePath && sourcePath.trim() ? sourcePath.trim() : null,
-        prompt_path: promptPath && promptPath.trim() ? promptPath.trim() : null
+        prompt_path: promptPath && promptPath.trim() ? promptPath.trim() : null,
+        source_tag: sourceTag && sourceTag.trim() ? sourceTag.trim() : null
       }
     });
   }
@@ -85,4 +88,10 @@ export class SubmitsApiService {
       payload
     );
   }
+
+
+  public deleteSubmit(submitId: number): Observable<SubmitDeleteResponseDto> {
+    return this.apiClientService.delete<SubmitDeleteResponseDto>(`/submits/${submitId}`);
+  }
+
 }

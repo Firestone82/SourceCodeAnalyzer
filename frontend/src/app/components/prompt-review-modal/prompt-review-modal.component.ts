@@ -7,6 +7,7 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzTreeNodeKey, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
+import {NzMessageService} from 'ng-zorro-antd/message';
 import {catchError, finalize, forkJoin, of} from 'rxjs';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourcePathsResponseDto} from '../../service/api/api.models';
@@ -49,7 +50,8 @@ export class PromptReviewModalComponent implements OnChanges {
   private readonly pageSize: number = 200;
 
   public constructor(
-    private readonly sourcesApiService: SourcesApiService
+    private readonly sourcesApiService: SourcesApiService,
+    private readonly nzMessageService: NzMessageService
   ) {
   }
 
@@ -142,12 +144,16 @@ export class PromptReviewModalComponent implements OnChanges {
         const successCount = successResponses.length;
         if (successCount === 0) {
           this.reviewSubmitError = 'Failed to submit reviews.';
+          this.nzMessageService.error('Failed to queue prompt review jobs.');
           return;
         }
 
         this.reviewsQueued.emit(successResponses);
         if (successCount < selectedSources.length) {
           this.reviewSubmitError = 'Some reviews failed to queue.';
+          this.nzMessageService.warning(`Queued ${successCount}/${selectedSources.length} review jobs.`);
+        } else {
+          this.nzMessageService.success(`Queued ${successCount} review jobs.`);
         }
         this.closeModal();
       });
@@ -260,6 +266,16 @@ export class PromptReviewModalComponent implements OnChanges {
           if (leftIsLeaf !== rightIsLeaf) {
             return leftIsLeaf ? 1 : -1;
           }
+
+          const leftNumber = Number(leftName);
+          const rightNumber = Number(rightName);
+          const isLeftWholeNumber = Number.isInteger(leftNumber) && leftName.trim() !== '';
+          const isRightWholeNumber = Number.isInteger(rightNumber) && rightName.trim() !== '';
+
+          if (isLeftWholeNumber && isRightWholeNumber) {
+            return leftNumber - rightNumber;
+          }
+
           return leftName.localeCompare(rightName);
         })
         .map(([name, child]) => {

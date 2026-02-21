@@ -1,6 +1,5 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {Router, RouterLink} from '@angular/router';
-import {DatePipe} from '@angular/common';
 import {FormsModule} from '@angular/forms';
 import {NzTableModule} from 'ng-zorro-antd/table';
 import {NzButtonModule} from 'ng-zorro-antd/button';
@@ -22,7 +21,6 @@ import {NzMessageService} from 'ng-zorro-antd/message';
   selector: 'app-submits-list',
   standalone: true,
   imports: [
-    DatePipe,
     FormsModule,
     RouterLink,
     NzTableModule,
@@ -50,6 +48,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   modelFilter: string = '';
   promptFilter: string = '';
   sourceFilter: string = '';
+  sourceTagFilter: string = '';
 
   isUploadModalVisible: boolean = false;
   pendingUpload: { jobId: string; sourcePath: string; promptPath: string; model: string } | null = null;
@@ -57,6 +56,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   jobModalIds: string[] = [];
   isAdmin: boolean = false;
   publishingSubmitIds: Set<number> = new Set<number>();
+  deletingSubmitIds: Set<number> = new Set<number>();
   private readonly destroy$ = new Subject<void>();
   private readonly uploadPollingStop$ = new Subject<void>();
 
@@ -175,6 +175,27 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
       });
   }
 
+
+  public deleteSubmit(submit: SubmitListItemDto): void {
+    if (!this.isAdmin || this.deletingSubmitIds.has(submit.id)) {
+      return;
+    }
+
+    this.deletingSubmitIds.add(submit.id);
+    this.submitsApiService
+      .deleteSubmit(submit.id)
+      .pipe(finalize(() => this.deletingSubmitIds.delete(submit.id)))
+      .subscribe({
+        next: () => {
+          this.nzMessageService.success('Submit deleted.');
+          this.loadSubmits();
+        },
+        error: () => {
+          this.errorMessage = 'Failed to delete submit.';
+        }
+      });
+  }
+
   private startUploadPolling(): void {
     if (!this.pendingUpload) {
       return;
@@ -217,7 +238,8 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
         this.onlyUnrated,
         this.modelFilter,
         this.sourceFilter,
-        this.promptFilter
+        this.promptFilter,
+        this.sourceTagFilter
       )
       .pipe(
         catchError(() => {

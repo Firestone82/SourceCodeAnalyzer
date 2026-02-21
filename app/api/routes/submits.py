@@ -16,10 +16,11 @@ from app.api.dto import (
     SubmitListItemResponse,
     SubmitPublishRequest,
     SubmitPublishResponse,
+    SubmitDeleteResponse,
 )
 from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob
+from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob, SourceTag
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import (
     PROMPTS_ROOT,
@@ -141,6 +142,7 @@ def get_submits(
         model: str | None = Query(None),
         source_path: str | None = Query(None),
         prompt_path: str | None = Query(None),
+        source_tag: str | None = Query(None),
 ) -> SubmitListResponse:
     total_issues_subquery = (
         select(
@@ -194,10 +196,12 @@ def get_submits(
             Submit,
             total_issues_column.label("total_issues"),
             rating_state_column,
+            SourceTag.tag.label("source_tag"),
         )
         .outerjoin(total_issues_subquery, total_issues_subquery.c.submit_id == Submit.id)
         .outerjoin(started_issues_subquery, started_issues_subquery.c.submit_id == Submit.id)
         .outerjoin(fully_rated_issues_subquery, fully_rated_issues_subquery.c.submit_id == Submit.id)
+        .outerjoin(SourceTag, SourceTag.source_path == Submit.source_path)
     )
 
     if not current_rater.admin:
@@ -212,6 +216,9 @@ def get_submits(
     if prompt_path is not None and prompt_path.strip():
         statement = statement.where(Submit.prompt_path.ilike(f"%{prompt_path.strip()}%"))
 
+    if source_tag is not None and source_tag.strip():
+        statement = statement.where(SourceTag.tag == source_tag.strip())
+
     if only_unrated:
         statement = statement.where(rating_state_column != "rated")
 
@@ -221,13 +228,14 @@ def get_submits(
     rows = session.execute(statement.order_by(Submit.created_at.desc()).limit(page_size).offset(offset)).all()
 
     submits: list[SubmitListItemResponse] = []
-    for submit, total_issues, rating_state in rows:
+    for submit, total_issues, rating_state, source_tag in rows:
         submits.append(
             SubmitListItemResponse(
                 id=submit.id,
                 model=submit.model,
                 source_path=submit.source_path,
                 prompt_path=submit.prompt_path,
+                source_tag=source_tag,
                 created_at=submit.created_at,
                 rating_state=rating_state,
                 total_issues=total_issues,
@@ -278,7 +286,11 @@ def get_submit(
         else_="not_rated",
     ).label("rating_state")
 
-    statement: Select = select(Submit, rating_state_column).where(Submit.id == submit_id)
+    statement: Select = (
+        select(Submit, rating_state_column, SourceTag.tag.label("source_tag"))
+        .outerjoin(SourceTag, SourceTag.source_path == Submit.source_path)
+        .where(Submit.id == submit_id)
+    )
 
     row = session.execute(statement).one_or_none()
     if row is None:
@@ -286,6 +298,7 @@ def get_submit(
 
     submit: Submit = row[0]
     rating_state: str = row[1]
+    source_tag: str | None = row[2]
 
     if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=404, detail="Submit not found")
@@ -297,6 +310,7 @@ def get_submit(
         model=submit.model,
         source_path=submit.source_path,
         prompt_path=submit.prompt_path,
+        source_tag=source_tag,
         files=files,
         created_at=submit.created_at,
         rating_state=rating_state,
@@ -387,3 +401,21 @@ def set_submit_publish_state(
         id=submit.id,
         published=submit.published,
     )
+
+
+@router.delete("/{submit_id}")
+def delete_submit(
+        submit_id: int,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SubmitDeleteResponse:
+    del current_rater
+    submit: Submit | None = session.get(Submit, submit_id)
+    if submit is None:
+        raise HTTPException(status_code=404, detail="Submit not found")
+
+    session.query(AnalysisJob).filter(AnalysisJob.submit_id == submit_id).update({AnalysisJob.submit_id: None})
+    session.delete(submit)
+    session.commit()
+
+    return SubmitDeleteResponse(id=submit_id, deleted=True)

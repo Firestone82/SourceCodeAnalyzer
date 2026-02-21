@@ -6,13 +6,25 @@
         <div nz-typography>Browse prompt sources and preview their raw or markdown content.</div>
       </div>
 
-      <button
-        (click)="openReviewModal()"
-        nz-button
-        nzType="primary"
-      >
-        Start review
-      </button>
+      <div class="flex gap-2">
+        @if (isAdmin) {
+          <button
+            (click)="openEditModal()"
+            [disabled]="!selectedPromptPath"
+            nz-button
+            nzType="default"
+          >
+            Edit prompt
+          </button>
+        }
+        <button
+          (click)="openReviewModal()"
+          nz-button
+          nzType="primary"
+        >
+          Start review
+        </button>
+      </div>
     </div>
 
     @if (errorMessage) {
@@ -82,6 +94,40 @@
     </div>
   </nz-spin>
 </div>
+
+<nz-modal
+  (nzOnCancel)="closeEditModal()"
+  (nzOnOk)="savePromptChanges()"
+  [nzCancelDisabled]="isSavingPrompt || isDeletingPrompt"
+  [nzOkLoading]="isSavingPrompt"
+  [nzOkDisabled]="isDeletingPrompt"
+  [nzVisible]="isEditModalVisible"
+  nzCancelText="Cancel"
+  nzOkText="Save prompt"
+  nzTitle="Edit prompt"
+>
+  <ng-container *nzModalContent>
+    <div class="flex flex-col gap-3">
+      <textarea
+        [(ngModel)]="editableContent"
+        [disabled]="isSavingPrompt || isDeletingPrompt"
+        class="min-h-[260px]"
+        nz-input
+        placeholder="Edit prompt content"
+      ></textarea>
+
+      <button
+        (click)="deletePrompt()"
+        [disabled]="isSavingPrompt || isDeletingPrompt"
+        nz-button
+        nzDanger
+        nzType="default"
+      >
+        Delete prompt
+      </button>
+    </div>
+  </ng-container>
+</nz-modal>
 
 <app-prompt-review-modal
   (isVisibleChange)="isReviewModalVisible = $event"

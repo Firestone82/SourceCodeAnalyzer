@@ -2,7 +2,12 @@ import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 
 import {ApiClientService} from '../api-client.service';
-import {PromptContentResponseDto, PromptNamesResponseDto} from '../api.models';
+import {
+  PromptContentResponseDto,
+  PromptDeleteResponseDto,
+  PromptNamesResponseDto,
+  PromptUpdateRequestDto
+} from '../api.models';
 
 @Injectable({providedIn: 'root'})
 export class PromptsApiService {
@@ -16,4 +21,18 @@ export class PromptsApiService {
   public getPromptContent(promptPath: string): Observable<PromptContentResponseDto> {
     return this.apiClient.get<PromptContentResponseDto>(`/prompts/${encodeURIComponent(promptPath)}`);
   }
+
+
+  public updatePromptContent(promptPath: string, content: string): Observable<PromptContentResponseDto> {
+    const payload: PromptUpdateRequestDto = {content};
+    return this.apiClient.put<PromptContentResponseDto, PromptUpdateRequestDto>(
+      `/prompts/${encodeURIComponent(promptPath)}`,
+      payload
+    );
+  }
+
+  public deletePrompt(promptPath: string): Observable<PromptDeleteResponseDto> {
+    return this.apiClient.delete<PromptDeleteResponseDto>(`/prompts/${encodeURIComponent(promptPath)}`);
+  }
+
 }

@@ -3,14 +3,17 @@ import {ActivatedRoute, Router} from '@angular/router';
 import {catchError, finalize, of, Subject, takeUntil} from 'rxjs';
 
 import {NzButtonModule} from 'ng-zorro-antd/button';
+import {FormsModule} from '@angular/forms';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTabsModule} from 'ng-zorro-antd/tabs';
+import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzTreeNode, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
+import {NzTagModule} from 'ng-zorro-antd/tag';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
@@ -29,12 +32,15 @@ import {AuthService} from '../../service/auth/auth.service';
   standalone: true,
   imports: [
     NzButtonModule,
+    FormsModule,
     NzCardComponent,
     NzLayoutModule,
     NzSpinModule,
     NzTabsModule,
+    NzInputModule,
     NzTreeModule,
     NzTypographyModule,
+    NzTagModule,
     SourceCodeViewerComponent,
     SourceReviewModalComponent,
     JobCreatedModalComponent
@@ -48,6 +54,8 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public errorMessage: string | null = null;
   public sourceErrorMessage: string | null = null;
   public selectedSourcePath: string | null = null;
+  public sourceTag: string = "";
+  public isSourceTagSaving: boolean = false;
   public selectedSourceKeys: string[] = [];
   public sourceTreeNodes: NzTreeNodeOptions[] = [];
   public files: Record<string, string> = {};
@@ -212,7 +220,52 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         this.files = response.files;
         this.fileNames = Object.keys(response.files).sort((left, right) => left.localeCompare(right));
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
+
+        if (this.isAdmin) {
+          this.sourcesApiService.getSourceTag(sourcePath).subscribe({
+            next: (tagResponse) => {
+              this.sourceTag = tagResponse.tag || '';
+            },
+            error: () => {
+              this.sourceTag = '';
+            }
+          });
+        }
       });
+  }
+
+
+  public saveSourceTag(): void {
+    if (!this.isAdmin || !this.selectedSourcePath || this.isSourceTagSaving) {
+      return;
+    }
+
+    this.isSourceTagSaving = true;
+    const trimmedTag = this.sourceTag.trim();
+    const onSuccess = (): void => {
+      this.nzMessageService.success('Source tag updated.');
+    };
+
+    const onError = (): void => {
+      this.nzMessageService.error('Failed to update source tag.');
+    };
+
+    if (trimmedTag) {
+      this.sourcesApiService
+        .setSourceTag(this.selectedSourcePath, trimmedTag)
+        .pipe(finalize(() => {
+          this.isSourceTagSaving = false;
+        }))
+        .subscribe({next: () => onSuccess(), error: () => onError()});
+      return;
+    }
+
+    this.sourcesApiService
+      .deleteSourceTag(this.selectedSourcePath)
+      .pipe(finalize(() => {
+        this.isSourceTagSaving = false;
+      }))
+      .subscribe({next: () => onSuccess(), error: () => onError()});
   }
 
   private loadSources(): void {
@@ -341,7 +394,8 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       key: entry.path,
       isLeaf: entry.has_source || !entry.has_children,
       hasSource: entry.has_source,
-      hasChildren: entry.has_children && !entry.has_source
+      hasChildren: entry.has_children && !entry.has_source,
+      sourceTag: entry.source_tag ?? null
     }));
   }
 
@@ -383,6 +437,7 @@ type SourceTreeNodeOrigin = {
   hasChildren?: boolean;
   isLoadMore?: boolean;
   parentPath?: string;
+  sourceTag?: string | null;
 };
 
 type FolderPaginationState = {

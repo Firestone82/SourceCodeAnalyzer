@@ -39,6 +39,15 @@ class PromptContentResponse(BaseModel):
     content: str
 
 
+class PromptUpdateRequest(BaseModel):
+    content: str
+
+
+class PromptDeleteResponse(BaseModel):
+    prompt_path: str
+    deleted: bool
+
+
 class PromptAnalysisJob(BaseModel):
     job_id: str
     source_path: str
@@ -71,6 +80,7 @@ class SourceFolderChildEntry(BaseModel):
     path: str
     has_source: bool
     has_children: bool
+    source_tag: Optional[str] = None
 
 
 class SourceFolderChildrenResponse(BaseModel):
@@ -82,6 +92,20 @@ class SourceFolderChildrenResponse(BaseModel):
 class SourceFilesResponse(BaseModel):
     source_path: str
     files: dict[str, str]
+
+
+class SourceTagRequest(BaseModel):
+    tag: str = Field(min_length=1)
+
+
+class SourceTagResponse(BaseModel):
+    source_path: str
+    tag: str
+
+
+class SourceTagDeleteResponse(BaseModel):
+    source_path: str
+    deleted: bool
 
 
 class AnalyzeSourceResponse(BaseModel):
@@ -118,6 +142,7 @@ class SubmitResponse(BaseModel):
     model: str
     source_path: str
     prompt_path: str
+    source_tag: Optional[str] = None
     files: dict[str, str]
     rating_state: Literal["not_rated", "partially_rated", "rated"]
     created_at: datetime
@@ -129,6 +154,7 @@ class SubmitListItemResponse(BaseModel):
     model: str
     source_path: str
     prompt_path: str
+    source_tag: Optional[str] = None
     rating_state: Literal["not_rated", "partially_rated", "rated"]
     total_issues: int
     created_at: datetime
@@ -183,6 +209,11 @@ class SubmitPublishRequest(BaseModel):
 class SubmitPublishResponse(BaseModel):
     id: int
     published: bool
+
+
+class SubmitDeleteResponse(BaseModel):
+    id: int
+    deleted: bool
 
 
 class RatingResponse(BaseModel):

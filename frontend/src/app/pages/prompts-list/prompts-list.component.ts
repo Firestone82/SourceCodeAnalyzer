@@ -10,6 +10,8 @@ import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzButtonModule} from 'ng-zorro-antd/button';
+import {NzInputModule} from 'ng-zorro-antd/input';
+import {NzModalModule} from 'ng-zorro-antd/modal';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzSegmentedModule} from 'ng-zorro-antd/segmented';
 import {NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
@@ -33,6 +35,8 @@ import {AuthService} from '../../service/auth/auth.service';
     NzTypographyModule,
     NzButtonModule,
     NzSegmentedModule,
+    NzInputModule,
+    NzModalModule,
     PromptReviewModalComponent,
     JobCreatedModalComponent
   ],
@@ -58,9 +62,13 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     {label: 'Raw', value: 'raw'}
   ];
   public isReviewModalVisible: boolean = false;
+  public isEditModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
   public isAdmin: boolean = false;
+  public editableContent: string = '';
+  public isSavingPrompt: boolean = false;
+  public isDeletingPrompt: boolean = false;
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
@@ -137,6 +145,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       )
       .subscribe((response: PromptContentResponseDto) => {
         this.content = response.content;
+        this.editableContent = response.content;
 
         if (this.isMarkdownView) {
           this.renderMarkdownContent();
@@ -165,9 +174,81 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     this.isReviewModalVisible = true;
   }
 
+  public openEditModal(): void {
+    if (!this.isAdmin || !this.selectedPromptPath) {
+      return;
+    }
+
+    this.editableContent = this.content;
+    this.isEditModalVisible = true;
+  }
+
+  public closeEditModal(): void {
+    if (this.isSavingPrompt || this.isDeletingPrompt) {
+      return;
+    }
+    this.isEditModalVisible = false;
+  }
+
   public handleReviewsQueued(responses: AnalyzeSourceResponseDto[]): void {
     this.jobModalIds = responses.map((response) => response.job_id);
     this.isJobModalVisible = true;
+  }
+
+  public savePromptChanges(): void {
+    if (!this.isAdmin || !this.selectedPromptPath || this.isSavingPrompt) {
+      return;
+    }
+
+    this.isSavingPrompt = true;
+    this.promptsApiService
+      .updatePromptContent(this.selectedPromptPath, this.editableContent)
+      .pipe(finalize(() => {
+        this.isSavingPrompt = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          this.content = response.content;
+          this.editableContent = response.content;
+          if (this.isMarkdownView) {
+            this.renderMarkdownContent();
+          }
+          this.nzMessageService.success('Prompt updated.');
+          this.isEditModalVisible = false;
+        },
+        error: () => {
+          this.nzMessageService.error('Failed to update prompt.');
+        }
+      });
+  }
+
+  public deletePrompt(): void {
+    if (!this.isAdmin || !this.selectedPromptPath || this.isDeletingPrompt) {
+      return;
+    }
+
+    const promptPath = this.selectedPromptPath;
+    this.isDeletingPrompt = true;
+    this.promptsApiService
+      .deletePrompt(promptPath)
+      .pipe(finalize(() => {
+        this.isDeletingPrompt = false;
+      }))
+      .subscribe({
+        next: () => {
+          this.nzMessageService.success('Prompt deleted.');
+          this.selectedPromptPath = null;
+          this.selectedPromptKeys = [];
+          this.content = '';
+          this.editableContent = '';
+          this.renderedContent = null;
+          this.isEditModalVisible = false;
+          this.loadPrompts();
+        },
+        error: () => {
+          this.nzMessageService.error('Failed to delete prompt.');
+        }
+      });
   }
 
   private loadPrompts(): void {

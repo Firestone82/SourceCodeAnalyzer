@@ -22,6 +22,15 @@ export interface PromptContentResponseDto {
   content: string;
 }
 
+export interface PromptUpdateRequestDto {
+  content: string;
+}
+
+export interface PromptDeleteResponseDto {
+  prompt_path: string;
+  deleted: boolean;
+}
+
 export interface SourcePathsResponseDto {
   source_paths: string[];
   total?: number;
@@ -42,6 +51,7 @@ export interface SourceFolderChildEntryDto {
   path: string;
   has_source: boolean;
   has_children: boolean;
+  source_tag?: string | null;
 }
 
 export interface SourceFolderChildrenResponseDto {
@@ -52,7 +62,22 @@ export interface SourceFolderChildrenResponseDto {
 
 export interface SourceFilesResponseDto {
   source_path: string;
+  source_tag?: string | null;
   files: Record<string, string>;
+}
+
+export interface SourceTagRequestDto {
+  tag: string;
+}
+
+export interface SourceTagResponseDto {
+  source_path: string;
+  tag: string;
+}
+
+export interface SourceTagDeleteResponseDto {
+  source_path: string;
+  deleted: boolean;
 }
 
 export interface AnalyzeSourceRequestDto {
@@ -95,6 +120,7 @@ export interface SubmitListItemDto {
   model: string;
   prompt_path: string;
   source_path: string;
+  source_tag?: string | null;
   rating_state: SubmitRatingState;
   total_issues: number;
   created_at: string;
@@ -113,6 +139,7 @@ export interface SubmitDto {
   model: string;
   prompt_path: string;
   source_path: string;
+  source_tag?: string | null;
   files: Record<string, string>;
   created_at: string;
   rating_state: SubmitRatingState;
@@ -157,4 +184,9 @@ export interface SubmitPublishRequestDto {
 export interface SubmitPublishResponseDto {
   id: number;
   published: boolean;
+}
+
+export interface SubmitDeleteResponseDto {
+  id: number;
+  deleted: boolean;
 }

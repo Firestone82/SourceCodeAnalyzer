@@ -65,6 +65,15 @@ class IssueRating(Base):
     rater: Mapped["Rater"] = relationship(back_populates="ratings")
 
 
+
+
+class SourceTag(Base):
+    __tablename__ = "source_tag"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_path: Mapped[str] = mapped_column(String(512), nullable=False, unique=True)
+    tag: Mapped[str] = mapped_column(String(128), nullable=False)
+
 class AnalysisJob(Base):
     __tablename__ = "analysis_job"
 

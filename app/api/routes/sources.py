@@ -11,14 +11,17 @@ from app.api.dto import (
     SourcePathsResponse,
     AnalyzeSourceResponse,
     SourceFilesResponse,
+    SourceTagDeleteResponse,
+    SourceTagRequest,
+    SourceTagResponse,
     SourceFolderEntry,
     SourceFoldersResponse,
     SourceFolderChildEntry,
     SourceFolderChildrenResponse,
 )
-from app.api.security import get_current_rater
+from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import AnalysisJob, Rater
+from app.database.models import AnalysisJob, Rater, SourceTag
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import PROMPTS_ROOT, find_source_files_or_extract, SOURCES_ROOT, safe_join
 
@@ -46,6 +49,22 @@ def store_prompt_content(prompt_path: str, content: str) -> str:
     return normalized_prompt_path
 
 
+def get_source_tag(session: Session, source_path: str) -> str | None:
+    record = session.query(SourceTag).filter(SourceTag.source_path == source_path).one_or_none()
+    if record is None:
+        return None
+    return record.tag
+
+
+
+
+def source_name_sort_key(name: str) -> tuple[int, int | str]:
+    stripped_name = name.strip()
+    if stripped_name.isdigit():
+        return 0, int(stripped_name)
+
+    return 1, stripped_name.lower()
+
 def normalize_folder_path(folder_path: str) -> str:
     candidate = folder_path.strip()
 
@@ -63,31 +82,29 @@ def normalize_folder_path(folder_path: str) -> str:
 def list_source_paths(
         offset: int = Query(0, ge=0),
         limit: int | None = Query(None, ge=1),
+        tag: str | None = Query(None),
+        session: Session = Depends(get_database),
 ) -> SourcePathsResponse:
     file_paths: List[str] = []
 
-    for directory_path, directory_names, file_names in os.walk(SOURCES_ROOT):
+    for directory_path, _, file_names in os.walk(SOURCES_ROOT):
         for file_name in file_names:
             if file_name == "src.zip":
                 full_path: Path = Path(directory_path).resolve()
                 relative_path: Path = full_path.relative_to(SOURCES_ROOT)
                 file_paths.append(relative_path.as_posix())
 
-    sorted_paths = sorted(file_paths)
-    total = len(sorted_paths)
-    if limit is not None:
-        paged_paths = sorted_paths[offset:offset + limit]
-    else:
-        paged_paths = sorted_paths[offset:]
-    next_offset = None
-    if limit is not None and offset + limit < total:
-        next_offset = offset + limit
+    if tag is not None and tag.strip():
+        tag_value = tag.strip()
+        tagged_paths = {record.source_path for record in session.query(SourceTag).filter(SourceTag.tag == tag_value).all()}
+        file_paths = [path for path in file_paths if path in tagged_paths]
 
-    return SourcePathsResponse(
-        source_paths=paged_paths,
-        total=total,
-        next_offset=next_offset,
-    )
+    sorted_paths = sorted(file_paths, key=lambda path: tuple(source_name_sort_key(part) for part in path.split("/")))
+    total = len(sorted_paths)
+    paged_paths = sorted_paths[offset:offset + limit] if limit is not None else sorted_paths[offset:]
+    next_offset = offset + limit if limit is not None and offset + limit < total else None
+
+    return SourcePathsResponse(source_paths=paged_paths, total=total, next_offset=next_offset)
 
 
 @router.get("/folders")
@@ -120,6 +137,7 @@ def list_source_folder_children(
         folder_path: str | None = Query(None),
         offset: int = Query(0, ge=0),
         limit: int | None = Query(None, ge=1),
+        session: Session = Depends(get_database),
 ) -> SourceFolderChildrenResponse:
     normalized_folder_path = normalize_folder_path(folder_path or "")
     base_path = SOURCES_ROOT if not normalized_folder_path else safe_join(SOURCES_ROOT, normalized_folder_path)
@@ -127,48 +145,91 @@ def list_source_folder_children(
     if not base_path.exists() or not base_path.is_dir():
         raise HTTPException(status_code=404, detail="Folder not found")
 
-    children: list[SourceFolderChildEntry] = []
+    child_directories: list[tuple[str, Path]] = []
     with os.scandir(base_path) as entries:
         for entry in entries:
-            if not entry.is_dir():
-                continue
-            entry_path = Path(entry.path)
-            relative_path = entry_path.relative_to(SOURCES_ROOT).as_posix()
-            has_source = (entry_path / "src.zip").exists()
-            with os.scandir(entry_path) as child_entries:
-                has_children = any(child.is_dir() for child in child_entries)
-            children.append(SourceFolderChildEntry(
-                name=entry.name,
-                path=relative_path,
-                has_source=has_source,
-                has_children=has_children,
-            ))
+            if entry.is_dir():
+                child_directories.append((entry.name, Path(entry.path)))
 
-    children.sort(key=lambda child: child.name)
+    child_paths = [entry_path.relative_to(SOURCES_ROOT).as_posix() for _, entry_path in child_directories]
+    source_tags: dict[str, str] = {
+        tag.source_path: tag.tag
+        for tag in session.query(SourceTag).filter(SourceTag.source_path.in_(child_paths)).all()
+    } if child_paths else {}
+
+    children: list[SourceFolderChildEntry] = []
+    for entry_name, entry_path in child_directories:
+        relative_path = entry_path.relative_to(SOURCES_ROOT).as_posix()
+        has_source = (entry_path / "src.zip").exists()
+        with os.scandir(entry_path) as child_entries:
+            has_children = any(child.is_dir() for child in child_entries)
+        children.append(SourceFolderChildEntry(
+            name=entry_name,
+            path=relative_path,
+            has_source=has_source,
+            has_children=has_children,
+            source_tag=source_tags.get(relative_path),
+        ))
+
+    children.sort(key=lambda child: source_name_sort_key(child.name))
     total = len(children)
-    if limit is not None:
-        paged_children = children[offset:offset + limit]
-    else:
-        paged_children = children[offset:]
-    next_offset = None
-    if limit is not None and offset + limit < total:
-        next_offset = offset + limit
+    paged_children = children[offset:offset + limit] if limit is not None else children[offset:]
+    next_offset = offset + limit if limit is not None and offset + limit < total else None
 
-    return SourceFolderChildrenResponse(
-        children=paged_children,
-        total=total,
-        next_offset=next_offset,
-    )
+    return SourceFolderChildrenResponse(children=paged_children, total=total, next_offset=next_offset)
+
+
+@router.get("/tags/{source_path:path}")
+def get_source_path_tag(
+        source_path: str,
+        session: Session = Depends(get_database),
+) -> SourceTagResponse:
+    tag = get_source_tag(session, source_path)
+    return SourceTagResponse(source_path=source_path, tag=tag or "")
+
+
+@router.put("/tags/{source_path:path}")
+def set_source_path_tag(
+        source_path: str,
+        request: SourceTagRequest,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SourceTagResponse:
+    del current_rater
+    tag = request.tag.strip()
+    if not tag:
+        raise HTTPException(status_code=400, detail="Tag is required")
+
+    record = session.query(SourceTag).filter(SourceTag.source_path == source_path).one_or_none()
+    if record is None:
+        record = SourceTag(source_path=source_path, tag=tag)
+        session.add(record)
+    else:
+        record.tag = tag
+
+    session.commit()
+    return SourceTagResponse(source_path=source_path, tag=tag)
+
+
+@router.delete("/tags/{source_path:path}")
+def delete_source_path_tag(
+        source_path: str,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SourceTagDeleteResponse:
+    del current_rater
+    record = session.query(SourceTag).filter(SourceTag.source_path == source_path).one_or_none()
+    if record is not None:
+        session.delete(record)
+        session.commit()
+
+    return SourceTagDeleteResponse(source_path=source_path, deleted=True)
 
 
 @router.get("/{source_path:path}")
 def get_source_file(source_path: str) -> SourceFilesResponse:
     content: dict = find_source_files_or_extract(source_path)
-
-    return SourceFilesResponse(
-        source_path=source_path,
-        files=content
-    )
+    return SourceFilesResponse(source_path=source_path, files=content)
 
 
 @router.post("/{source_path:path}")
