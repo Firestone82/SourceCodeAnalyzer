@@ -32,7 +32,6 @@
       [nzPageIndex]="pageIndex"
       [nzPageSizeOptions]="[10, 20, 50]"
       [nzPageSize]="pageSize"
-      [nzScroll]="{ y: '520px' }"
       [nzShowSizeChanger]="true"
       [nzTotal]="totalJobs"
       class="jobs-table"
@@ -52,22 +51,42 @@
       </thead>
       <tbody>
         @for (job of jobs; track job.id) {
-          <tr>
-            <td class="whitespace-nowrap">
+          <tr class="text-xs">
+            <td class="whitespace-nowrap py-1">
               <span [title]="job.job_id">{{ shortJobId(job.job_id) }}</span>
             </td>
-            <td [title]="job.model || '-'" class="truncate max-w-[160px]">{{ job.model || '-' }}</td>
-            <td [title]="job.prompt_path || '-'" class="truncate max-w-[200px]">{{ job.prompt_path || '-' }}</td>
-            <td [title]="job.source_path || '-'" class="truncate max-w-[200px]">{{ job.source_path || '-' }}</td>
-            <td>{{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
-            <td class="text-center">
+
+            <td [title]="job.model || '-'" class="truncate max-w-[160px] py-1">
+              {{ job.model || '-' }}
+            </td>
+
+            <td [title]="job.prompt_path || '-'" class="truncate max-w-[200px] py-1">
+              {{ job.prompt_path || '-' }}
+            </td>
+
+            <td [title]="job.source_path || '-'" class="truncate max-w-[200px] py-1">
+              {{ job.source_path || '-' }}
+            </td>
+
+            <td class="py-1">
+              {{ job.updated_at | date:'yyyy-MM-dd HH:mm:ss' }}
+            </td>
+
+            <td class="text-center py-1">
               <nz-tag [nzColor]="statusColor(job.status)">
                 {{ job.status }}
               </nz-tag>
             </td>
-            <td>
-              @if (job.submit_id) {
-                <a [routerLink]="['/submits', job.submit_id]" nz-button nzType="link">Open</a>
+
+            <td class="py-1">
+              @if (job.status === 'failed') {
+                <button (click)="openErrorLog(job)" nz-button nzSize="small" nzType="default" nzDanger>
+                  View error log
+                </button>
+              } @else if (job.submit_id) {
+                <button [routerLink]="['/submits', job.submit_id]" nz-button nzSize="small" nzType="default">
+                  Show submit
+                </button>
               } @else {
                 <span>-</span>
               }
@@ -78,3 +97,26 @@
     </nz-table>
   </nz-card>
 </div>
+
+<nz-modal
+  (nzOnCancel)="closeErrorLogModal()"
+  (nzOnOk)="closeErrorLogModal()"
+  [nzCancelText]="null"
+  [nzClosable]="true"
+  [nzFooter]="modalFooter"
+  [nzMaskClosable]="false"
+  [nzOkText]="'Close'"
+  [nzTitle]="'Worker error log'"
+  [(nzVisible)]="isErrorLogModalVisible"
+  [nzWidth]="'70vw'"
+>
+  <ng-container *nzModalContent>
+    <pre class="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded bg-[#111827] p-4 text-xs text-[#e5e7eb]">{{ (selectedErrorLogText || 'No error log available.').replaceAll('\\n', '\n') }}    </pre>
+  </ng-container>
+
+  <ng-template #modalFooter>
+    <div class="flex items-center justify-end gap-2">
+      <button (click)="closeErrorLogModal()" nz-button nzType="primary">Close</button>
+    </div>
+  </ng-template>
+</nz-modal>

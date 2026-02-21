@@ -2,8 +2,10 @@ import zipfile
 import json
 from pathlib import Path
 
-PROMPTS_ROOT: Path = Path("data/prompts").resolve()
-SOURCES_ROOT: Path = Path("data/sources").resolve()
+DATA_ROOT: Path = Path("data").resolve()
+PROMPTS_ROOT: Path = (DATA_ROOT / "prompts").resolve()
+SOURCES_ROOT: Path = (DATA_ROOT / "sources").resolve()
+JOBS_ROOT: Path = (DATA_ROOT / "jobs").resolve()
 
 
 def safe_join(root: Path, relative_path: str) -> Path:
@@ -88,6 +90,35 @@ def find_source_comments(submit_source_path: str) -> list[dict[str, str | int | 
         })
 
     return comments
+
+
+
+
+def save_job_error_log(job_id: str, error_log: str) -> Path:
+    jobs_root: Path = JOBS_ROOT
+    jobs_root.mkdir(parents=True, exist_ok=True)
+
+    safe_job_id = Path(job_id).name
+    if safe_job_id != job_id:
+        raise ValueError("Invalid job id")
+
+    log_file_path = safe_join(jobs_root, f"{safe_job_id}.txt")
+    log_file_path.write_text(error_log, encoding="utf-8")
+    return log_file_path
+
+
+def load_job_error_log(job_id: str) -> str | None:
+    jobs_root: Path = JOBS_ROOT
+
+    safe_job_id = Path(job_id).name
+    if safe_job_id != job_id:
+        raise ValueError("Invalid job id")
+
+    log_file_path = safe_join(jobs_root, f"{safe_job_id}.txt")
+    if not log_file_path.exists() or not log_file_path.is_file():
+        return None
+
+    return log_file_path.read_text(encoding="utf-8", errors="replace")
 
 
 def find_prompt_file(prompt_path: str) -> str:

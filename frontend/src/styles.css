@@ -53,3 +53,8 @@
 .m-0 .ant-tag {
   margin: 0 !important;
 }
+
+.ant-table-body {
+  max-height: 10000px !important;
+  overflow-y: auto !important;
+}

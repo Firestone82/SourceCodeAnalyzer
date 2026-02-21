@@ -1,4 +1,6 @@
 import logging
+import traceback
+from io import StringIO
 from datetime import datetime
 from pathlib import Path
 from typing import List, Dict
@@ -11,9 +13,51 @@ from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import EmbeddedFile, ReviewResult
 from app.database.db import SessionLocal
 from app.database.models import Submit, Issue, AnalysisJob
-from app.utils.files import find_prompt_file, find_source_files_or_extract
+from app.utils.files import find_prompt_file, find_source_files_or_extract, save_job_error_log
 
 logger = logging.getLogger(__name__)
+
+
+class _InMemoryLogHandler(logging.StreamHandler):
+    def __init__(self) -> None:
+        self.stream = StringIO()
+        super().__init__(self.stream)
+
+    def get_value(self) -> str:
+        return self.stream.getvalue()
+
+
+def _configure_job_log_capture(job_id: str | None) -> _InMemoryLogHandler | None:
+    if not job_id:
+        return None
+
+    handler = _InMemoryLogHandler()
+    handler.setLevel(logging.INFO)
+    handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(name)s - %(message)s'))
+
+    root_logger = logging.getLogger()
+    root_logger.addHandler(handler)
+    return handler
+
+
+def _store_failed_job_log(job_id: str | None, log_handler: _InMemoryLogHandler | None, exc: Exception) -> None:
+    if not job_id:
+        return
+
+    stack_trace = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    captured_log = log_handler.get_value() if log_handler else ''
+
+    log_parts: list[str] = []
+    if captured_log.strip():
+        log_parts.append(captured_log.rstrip())
+    if stack_trace.strip():
+        log_parts.append('--- Exception traceback ---\n' + stack_trace.rstrip())
+
+    persisted_log = '\n\n'.join(log_parts) if log_parts else stack_trace
+    try:
+        save_job_error_log(job_id, persisted_log)
+    except Exception:
+        logger.exception("Failed to store error log for job '%s'", job_id)
 
 
 def detect_language(file_path: str) -> str:
@@ -98,6 +142,7 @@ def run_submit_analysis(
     session: Session = SessionLocal()
     job = get_current_job()
     job_id = job.id if job else None
+    job_log_handler = _configure_job_log_capture(job_id)
 
     def update_job_status(status: str, error: str | None = None, submit_id: int | None = None) -> None:
         if not job_id:
@@ -120,18 +165,19 @@ def run_submit_analysis(
     # Detele previous analysis results for the same source_path and prompt_path if any
     try:
         delete_previous_submit(session, source_path, prompt_path, rater_id)
-    except Exception:
+    except Exception as exc:
         logger.exception(
             "Failed to delete previous analysis results for source_path='%s' and prompt_path='%s'",
             source_path, prompt_path
         )
         session.rollback()
-        update_job_status("failed", error="Failed to clean previous submit")
+        _store_failed_job_log(job_id, job_log_handler, exc)
+        update_job_status("failed", error=str(exc) or "Failed to clean previous submit")
         session.close()
         raise
 
     try:
-        system_prompt: str = find_prompt_file(prompt_path);
+        system_prompt: str = find_prompt_file(prompt_path)
         files: List[EmbeddedFile] = embed_text_files(source_path)
 
         summarizer: Analyzer = Analyzer(model, files, system_prompt)
@@ -171,13 +217,19 @@ def run_submit_analysis(
             "Model '%s' analysis with prompt '%s' completed for files at '%s'. Issues found: %d",
             model, prompt_path, source_path, len(review_result.issues)
         )
-    except Exception:
+    except Exception as exc:
         logger.exception(
             "Model '%s' analysis with prompt '%s' failed for files at '%s'",
             model, prompt_path, source_path
         )
         session.rollback()
-        update_job_status("failed", error="Analysis failed")
+
+        _store_failed_job_log(job_id, job_log_handler, exc)
+
+        update_job_status("failed", error=str(exc) or "Analysis failed")
         raise
     finally:
+        if job_log_handler is not None:
+            logging.getLogger().removeHandler(job_log_handler)
+            job_log_handler.close()
         session.close()

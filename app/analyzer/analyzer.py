@@ -14,32 +14,7 @@ from app.settings import settings
 logger = logging.getLogger(__name__)
 
 DEFAULT_PROMPT_SUFFIX = """
-    Return a **single JSON object** with this structure:
-    
-    ```json
-    {
-        "summary": "A concise overview (3–5 sentences) describing overall correctness, key positives, and notable negatives.",
-        "issues": [
-            {
-                "file": "name of the file where issue is found",
-                "severity": "critical | high | medium | low",
-                "line": "line number where issue occurs",
-                "explanation": "Clear, factual description of what is wrong and why it matters (in 1–3 sentences)."
-            }
-        ]
-    }
-    ```
-    
-    Use severity to indicate impact:
-    - **critical** — Causes undefined behavior or data corruption.
-    - **high** — Causes program to produce incorrect results or crash.
-    - **medium** — Causes significant but not catastrophic performance or logical issues.
-    - **low** — Minor inefficiencies or edge-case correctness problems.
-    
-    When describing code in your explanations:
-    - Wrap all **variable names**, **function names**, and **code snippets** in single backticks (e.g., `buffer`, `free(ptr)`)
-    - Use **exact line numbers** and **clear, factual reasoning**
-    - Avoid speculative language such as **"might"** or **"possibly"**
+
 """
 
 

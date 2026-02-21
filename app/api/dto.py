@@ -144,6 +144,7 @@ class JobResponse(BaseModel):
     model: Optional[str]
     submit_id: Optional[int]
     error: Optional[str]
+    error_log: Optional[str] = None
     created_at: datetime
     updated_at: datetime
 
@@ -153,6 +154,15 @@ class JobListResponse(BaseModel):
     total: int
     page: int
     page_size: int
+
+
+class JobErrorLogRequest(BaseModel):
+    error_log: str = Field(min_length=1)
+
+
+class JobErrorLogResponse(BaseModel):
+    job_id: str
+    error_log: str
 
 
 class SubmitResponse(BaseModel):

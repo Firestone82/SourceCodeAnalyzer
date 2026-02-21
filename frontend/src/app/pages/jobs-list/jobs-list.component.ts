@@ -8,6 +8,8 @@ import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
+import {NzButtonModule} from 'ng-zorro-antd/button';
+import {NzModalModule} from 'ng-zorro-antd/modal';
 import {catchError, interval, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
@@ -25,7 +27,9 @@ import {JobDto, JobListResponseDto} from '../../service/api/api.models';
     NzSelectModule,
     NzTagModule,
     NzTypographyModule,
-    NzSpinModule
+    NzSpinModule,
+    NzButtonModule,
+    NzModalModule
   ],
   templateUrl: './jobs-list.component.html'
 })
@@ -36,6 +40,11 @@ export class JobsListComponent implements OnInit, OnDestroy {
   public pageIndex: number = 1;
   public pageSize: number = 20;
   public totalJobs: number = 0;
+
+  public selectedLogJob: JobDto | null = null;
+  public isErrorLogModalVisible: boolean = false;
+  public selectedErrorLogText: string = '';
+
   private readonly destroy$ = new Subject<void>();
 
   public constructor(private readonly jobsApiService: JobsApiService) {
@@ -93,10 +102,39 @@ export class JobsListComponent implements OnInit, OnDestroy {
 
   public shortJobId(jobId: string): string {
     const lastDash = jobId.lastIndexOf('-');
+
     if (lastDash >= 0 && lastDash < jobId.length - 1) {
       return jobId.slice(lastDash + 1);
     }
+
     return jobId;
+  }
+
+  public openErrorLog(job: JobDto): void {
+    this.isErrorLogModalVisible = true;
+    this.selectedLogJob = job;
+    this.selectedErrorLogText = "Loading error log...";
+
+    this.jobsApiService.getJobErrorLog(job.job_id)
+      .pipe(
+        catchError(() => {
+          return of({job_id: job.job_id, error_log: 'No error log available.'});
+        }),
+        takeUntil(this.destroy$)
+      )
+      .subscribe((response) => {
+        this.selectedErrorLogText = response.error_log;
+      });
+  }
+
+  public closeErrorLogModal(): void {
+    if (!this.selectedLogJob) {
+      return;
+    }
+
+    this.isErrorLogModalVisible = false;
+    this.selectedLogJob = null;
+    this.selectedErrorLogText = "";
   }
 
   public statusColor(status: string): string {

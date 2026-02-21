@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.dto import JobListResponse, JobResponse
+from app.api.dto import JobErrorLogRequest, JobErrorLogResponse, JobListResponse, JobResponse
 from app.api.routes.auth import get_current_rater
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater
+from app.utils.files import load_job_error_log, save_job_error_log
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
 
@@ -40,6 +41,7 @@ def list_jobs(
             model=job.model,
             submit_id=job.submit_id,
             error=job.error,
+            error_log=None,
             created_at=job.created_at,
             updated_at=job.updated_at,
         )
@@ -74,6 +76,58 @@ def get_job(
         model=job.model,
         submit_id=job.submit_id,
         error=job.error,
+        error_log=load_job_error_log(job_id),
         created_at=job.created_at,
         updated_at=job.updated_at,
     )
+
+
+@router.get("/{job_id}/error-log")
+def get_job_error_log(
+        job_id: str,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(get_current_rater),
+) -> JobErrorLogResponse:
+    del current_rater
+
+    job = session.execute(
+        select(AnalysisJob).where(AnalysisJob.job_id == job_id)
+    ).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    error_log = load_job_error_log(job_id)
+    if error_log is None:
+        raise HTTPException(status_code=404, detail="Job error log not found")
+
+    return JobErrorLogResponse(job_id=job_id, error_log=error_log)
+
+
+@router.post("/{job_id}/error-log")
+def upload_job_error_log(
+        job_id: str,
+        request: JobErrorLogRequest,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(get_current_rater),
+) -> JobErrorLogResponse:
+    del current_rater
+
+    job = session.execute(
+        select(AnalysisJob).where(AnalysisJob.job_id == job_id)
+    ).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    try:
+        save_job_error_log(job_id, request.error_log)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+    if job.status != "failed":
+        job.status = "failed"
+    if not job.error:
+        first_line = request.error_log.splitlines()[0] if request.error_log.splitlines() else "Job failed"
+        job.error = first_line.strip() or "Job failed"
+    session.commit()
+
+    return JobErrorLogResponse(job_id=job_id, error_log=request.error_log)

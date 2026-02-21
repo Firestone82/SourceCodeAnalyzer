@@ -111,8 +111,19 @@ export interface JobDto {
   model: string | null;
   submit_id: number | null;
   error: string | null;
+  error_log?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+
+export interface JobErrorLogRequestDto {
+  error_log: string;
+}
+
+export interface JobErrorLogResponseDto {
+  job_id: string;
+  error_log: string;
 }
 
 export interface JobListResponseDto {
