@@ -6,7 +6,9 @@
         <div nz-typography>Upload new source bundles or review existing submits.</div>
       </div>
 
-      <button (click)="openUploadModal()" nz-button nzType="primary">Upload submit</button>
+      @if (isAdmin) {
+        <button (click)="openUploadModal()" nz-button nzType="primary">Upload submit</button>
+      }
     </div>
 
     @if (errorMessage) {

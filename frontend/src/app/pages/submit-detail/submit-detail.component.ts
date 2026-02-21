@@ -118,6 +118,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.recalculateRemainingIssues();
+        this.nzMessageService.success('Rating submitted.');
       },
       error: () => {
         issue.relevance_rating = previousRelevanceRating;

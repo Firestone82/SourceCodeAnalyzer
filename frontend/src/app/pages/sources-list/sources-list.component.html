@@ -6,12 +6,14 @@
         <div nz-typography>Browse uploaded sources and start reviews.</div>
       </div>
 
-      <button (click)="openReviewModal()"
-              nz-button
-              nzType="primary"
-      >
-        Start review
-      </button>
+      @if (isAdmin) {
+        <button (click)="openReviewModal()"
+                nz-button
+                nzType="primary"
+        >
+          Start review
+        </button>
+      }
     </div>
 
     @if (errorMessage) {
