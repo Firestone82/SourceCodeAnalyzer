@@ -14,6 +14,7 @@ from app.api.dto import (
     SourceTagDeleteResponse,
     SourceTagRequest,
     SourceTagResponse,
+    SourceTagsResponse,
     SourceFolderEntry,
     SourceFoldersResponse,
     SourceFolderChildEntry,
@@ -178,6 +179,15 @@ def list_source_folder_children(
 
     return SourceFolderChildrenResponse(children=paged_children, total=total, next_offset=next_offset)
 
+
+
+
+@router.get("/tags")
+def list_source_tags(
+        session: Session = Depends(get_database),
+) -> SourceTagsResponse:
+    tags = [row[0] for row in session.query(SourceTag.tag).distinct().order_by(SourceTag.tag.asc()).all()]
+    return SourceTagsResponse(tags=tags)
 
 @router.get("/tags/{source_path:path}")
 def get_source_path_tag(

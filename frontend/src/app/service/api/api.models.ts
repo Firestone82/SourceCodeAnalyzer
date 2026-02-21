@@ -230,3 +230,8 @@ export interface SubmitDeleteResponseDto {
   id: number;
   deleted: boolean;
 }
+
+
+export interface SourceTagsResponseDto {
+  tags: string[];
+}

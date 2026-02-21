@@ -11,7 +11,8 @@ import {
   SourcePathsResponseDto,
   SourceTagDeleteResponseDto,
   SourceTagRequestDto,
-  SourceTagResponseDto
+  SourceTagResponseDto,
+  SourceTagsResponseDto
 } from '../api.models';
 
 @Injectable({providedIn: 'root'})
@@ -60,6 +61,10 @@ export class SourcesApiService {
     );
   }
 
+
+  public getSourceTags(): Observable<SourceTagsResponseDto> {
+    return this.apiClient.get<SourceTagsResponseDto>('/sources/tags');
+  }
 
   public getSourceTag(sourcePath: string): Observable<SourceTagResponseDto> {
     return this.apiClient.get<SourceTagResponseDto>(`/sources/tags/${encodeURIComponent(sourcePath)}`);

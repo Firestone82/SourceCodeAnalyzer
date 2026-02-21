@@ -72,7 +72,13 @@
                       class="max-w-[280px]"
                       nz-input
                       placeholder="Source tag"
+                      [nzAutocomplete]="sourceTagAutocomplete"
                     />
+                    <nz-autocomplete #sourceTagAutocomplete>
+                      @for (tag of filteredSourceTags; track tag) {
+                        <nz-auto-option [nzValue]="tag">{{ tag }}</nz-auto-option>
+                      }
+                    </nz-autocomplete>
                     <button
                       (click)="saveSourceTag()"
                       [disabled]="isSourceTagSaving"

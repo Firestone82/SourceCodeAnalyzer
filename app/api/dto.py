@@ -122,6 +122,10 @@ class SourceTagDeleteResponse(BaseModel):
     deleted: bool
 
 
+class SourceTagsResponse(BaseModel):
+    tags: list[str]
+
+
 class AnalyzeSourceResponse(BaseModel):
     ok: bool
     job_id: str
@@ -264,4 +268,3 @@ class SubmitRaterRating(BaseModel):
 class SubmitRaterRatingsResponse(BaseModel):
     submit_id: int
     raters: list[SubmitRaterRating]
-

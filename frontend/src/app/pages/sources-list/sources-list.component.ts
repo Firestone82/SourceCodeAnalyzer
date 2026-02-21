@@ -9,6 +9,7 @@ import {NzLayoutModule} from 'ng-zorro-antd/layout';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTabsModule} from 'ng-zorro-antd/tabs';
 import {NzInputModule} from 'ng-zorro-antd/input';
+import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
@@ -39,6 +40,7 @@ import {AuthService} from '../../service/auth/auth.service';
     NzSpinModule,
     NzTabsModule,
     NzInputModule,
+    NzAutocompleteModule,
     NzTreeModule,
     NzTypographyModule,
     NzTagModule,
@@ -58,6 +60,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public selectedSourcePath: string | null = null;
   public sourceTag: string = "";
   public isSourceTagSaving: boolean = false;
+  public availableSourceTags: string[] = [];
   public selectedSourceKeys: string[] = [];
   public sourceTreeNodes: NzTreeNodeOptions[] = [];
   public files: Record<string, string> = {};
@@ -85,6 +88,15 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   ) {
   }
 
+
+  public get filteredSourceTags(): string[] {
+    const normalizedInput = this.sourceTag.trim().toLowerCase();
+    if (!normalizedInput) {
+      return this.availableSourceTags;
+    }
+    return this.availableSourceTags.filter((tag) => tag.toLowerCase().includes(normalizedInput));
+  }
+
   public get selectedFileContent(): string {
     if (!this.selectedFileName) {
       return '';
@@ -106,6 +118,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
   public ngOnInit(): void {
     this.loadSources();
+    this.loadExistingSourceTags();
     this.activatedRoute.queryParamMap
       .pipe(takeUntil(this.destroy$))
       .subscribe((queryParams) => {
@@ -267,7 +280,9 @@ export class SourcesListComponent implements OnInit, OnDestroy {
 
     this.isSourceTagSaving = true;
     const trimmedTag = this.sourceTag.trim();
-    const onSuccess = (): void => {
+    const onSuccess = (savedTag: string | null): void => {
+      this.updateSourceTagInTree(this.selectedSourcePath!, savedTag);
+      this.loadExistingSourceTags();
       this.nzMessageService.success('Source tag updated.');
     };
 
@@ -281,7 +296,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         .pipe(finalize(() => {
           this.isSourceTagSaving = false;
         }))
-        .subscribe({next: () => onSuccess(), error: () => onError()});
+        .subscribe({next: () => onSuccess(trimmedTag), error: () => onError()});
       return;
     }
 
@@ -290,7 +305,38 @@ export class SourcesListComponent implements OnInit, OnDestroy {
       .pipe(finalize(() => {
         this.isSourceTagSaving = false;
       }))
-      .subscribe({next: () => onSuccess(), error: () => onError()});
+      .subscribe({next: () => onSuccess(null), error: () => onError()});
+  }
+
+
+  private loadExistingSourceTags(): void {
+    this.sourcesApiService.getSourceTags().subscribe({
+      next: (response) => {
+        this.availableSourceTags = response.tags ?? [];
+      },
+      error: () => {
+        this.availableSourceTags = [];
+      }
+    });
+  }
+
+  private updateSourceTagInTree(sourcePath: string, sourceTag: string | null): void {
+    const updateNode = (nodes: NzTreeNodeOptions[]): boolean => {
+      for (const node of nodes) {
+        if (node.key === sourcePath) {
+          (node as SourceTreeNodeOrigin).sourceTag = sourceTag;
+          return true;
+        }
+        const children = node.children as NzTreeNodeOptions[] | undefined;
+        if (children && updateNode(children)) {
+          return true;
+        }
+      }
+      return false;
+    };
+
+    updateNode(this.sourceTreeNodes);
+    this.sourceTreeNodes = [...this.sourceTreeNodes];
   }
 
   private loadSources(): void {
