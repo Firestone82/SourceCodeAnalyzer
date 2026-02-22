@@ -23,6 +23,11 @@
       @if (authService.rater$ | async; as rater) {
         @if (rater.admin) {
           <li nz-menu-item>
+            <a [routerLinkActiveOptions]="{exact: true}" routerLink="/dashboard" routerLinkActive="active">
+              Dashboard
+            </a>
+          </li>
+          <li nz-menu-item>
             <a [routerLinkActiveOptions]="{exact: true}" routerLink="/jobs" routerLinkActive="active">
               Jobs
             </a>

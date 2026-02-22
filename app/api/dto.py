@@ -278,3 +278,56 @@ class SubmitRaterRating(BaseModel):
 class SubmitRaterRatingsResponse(BaseModel):
     submit_id: int
     raters: list[SubmitRaterRating]
+
+
+class DashboardRaterStat(BaseModel):
+    rater_id: int
+    rater_name: str
+    rated_submits: int
+    unrated_submits: int
+    rated_percent: float
+
+
+class DashboardRatingEvent(BaseModel):
+    submit_id: int
+    rater_id: int
+    rater_name: str
+    source_path: str
+    prompt_path: str
+    model: str
+    relevance_rating: Optional[int]
+    quality_rating: Optional[int]
+    rated_at: datetime
+
+
+class DashboardPromptModelStat(BaseModel):
+    prompt_path: str
+    model: str
+    avg_relevance_rating: Optional[float]
+    avg_quality_rating: Optional[float]
+    complex_rating: Optional[float]
+    ratings_count: int
+
+
+class DashboardSourceRatingTrend(BaseModel):
+    source_path: str
+    prompt_path: str
+    model: str
+    avg_relevance_rating: Optional[float]
+    avg_quality_rating: Optional[float]
+    complex_rating: Optional[float]
+    ratings_count: int
+
+
+class DashboardPromptPerformance(BaseModel):
+    prompt_path: str
+    complex_rating: Optional[float]
+    ratings_count: int
+
+
+class DashboardStatsResponse(BaseModel):
+    raters: list[DashboardRaterStat]
+    rating_events: list[DashboardRatingEvent]
+    prompt_model_stats: list[DashboardPromptModelStat]
+    source_rating_trends: list[DashboardSourceRatingTrend]
+    prompt_performance: list[DashboardPromptPerformance]

@@ -246,3 +246,56 @@ export interface SubmitDeleteResponseDto {
 export interface SourceTagsResponseDto {
   tags: string[];
 }
+
+export interface DashboardRaterStatDto {
+  rater_id: number;
+  rater_name: string;
+  rated_submits: number;
+  unrated_submits: number;
+  rated_percent: number;
+}
+
+export interface DashboardRatingEventDto {
+  submit_id: number;
+  rater_id: number;
+  rater_name: string;
+  source_path: string;
+  prompt_path: string;
+  model: string;
+  relevance_rating: number | null;
+  quality_rating: number | null;
+  rated_at: string;
+}
+
+export interface DashboardPromptModelStatDto {
+  prompt_path: string;
+  model: string;
+  avg_relevance_rating: number | null;
+  avg_quality_rating: number | null;
+  complex_rating: number | null;
+  ratings_count: number;
+}
+
+export interface DashboardSourceRatingTrendDto {
+  source_path: string;
+  prompt_path: string;
+  model: string;
+  avg_relevance_rating: number | null;
+  avg_quality_rating: number | null;
+  complex_rating: number | null;
+  ratings_count: number;
+}
+
+export interface DashboardPromptPerformanceDto {
+  prompt_path: string;
+  complex_rating: number | null;
+  ratings_count: number;
+}
+
+export interface DashboardStatsResponseDto {
+  raters: DashboardRaterStatDto[];
+  rating_events: DashboardRatingEventDto[];
+  prompt_model_stats: DashboardPromptModelStatDto[];
+  source_rating_trends: DashboardSourceRatingTrendDto[];
+  prompt_performance: DashboardPromptPerformanceDto[];
+}

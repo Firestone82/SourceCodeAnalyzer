@@ -1,0 +1,39 @@
+.dashboard-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.graph-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 0.5rem;
+}
+
+.graph-row {
+  display: grid;
+  grid-template-columns: 260px 1fr 80px;
+  gap: 12px;
+  align-items: center;
+}
+
+.graph-label {
+  font-size: 12px;
+  word-break: break-all;
+}
+
+.graph-score {
+  text-align: right;
+  font-weight: 600;
+}
+
+::ng-deep .ant-card-body {
+  padding: 0.5rem;
+}

@@ -1,0 +1,137 @@
+<nz-spin [nzSpinning]="isLoading">
+  <div class="dashboard-page">
+    <nz-card nzTitle="Filters" class="mb-4">
+      <div class="filters-grid">
+        <input nz-input [(ngModel)]="sourceFilter" placeholder="Filter by source path">
+        <input nz-input [(ngModel)]="promptFilter" placeholder="Filter by prompt path">
+        <input nz-input [(ngModel)]="modelFilter" placeholder="Filter by model">
+        <button nz-button nzType="primary" (click)="loadStats()">Apply</button>
+      </div>
+    </nz-card>
+
+    <div class="flex flex-row gap-4">
+      <nz-card nzTitle="Raters progress">
+        <nz-table [nzData]="raters" [nzFrontPagination]="false" nzSize="small">
+          <thead>
+          <tr>
+            <th>Rater</th>
+            <th>Rated</th>
+            <th>Unrated</th>
+            <th>Rated %</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (row of raters; track row.rater_id) {
+              <tr>
+                <td>{{ row.rater_name }}</td>
+                <td>{{ row.rated_submits }}</td>
+                <td>{{ row.unrated_submits }}</td>
+                <td>{{ row.rated_percent | number:'1.0-2' }}%</td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </nz-card>
+
+
+      <nz-card nzTitle="Who rated when" class="flex-1">
+        <nz-table [nzData]="ratingEvents" [nzPageSize]="10" nzSize="small">
+          <thead>
+          <tr>
+            <th>When</th>
+            <th>Rater</th>
+            <th>Submit</th>
+            <th>Source</th>
+            <th>Prompt</th>
+            <th>Model</th>
+            <th>Rel</th>
+            <th>Qual</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (row of ratingEvents; track row.submit_id + '-' + row.rater_id + '-' + row.rated_at) {
+              <tr>
+                <td>{{ row.rated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
+                <td>{{ row.rater_name }}</td>
+                <td>#{{ row.submit_id }}</td>
+                <td>{{ row.source_path }}</td>
+                <td>{{ row.prompt_path }}</td>
+                <td>{{ row.model }}</td>
+                <td>{{ row.relevance_rating ?? '-' }}</td>
+                <td>{{ row.quality_rating ?? '-' }}</td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </nz-card>
+    </div>
+
+    <nz-card nzTitle="Source rating changes" class="flex-1">
+      <nz-table [nzData]="sourceRatingTrends" [nzPageSize]="10" nzSize="small">
+        <thead>
+        <tr>
+          <th>Source</th>
+          <th>Prompt</th>
+          <th>Model</th>
+          <th>Complex rating</th>
+          <th>Count</th>
+        </tr>
+        </thead>
+        <tbody>
+          @for (row of sourceRatingTrends; track row.source_path + '-' + row.prompt_path + '-' + row.model) {
+            <tr>
+              <td>{{ row.source_path }}</td>
+              <td>{{ row.prompt_path }}</td>
+              <td>{{ row.model }}</td>
+              <td>{{ row.complex_rating ?? '-' }}</td>
+              <td>{{ row.ratings_count }}</td>
+            </tr>
+          }
+        </tbody>
+      </nz-table>
+    </nz-card>
+
+    <div class="flex flex-row gap-4">
+      <nz-card nzTitle="Prompt + Model complex rating" class="flex-1">
+        <nz-table [nzData]="promptModelStats" [nzPageSize]="10" nzSize="small">
+          <thead>
+          <tr>
+            <th>Prompt</th>
+            <th>Model</th>
+            <th>Avg rel</th>
+            <th>Avg qual</th>
+            <th>Complex rating</th>
+            <th>Count</th>
+          </tr>
+          </thead>
+          <tbody>
+            @for (row of promptModelStats; track row.prompt_path + '-' + row.model) {
+              <tr>
+                <td>{{ row.prompt_path }}</td>
+                <td>{{ row.model }}</td>
+                <td>{{ row.avg_relevance_rating ?? '-' }}</td>
+                <td>{{ row.avg_quality_rating ?? '-' }}</td>
+                <td>{{ row.complex_rating ?? '-' }}</td>
+                <td>{{ row.ratings_count }}</td>
+              </tr>
+            }
+          </tbody>
+        </nz-table>
+      </nz-card>
+
+      <nz-card nzTitle="Prompt performance graph" class="flex-1">
+        <div class="graph-list">
+          @for (row of promptPerformance; track row.prompt_path) {
+            <div class="graph-row">
+              <div class="graph-label">{{ row.prompt_path }}</div>
+              <div class="graph-bar-wrap">
+                <nz-progress [nzPercent]="promptBarPercent(row.complex_rating)" [nzShowInfo]="false"></nz-progress>
+              </div>
+              <div class="graph-score">{{ row.complex_rating ?? '-' }}</div>
+            </div>
+          }
+        </div>
+      </nz-card>
+    </div>
+  </div>
+</nz-spin>

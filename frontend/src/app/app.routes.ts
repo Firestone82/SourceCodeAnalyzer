@@ -7,6 +7,7 @@ import {SourcesListComponent} from './pages/sources-list/sources-list.component'
 import {LoginComponent} from './pages/login/login.component';
 import {AuthGuard} from './service/auth/auth.guard';
 import {JobsListComponent} from './pages/jobs-list/jobs-list.component';
+import {DashboardComponent} from './pages/dashboard/dashboard.component';
 
 export const routes: Routes = [
   {
@@ -38,6 +39,10 @@ export const routes: Routes = [
       {
         path: 'jobs',
         component: JobsListComponent
+      },
+      {
+        path: 'dashboard',
+        component: DashboardComponent
       },
     ]
   },
