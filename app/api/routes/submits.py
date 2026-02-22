@@ -152,6 +152,7 @@ def get_submits(
             Issue.submit_id.label("submit_id"),
             func.count(Issue.id).label("total_issues"),
         )
+        .where(Issue.severity != "summary")
         .group_by(Issue.submit_id)
         .subquery()
     )
@@ -255,7 +256,12 @@ def get_submit(
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> SubmitResponse:
-    total_issues_subquery = select(func.count(Issue.id)).where(Issue.submit_id == submit_id).scalar_subquery()
+    total_issues_subquery = (
+        select(func.count(Issue.id))
+        .where(Issue.submit_id == submit_id)
+        .where(Issue.severity != "summary")
+        .scalar_subquery()
+    )
 
     started_issues_subquery = (
         select(func.count(func.distinct(IssueRating.issue_id)))

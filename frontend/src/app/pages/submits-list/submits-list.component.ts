@@ -8,7 +8,12 @@ import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, SubmitListItemDto, SubmitListResponseDto, SubmitRatingState} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  SubmitListItemDto,
+  SubmitListResponseDto,
+  SubmitRatingState
+} from '../../service/api/api.models';
 import {catchError, finalize, forkJoin, interval, merge, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {SubmitUploadModalComponent} from '../../components/submit-upload-modal/submit-upload-modal.component';
@@ -121,7 +126,11 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
 
   public applyFilters(): void {
     this.pageIndex = 1;
-    this.loadSubmits();
+
+    // Wait a tick to ensure the checkbox state changes
+    setTimeout(() => {
+      this.loadSubmits();
+    });
   }
 
   public onPageIndexChange(pageIndex: number): void {
@@ -156,7 +165,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   public clearSelection(): void {
     this.selectedSubmitIds.clear();
   }
-
 
 
   public ratingStateLabel(state: SubmitRatingState): string {
