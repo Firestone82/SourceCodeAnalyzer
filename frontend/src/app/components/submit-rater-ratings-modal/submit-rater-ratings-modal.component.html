@@ -34,12 +34,12 @@
                 <div class="flex gap-6">
                   <div class="flex flex-col items-start">
                     <strong>Relevance: </strong>
-                    <nz-rate [ngModel]="selectedRating.relevance_rating ?? 0" disabled/>
+                    <nz-rate [ngModel]="(selectedRating.relevance_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
                   </div>
 
                   <div class="flex flex-col items-start">
                     <strong>Quality:</strong>
-                    <nz-rate [ngModel]="selectedRating.quality_rating ?? 0" disabled/>
+                    <nz-rate [ngModel]="(selectedRating.quality_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
                   </div>
                 </div>
 
@@ -67,12 +67,12 @@
                           <div class="flex gap-6">
                             <div class="flex flex-col items-start">
                               <strong>Relevance: </strong>
-                              <nz-rate [ngModel]="suggestion.relevance_rating ?? 0" disabled/>
+                              <nz-rate [ngModel]="(suggestion.relevance_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
                             </div>
 
                             <div class="flex flex-col items-start">
                               <strong>Quality:</strong>
-                              <nz-rate [ngModel]="suggestion.quality_rating ?? 0" disabled/>
+                              <nz-rate [ngModel]="(suggestion.quality_rating ?? 0) / 2" disabled nzAllowHalf  nzCount="5"/>
                             </div>
                           </div>
                         </div>
