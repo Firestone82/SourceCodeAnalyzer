@@ -24,6 +24,7 @@ export interface PromptContentResponseDto {
 
 export interface PromptUpdateRequestDto {
   content: string;
+  prompt_path?: string;
 }
 
 export interface PromptDeleteResponseDto {
@@ -64,6 +65,14 @@ export interface SourceCommentDto {
   text: string;
   source?: string | null;
   line?: number | null;
+}
+
+export interface SourceUpdateRequestDto {
+  source_path: string;
+}
+
+export interface SourceUpdateResponseDto {
+  source_path: string;
 }
 
 export interface SourceFilesResponseDto {

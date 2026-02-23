@@ -23,8 +23,15 @@ export class PromptsApiService {
   }
 
 
-  public updatePromptContent(promptPath: string, content: string): Observable<PromptContentResponseDto> {
-    const payload: PromptUpdateRequestDto = {content};
+  public updatePromptContent(
+    promptPath: string,
+    content: string,
+    renamedPromptPath?: string
+  ): Observable<PromptContentResponseDto> {
+    const payload: PromptUpdateRequestDto = {
+      content,
+      ...(renamedPromptPath ? {prompt_path: renamedPromptPath} : {})
+    };
     return this.apiClient.put<PromptContentResponseDto, PromptUpdateRequestDto>(
       `/prompts/${encodeURIComponent(promptPath)}`,
       payload

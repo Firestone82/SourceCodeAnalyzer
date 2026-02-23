@@ -102,7 +102,7 @@
   (nzOnOk)="savePromptChanges()"
   [nzCancelDisabled]="isSavingPrompt || isDeletingPrompt"
   [nzOkLoading]="isSavingPrompt"
-  [nzOkDisabled]="isDeletingPrompt"
+  [nzOkDisabled]="isDeletingPrompt || !editablePromptPath.trim()"
   [nzVisible]="isEditModalVisible"
   nzCancelText="Cancel"
   nzOkText="Save prompt"
@@ -110,6 +110,13 @@
 >
   <ng-container *nzModalContent>
     <div class="flex flex-col gap-3">
+      <input
+        [(ngModel)]="editablePromptPath"
+        [disabled]="isSavingPrompt || isDeletingPrompt"
+        nz-input
+        placeholder="Prompt path"
+      />
+
       <textarea
         [(ngModel)]="editableContent"
         [disabled]="isSavingPrompt || isDeletingPrompt"

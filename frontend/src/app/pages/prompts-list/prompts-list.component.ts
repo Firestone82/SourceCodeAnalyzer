@@ -69,6 +69,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
   public editableContent: string = '';
   public isSavingPrompt: boolean = false;
   public isDeletingPrompt: boolean = false;
+  public editablePromptPath: string = "";
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
@@ -188,6 +189,7 @@ export class PromptsListComponent implements OnInit, OnDestroy {
     }
 
     this.editableContent = this.content;
+    this.editablePromptPath = this.selectedPromptPath;
     this.isEditModalVisible = true;
   }
 
@@ -208,9 +210,16 @@ export class PromptsListComponent implements OnInit, OnDestroy {
       return;
     }
 
+    const originalPromptPath = this.selectedPromptPath;
+    const renamedPromptPath = this.editablePromptPath.trim();
+    if (!renamedPromptPath) {
+      this.nzMessageService.error('Prompt path is required.');
+      return;
+    }
+
     this.isSavingPrompt = true;
     this.promptsApiService
-      .updatePromptContent(this.selectedPromptPath, this.editableContent)
+      .updatePromptContent(originalPromptPath, this.editableContent, renamedPromptPath)
       .pipe(finalize(() => {
         this.isSavingPrompt = false;
       }))
@@ -218,9 +227,17 @@ export class PromptsListComponent implements OnInit, OnDestroy {
         next: (response) => {
           this.content = response.content;
           this.editableContent = response.content;
+          this.selectedPromptPath = response.prompt_path;
+          this.selectedPromptKeys = [response.prompt_path];
+          this.editablePromptPath = response.prompt_path;
           if (this.isMarkdownView) {
             this.renderMarkdownContent();
           }
+          void this.router.navigate([], {
+            queryParams: {prompt: response.prompt_path},
+            queryParamsHandling: 'merge'
+          });
+          this.loadPrompts();
           this.nzMessageService.success('Prompt updated.');
           this.isEditModalVisible = false;
         },

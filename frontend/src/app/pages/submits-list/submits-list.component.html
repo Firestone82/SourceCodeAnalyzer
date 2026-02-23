@@ -142,7 +142,9 @@
         <th>Prompt path</th>
         <th>Source path</th>
         <th nzWidth="150px">Source tag</th>
-        <th nzWidth="80px" nzAlign="center">Visibility</th>
+        @if (isAdmin) {
+          <th nzWidth="80px" nzAlign="center">Visibility</th>
+        }
         <th nzWidth="140px" nzAlign="center">Rating status</th>
         <th nzWidth="60px" nzAlign="center">Issues</th>
         <th nzWidth="200px"></th>
@@ -194,11 +196,13 @@
               }
             </td>
 
-            <td class="text-center m-0">
-              <nz-tag [nzColor]="submit.published ? 'green' : 'gold'">
-                {{ submit.published ? 'Published' : 'Testing' }}
-              </nz-tag>
-            </td>
+            @if (isAdmin) {
+              <td class="text-center m-0">
+                <nz-tag [nzColor]="submit.published ? 'green' : 'gold'">
+                  {{ submit.published ? 'Published' : 'Testing' }}
+                </nz-tag>
+              </td>
+            }
 
             <td class="text-center m-0">
               <nz-tag [nzColor]="ratingStateColor(submit.rating_state)">

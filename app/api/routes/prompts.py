@@ -51,6 +51,27 @@ def find_prompt_file_path(prompt_path: str) -> Path:
     return (PROMPTS_ROOT / f"{normalized_prompt_path}.txt").resolve()
 
 
+def move_prompt_file(old_prompt_path: str, new_prompt_path: str) -> str:
+    normalized_old_prompt_path = normalize_prompt_path(old_prompt_path)
+    normalized_new_prompt_path = normalize_prompt_path(new_prompt_path)
+
+    if normalized_old_prompt_path == normalized_new_prompt_path:
+        return normalized_old_prompt_path
+
+    old_prompt_file_path = find_prompt_file_path(normalized_old_prompt_path)
+    if not old_prompt_file_path.exists() or not old_prompt_file_path.is_file():
+        raise HTTPException(status_code=404, detail="Prompt not found")
+
+    new_prompt_file_path = find_prompt_file_path(normalized_new_prompt_path)
+    if new_prompt_file_path.exists():
+        raise HTTPException(status_code=409, detail="Target prompt path already exists")
+
+    new_prompt_file_path.parent.mkdir(parents=True, exist_ok=True)
+    old_prompt_file_path.rename(new_prompt_file_path)
+
+    return normalized_new_prompt_path
+
+
 
 @router.get("")
 def list_prompt_paths() -> PromptNamesResponse:
@@ -127,13 +148,29 @@ def analyze_sources_with_prompt(
 def update_prompt_content(
         prompt_path: str,
         request: PromptUpdateRequest,
+        session: Session = Depends(get_database),
         current_rater: Rater = Depends(require_admin),
 ) -> PromptContentResponse:
     del current_rater
-    normalized_prompt_path = write_prompt_file(prompt_path, request.content)
+    normalized_prompt_path = normalize_prompt_path(prompt_path)
+    target_prompt_path = request.prompt_path if request.prompt_path is not None else normalized_prompt_path
+    normalized_target_prompt_path = normalize_prompt_path(target_prompt_path)
+
+    if normalized_prompt_path != normalized_target_prompt_path:
+        normalized_target_prompt_path = move_prompt_file(normalized_prompt_path, normalized_target_prompt_path)
+
+        session.query(Submit).filter(Submit.prompt_path == normalized_prompt_path).update({
+            Submit.prompt_path: normalized_target_prompt_path
+        })
+        session.query(AnalysisJob).filter(AnalysisJob.prompt_path == normalized_prompt_path).update({
+            AnalysisJob.prompt_path: normalized_target_prompt_path
+        })
+        session.commit()
+
+    normalized_saved_prompt_path = write_prompt_file(normalized_target_prompt_path, request.content)
 
     return PromptContentResponse(
-        prompt_path=normalized_prompt_path,
+        prompt_path=normalized_saved_prompt_path,
         content=request.content,
     )
 

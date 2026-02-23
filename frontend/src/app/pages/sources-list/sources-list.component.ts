@@ -12,6 +12,7 @@ import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
+import {NzModalModule} from 'ng-zorro-antd/modal';
 
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {AnalyzeSourceResponseDto, SourceCommentDto, SourceFilesResponseDto} from '../../service/api/api.models';
@@ -34,6 +35,7 @@ import {SourceTreeSelectorComponent} from '../../components/source-tree-selector
     NzInputModule,
     NzAutocompleteModule,
     NzTypographyModule,
+    NzModalModule,
     SourceCodeViewerComponent,
     SourceReviewModalComponent,
     JobCreatedModalComponent,
@@ -58,6 +60,9 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public sourceComments: SourceCommentDto[] = [];
 
   public isReviewModalVisible: boolean = false;
+  public isEditModalVisible: boolean = false;
+  public editableSourcePath: string = "";
+  public isSourceRenaming: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
   public isAdmin: boolean = false;
@@ -126,6 +131,53 @@ export class SourcesListComponent implements OnInit, OnDestroy {
     if (fileName && fileName !== this.selectedFileName) {
       this.selectedFileName = fileName;
     }
+  }
+
+
+  public openEditModal(): void {
+    if (!this.isAdmin || !this.selectedSourcePath) {
+      return;
+    }
+
+    this.editableSourcePath = this.selectedSourcePath;
+    this.isEditModalVisible = true;
+  }
+
+  public closeEditModal(): void {
+    if (this.isSourceRenaming) {
+      return;
+    }
+
+    this.isEditModalVisible = false;
+  }
+
+  public saveSourcePathChanges(): void {
+    if (!this.isAdmin || !this.selectedSourcePath || this.isSourceRenaming) {
+      return;
+    }
+
+    const renamedSourcePath = this.editableSourcePath.trim();
+    if (!renamedSourcePath) {
+      this.nzMessageService.error('Source path is required.');
+      return;
+    }
+
+    this.isSourceRenaming = true;
+    this.sourcesApiService
+      .updateSourcePath(this.selectedSourcePath, renamedSourcePath)
+      .pipe(finalize(() => {
+        this.isSourceRenaming = false;
+      }))
+      .subscribe({
+        next: (response) => {
+          this.nzMessageService.success('Source updated.');
+          this.isEditModalVisible = false;
+          this.selectSource(response.source_path);
+        },
+        error: () => {
+          this.nzMessageService.error('Failed to update source.');
+        }
+      });
   }
 
   public openReviewModal(): void {

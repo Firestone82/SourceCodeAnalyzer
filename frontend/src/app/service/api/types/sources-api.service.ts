@@ -12,7 +12,9 @@ import {
   SourceTagDeleteResponseDto,
   SourceTagRequestDto,
   SourceTagResponseDto,
-  SourceTagsResponseDto
+  SourceTagsResponseDto,
+  SourceUpdateRequestDto,
+  SourceUpdateResponseDto
 } from '../api.models';
 
 @Injectable({providedIn: 'root'})
@@ -49,6 +51,14 @@ export class SourcesApiService {
         limit: options?.limit
       }
     });
+  }
+
+  public updateSourcePath(sourcePath: string, renamedSourcePath: string): Observable<SourceUpdateResponseDto> {
+    const payload: SourceUpdateRequestDto = {source_path: renamedSourcePath};
+    return this.apiClient.put<SourceUpdateResponseDto, SourceUpdateRequestDto>(
+      `/sources/${encodeURIComponent(sourcePath)}`,
+      payload
+    );
   }
 
   public analyzeSource(

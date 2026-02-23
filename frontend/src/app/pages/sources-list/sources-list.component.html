@@ -7,12 +7,23 @@
       </div>
 
       @if (isAdmin) {
-        <button (click)="openReviewModal()"
-                nz-button
-                nzType="primary"
-        >
-          Start review
-        </button>
+        <div class="flex gap-2">
+          <button
+            (click)="openEditModal()"
+            [disabled]="!selectedSourcePath"
+            nz-button
+            nzType="default"
+          >
+            Edit source
+          </button>
+
+          <button (click)="openReviewModal()"
+                  nz-button
+                  nzType="primary"
+          >
+            Start review
+          </button>
+        </div>
       }
     </div>
 
@@ -133,3 +144,25 @@
   [isVisible]="isJobModalVisible"
   [jobIds]="jobModalIds"
 />
+
+
+<nz-modal
+  (nzOnCancel)="closeEditModal()"
+  (nzOnOk)="saveSourcePathChanges()"
+  [nzCancelDisabled]="isSourceRenaming"
+  [nzOkLoading]="isSourceRenaming"
+  [nzOkDisabled]="!editableSourcePath.trim()"
+  [nzVisible]="isEditModalVisible"
+  nzCancelText="Cancel"
+  nzOkText="Save source"
+  nzTitle="Edit source"
+>
+  <ng-container *nzModalContent>
+    <input
+      [(ngModel)]="editableSourcePath"
+      [disabled]="isSourceRenaming"
+      nz-input
+      placeholder="Source path"
+    />
+  </ng-container>
+</nz-modal>

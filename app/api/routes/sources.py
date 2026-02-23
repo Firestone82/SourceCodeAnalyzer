@@ -15,6 +15,8 @@ from app.api.dto import (
     SourceTagRequest,
     SourceTagResponse,
     SourceTagsResponse,
+    SourceUpdateRequest,
+    SourceUpdateResponse,
     SourceFolderEntry,
     SourceFoldersResponse,
     SourceFolderChildEntry,
@@ -22,7 +24,7 @@ from app.api.dto import (
 )
 from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import AnalysisJob, Rater, SourceTag
+from app.database.models import AnalysisJob, Rater, SourceTag, Submit
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import PROMPTS_ROOT, find_source_comments, find_source_files_or_extract, SOURCES_ROOT, safe_join
 
@@ -65,6 +67,19 @@ def source_name_sort_key(name: str) -> tuple[int, int | str]:
         return 0, int(stripped_name)
 
     return 1, stripped_name.lower()
+
+def normalize_source_path(source_path: str) -> str:
+    candidate = source_path.strip()
+
+    if not candidate:
+        raise HTTPException(status_code=400, detail="Source path is required")
+
+    candidate_path = Path(candidate)
+    if candidate_path.is_absolute() or ".." in candidate_path.parts:
+        raise HTTPException(status_code=400, detail="Invalid source path")
+
+    return candidate_path.as_posix()
+
 
 def normalize_folder_path(folder_path: str) -> str:
     candidate = folder_path.strip()
@@ -285,3 +300,42 @@ def analyze_source_file(
         model=request.model,
         prompt_path=prompt_path,
     )
+
+
+@router.put("/{source_path:path}")
+def update_source_path(
+        source_path: str,
+        request: SourceUpdateRequest,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(require_admin),
+) -> SourceUpdateResponse:
+    del current_rater
+    normalized_source_path = normalize_source_path(source_path)
+    normalized_target_source_path = normalize_source_path(request.source_path)
+
+    if normalized_source_path == normalized_target_source_path:
+        return SourceUpdateResponse(source_path=normalized_source_path)
+
+    current_source_root = safe_join(SOURCES_ROOT, normalized_source_path)
+    if not current_source_root.exists() or not current_source_root.is_dir():
+        raise HTTPException(status_code=404, detail="Source not found")
+
+    target_source_root = safe_join(SOURCES_ROOT, normalized_target_source_path)
+    if target_source_root.exists():
+        raise HTTPException(status_code=409, detail="Target source path already exists")
+
+    target_source_root.parent.mkdir(parents=True, exist_ok=True)
+    current_source_root.rename(target_source_root)
+
+    session.query(Submit).filter(Submit.source_path == normalized_source_path).update({
+        Submit.source_path: normalized_target_source_path
+    })
+    session.query(AnalysisJob).filter(AnalysisJob.source_path == normalized_source_path).update({
+        AnalysisJob.source_path: normalized_target_source_path
+    })
+    source_tag_record = session.query(SourceTag).filter(SourceTag.source_path == normalized_source_path).one_or_none()
+    if source_tag_record is not None:
+        source_tag_record.source_path = normalized_target_source_path
+    session.commit()
+
+    return SourceUpdateResponse(source_path=normalized_target_source_path)

@@ -47,6 +47,7 @@ class PromptContentResponse(BaseModel):
 
 class PromptUpdateRequest(BaseModel):
     content: str
+    prompt_path: Optional[str] = None
 
 
 class PromptDeleteResponse(BaseModel):
@@ -105,6 +106,14 @@ class SourceFilesResponse(BaseModel):
     source_path: str
     files: dict[str, str]
     comments: list[SourceComment] = Field(default_factory=list)
+
+
+class SourceUpdateRequest(BaseModel):
+    source_path: str = Field(min_length=1)
+
+
+class SourceUpdateResponse(BaseModel):
+    source_path: str
 
 
 
