@@ -12,6 +12,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzRateModule} from 'ng-zorro-antd/rate';
+import {NzTagModule} from 'ng-zorro-antd/tag';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
 import {AnalyzeSourceResponseDto, IssueDto, SubmitDetailsDto, SubmitDto, SubmitRaterRatingDto} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
@@ -36,6 +37,7 @@ import {AuthService} from '../../service/auth/auth.service';
     NzCardComponent,
     DatePipe,
     NzRateModule,
+    NzTagModule,
     NzButtonComponent,
     RouterLink,
     SourceReviewModalComponent,

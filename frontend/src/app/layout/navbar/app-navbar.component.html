@@ -5,6 +5,15 @@
       <span class="app-brand-name">LLM Review Rater</span>
     </div>
     <ul class="app-nav" nz-menu nzMode="horizontal">
+      @if (authService.rater$ | async; as rater) {
+        @if (rater.admin) {
+          <li nz-menu-item>
+            <a [routerLinkActiveOptions]="{exact: true}" routerLink="/dashboard" routerLinkActive="active">
+              Dashboard
+            </a>
+          </li>
+        }
+      }
       <li nz-menu-item>
         <a [routerLinkActiveOptions]="{exact: true}" routerLink="/submits" routerLinkActive="active">
           Submits
@@ -22,11 +31,6 @@
       </li>
       @if (authService.rater$ | async; as rater) {
         @if (rater.admin) {
-          <li nz-menu-item>
-            <a [routerLinkActiveOptions]="{exact: true}" routerLink="/dashboard" routerLinkActive="active">
-              Dashboard
-            </a>
-          </li>
           <li nz-menu-item>
             <a [routerLinkActiveOptions]="{exact: true}" routerLink="/jobs" routerLinkActive="active">
               Jobs

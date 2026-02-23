@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, OnInit, Output, SimpleChanges} from '@angular/core';
 import {NzFormatEmitEvent, NzTreeModule} from 'ng-zorro-antd/tree';
 import {NzTreeNode, NzTreeNodeKey, NzTreeNodeOptions} from 'ng-zorro-antd/core/tree';
 import {NzTagModule} from 'ng-zorro-antd/tag';
@@ -12,11 +12,12 @@ import {SourceFolderChildEntryDto, SourceFolderChildrenResponseDto} from '../../
   imports: [NzTreeModule, NzTagModule],
   templateUrl: './source-tree-selector.component.html'
 })
-export class SourceTreeSelectorComponent implements OnInit {
+export class SourceTreeSelectorComponent implements OnInit, OnChanges {
   @Input() public mode: 'single' | 'multiple' = 'single';
   @Input() public selectedKeys: string[] = [];
   @Input() public showTags: boolean = false;
   @Input() public tagColorResolver: ((tag: string) => string) | null = null;
+  @Input() public reloadToken: number = 0;
 
   @Output() public readonly selectedKeysChange = new EventEmitter<string[]>();
   @Output() public readonly sourceSelected = new EventEmitter<string>();
@@ -39,6 +40,12 @@ export class SourceTreeSelectorComponent implements OnInit {
 
   public ngOnInit(): void {
     this.loadRoot();
+  }
+
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['reloadToken'] && !changes['reloadToken'].firstChange) {
+      this.loadRoot();
+    }
   }
 
   public handleTreeClick(event: NzFormatEmitEvent): void {

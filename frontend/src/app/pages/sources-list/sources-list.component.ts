@@ -66,6 +66,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
   public isAdmin: boolean = false;
+  public sourceTreeReloadToken: number = 0;
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
@@ -172,6 +173,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
         next: (response) => {
           this.nzMessageService.success('Source updated.');
           this.isEditModalVisible = false;
+          this.sourceTreeReloadToken += 1;
           this.selectSource(response.source_path);
         },
         error: () => {

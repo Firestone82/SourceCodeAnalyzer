@@ -230,6 +230,9 @@ export class PromptsListComponent implements OnInit, OnDestroy {
           this.selectedPromptPath = response.prompt_path;
           this.selectedPromptKeys = [response.prompt_path];
           this.editablePromptPath = response.prompt_path;
+          this.promptPaths = this.promptPaths
+            .map((promptPath) => promptPath === originalPromptPath ? response.prompt_path : promptPath);
+          this.promptTreeNodes = this.buildPromptTreeNodes(this.promptPaths);
           if (this.isMarkdownView) {
             this.renderMarkdownContent();
           }

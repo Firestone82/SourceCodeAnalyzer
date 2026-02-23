@@ -50,7 +50,12 @@
 
           <div>
             <div nz-typography nzType="secondary">Submit date</div>
-            <div nz-typography><strong>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</strong></div>
+            <div class="flex items-center gap-2" nz-typography>
+              <strong>{{ submit.created_at | date:'yyyy-MM-dd HH:mm:ss' }}</strong>
+              @if (submit.source_tag) {
+                <nz-tag nzColor="blue">{{ submit.source_tag }}</nz-tag>
+              }
+            </div>
           </div>
         </div>
 
