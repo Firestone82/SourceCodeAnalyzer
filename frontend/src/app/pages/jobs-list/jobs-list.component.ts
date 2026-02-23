@@ -10,7 +10,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzModalModule} from 'ng-zorro-antd/modal';
-import {catchError, interval, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
+import {catchError, interval, Observable, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
 import {JobDto, JobListResponseDto} from '../../service/api/api.models';
@@ -54,12 +54,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
     interval(5000)
       .pipe(
         startWith(0),
-        switchMap(() => {
-          this.isLoading = true;
-          return this.jobsApiService.getJobs(this.statusFilter, this.pageIndex, this.pageSize).pipe(
-            catchError(() => of({items: [], total: 0, page: this.pageIndex, page_size: this.pageSize}))
-          );
-        }),
+        switchMap(() => this.fetchJobs(false)),
         takeUntil(this.destroy$)
       )
       .subscribe((response: JobListResponseDto) => {
@@ -74,14 +69,9 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.destroy$.complete();
   }
 
-  public applyFilters(): void {
-    this.isLoading = true;
-    this.pageIndex = 1;
-    this.jobsApiService.getJobs(this.statusFilter, this.pageIndex, this.pageSize)
-      .pipe(
-        catchError(() => of({items: [], total: 0, page: this.pageIndex, page_size: this.pageSize})),
-        takeUntil(this.destroy$)
-      )
+  public applyFilters(resetPage: boolean = true): void {
+    this.fetchJobs(resetPage)
+      .pipe(takeUntil(this.destroy$))
       .subscribe((response: JobListResponseDto) => {
         this.jobs = response.items;
         this.totalJobs = response.total;
@@ -91,13 +81,13 @@ export class JobsListComponent implements OnInit, OnDestroy {
 
   public onPageIndexChange(pageIndex: number): void {
     this.pageIndex = pageIndex;
-    this.applyFilters();
+    this.applyFilters(false);
   }
 
   public onPageSizeChange(pageSize: number): void {
     this.pageSize = pageSize;
     this.pageIndex = 1;
-    this.applyFilters();
+    this.applyFilters(false);
   }
 
   public shortJobId(jobId: string): string {
@@ -135,6 +125,18 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.isErrorLogModalVisible = false;
     this.selectedLogJob = null;
     this.selectedErrorLogText = "";
+  }
+
+
+  private fetchJobs(resetPage: boolean): Observable<JobListResponseDto> {
+    if (resetPage) {
+      this.pageIndex = 1;
+    }
+
+    this.isLoading = true;
+    return this.jobsApiService.getJobs(this.statusFilter, this.pageIndex, this.pageSize).pipe(
+      catchError(() => of({items: [], total: 0, page: this.pageIndex, page_size: this.pageSize}))
+    );
   }
 
   public statusColor(status: string): string {

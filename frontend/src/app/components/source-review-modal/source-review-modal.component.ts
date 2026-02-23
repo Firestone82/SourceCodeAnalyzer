@@ -41,6 +41,7 @@ export class SourceReviewModalComponent implements OnChanges {
   public reviewModel: string = '';
   public promptPaths: string[] = [];
   public selectedPromptPath: string | null = null;
+  public promptName: string = '';
   public promptDraft: string = '';
   public promptErrorMessage: string | null = null;
   public reviewSubmitError: string | null = null;
@@ -73,6 +74,14 @@ export class SourceReviewModalComponent implements OnChanges {
     );
   }
 
+  public get hasPromptChanged(): boolean {
+    return this.promptDraft.trim() !== this.promptContent.trim();
+  }
+
+  public get isPromptNameEditable(): boolean {
+    return this.hasPromptChanged;
+  }
+
   public ngOnChanges(changes: SimpleChanges): void {
     if (changes['isVisible']?.currentValue) {
       this.initializeModal();
@@ -94,6 +103,7 @@ export class SourceReviewModalComponent implements OnChanges {
     }
 
     this.selectedPromptPath = promptPath;
+    this.promptName = promptPath;
     this.promptContent = '';
     this.promptDraft = '';
     this.promptErrorMessage = null;
@@ -118,6 +128,14 @@ export class SourceReviewModalComponent implements OnChanges {
 
   public handlePromptDraftChange(draft: string): void {
     this.promptDraft = draft;
+
+    if (!this.hasPromptChanged && this.selectedPromptPath) {
+      this.promptName = this.selectedPromptPath;
+    }
+  }
+
+  public handlePromptNameChange(name: string): void {
+    this.promptName = name;
   }
 
   public handleSubmit(): void {
@@ -158,7 +176,8 @@ export class SourceReviewModalComponent implements OnChanges {
     };
 
     if (hasPromptChanged) {
-      const uploadName = this.buildPromptUploadName();
+      const normalizedPromptName = this.normalizeUploadName(this.promptName.trim());
+      const uploadName = normalizedPromptName || this.buildPromptUploadName();
       finalizeSubmission(uploadName, trimmedPromptDraft);
     } else {
       finalizeSubmission(this.selectedPromptPath);
@@ -182,6 +201,7 @@ export class SourceReviewModalComponent implements OnChanges {
     this.reviewModel = '';
     this.promptPaths = [];
     this.selectedPromptPath = null;
+    this.promptName = '';
     this.promptDraft = '';
     this.promptContent = '';
     this.promptErrorMessage = null;
@@ -230,11 +250,24 @@ export class SourceReviewModalComponent implements OnChanges {
       .subscribe((response: PromptContentResponseDto) => {
         this.promptContent = response.content;
         this.promptDraft = response.content;
+        this.promptName = promptPath;
       });
   }
 
   private buildPromptUploadName(): string {
     return `upload/prompt-${this.buildUploadTimestamp()}`;
+  }
+
+  private normalizeUploadName(name: string): string {
+    if (!name) {
+      return '';
+    }
+
+    if (name.startsWith('upload/')) {
+      return name.slice('upload/'.length);
+    }
+
+    return name;
   }
 
   private buildUploadTimestamp(): string {

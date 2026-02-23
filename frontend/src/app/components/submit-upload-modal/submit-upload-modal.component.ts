@@ -63,6 +63,15 @@ export class SubmitUploadModalComponent implements OnChanges {
     return this.sourceFile?.name ?? null;
   }
 
+
+  public get hasPromptChanged(): boolean {
+    return !this.selectedPromptPath || this.promptDraft.trim() !== this.promptContent.trim();
+  }
+
+  public get isPromptNameEditable(): boolean {
+    return this.hasPromptChanged;
+  }
+
   public get canSubmit(): boolean {
     return Boolean(
       this.uploadModel.trim()
@@ -93,6 +102,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       this.selectedPromptPath = null;
       this.promptContent = '';
       this.promptDraft = '';
+      this.promptName = '';
       return;
     }
 
@@ -101,6 +111,7 @@ export class SubmitUploadModalComponent implements OnChanges {
     }
 
     this.selectedPromptPath = promptPath;
+    this.promptName = promptPath;
     this.promptContent = '';
     this.promptDraft = '';
     this.promptErrorMessage = null;
@@ -120,6 +131,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       .subscribe((response: PromptContentResponseDto) => {
         this.promptContent = response.content;
         this.promptDraft = response.content;
+        this.promptName = promptPath;
       });
   }
 
@@ -139,6 +151,10 @@ export class SubmitUploadModalComponent implements OnChanges {
 
   public handlePromptDraftChange(draft: string): void {
     this.promptDraft = draft;
+
+    if (!this.hasPromptChanged && this.selectedPromptPath) {
+      this.promptName = this.selectedPromptPath;
+    }
   }
 
   public handleSubmit(): void {

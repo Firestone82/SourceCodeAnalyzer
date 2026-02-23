@@ -69,13 +69,17 @@
       </div>
 
       <div>
-        <label class="mb-1 block text-sm font-medium">Prompt name (optional)</label>
+        <label class="mb-1 block text-sm font-medium">Prompt name</label>
         <input
           (ngModelChange)="handlePromptNameChange($event)"
+          [disabled]="!isPromptNameEditable"
           [ngModel]="promptName"
           nz-input
           placeholder="Prompt name for upload"
         />
+        @if (!isPromptNameEditable) {
+          <div class="mt-1 text-xs text-slate-500">Prompt name can be changed only when prompt content is modified.</div>
+        }
       </div>
 
       @if (promptErrorMessage) {
