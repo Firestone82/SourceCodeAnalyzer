@@ -312,12 +312,11 @@ export interface DashboardPromptModelStatDto {
 
 export interface DashboardSourceRatingTrendDto {
   source_path: string;
-  prompt_path: string;
-  model: string;
   avg_relevance_rating: number | null;
   avg_quality_rating: number | null;
-  complex_rating: number | null;
+  avg_score: number | null;
   ratings_count: number;
+  last_rated_at: string;
 }
 
 export interface DashboardPromptPerformanceDto {

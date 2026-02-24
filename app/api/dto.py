@@ -351,12 +351,11 @@ class DashboardPromptModelStat(BaseModel):
 
 class DashboardSourceRatingTrend(BaseModel):
     source_path: str
-    prompt_path: str
-    model: str
     avg_relevance_rating: Optional[float]
     avg_quality_rating: Optional[float]
-    complex_rating: Optional[float]
+    avg_score: Optional[float]
     ratings_count: int
+    last_rated_at: datetime
 
 
 class DashboardPromptPerformance(BaseModel):

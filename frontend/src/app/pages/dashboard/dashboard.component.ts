@@ -86,11 +86,13 @@ export class DashboardComponent implements OnInit {
     return Math.round((score / this.bestPromptScore) * 100);
   }
 
-  public sourceTrendAverage(row: DashboardSourceRatingTrendDto): number | null {
-    if (row.avg_relevance_rating == null || row.avg_quality_rating == null) {
-      return null;
+  public sourceConfidencePercent(row: DashboardSourceRatingTrendDto): number {
+    const totalRaters = this.raters.length;
+    if (totalRaters <= 0 || row.ratings_count <= 0) {
+      return 0;
     }
 
-    return (row.avg_relevance_rating + row.avg_quality_rating) / 2;
+    return Math.min(100, Math.round((row.ratings_count / totalRaters) * 100));
   }
+
 }

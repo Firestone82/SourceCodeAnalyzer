@@ -241,12 +241,11 @@ def get_dashboard_stats(
     source_trend_query = (
         session.query(
             Submit.source_path,
-            Submit.prompt_path,
-            Submit.model,
             func.avg(SubmitRating.relevance_rating),
             func.avg(SubmitRating.quality_rating),
             complex_rating_expr,
-            func.count(SubmitRating.id),
+            func.count(func.distinct(SubmitRating.rater_id)),
+            func.max(SubmitRating.created_at),
         )
         .join(SubmitRating, SubmitRating.submit_id == Submit.id)
     )
@@ -259,22 +258,21 @@ def get_dashboard_stats(
 
     source_trend_rows = (
         source_trend_query
-        .group_by(Submit.source_path, Submit.prompt_path, Submit.model)
-        .order_by(Submit.source_path.asc(), complex_rating_expr.desc().nullslast())
+        .group_by(Submit.source_path)
+        .order_by(complex_rating_expr.desc().nullslast(), func.count(func.distinct(SubmitRating.rater_id)).desc(), Submit.source_path.asc())
         .all()
     )
 
     source_rating_trends = [
         DashboardSourceRatingTrend(
             source_path=src,
-            prompt_path=prompt,
-            model=model_name,
             avg_relevance_rating=None if avg_rel is None else round(float(avg_rel), 2),
             avg_quality_rating=None if avg_qual is None else round(float(avg_qual), 2),
-            complex_rating=None if complex_rating is None else round(float(complex_rating), 2),
+            avg_score=None if complex_rating is None else round(float(complex_rating), 2),
             ratings_count=ratings_count,
+            last_rated_at=last_rated_at,
         )
-        for src, prompt, model_name, avg_rel, avg_qual, complex_rating, ratings_count in source_trend_rows
+        for src, avg_rel, avg_qual, complex_rating, ratings_count, last_rated_at in source_trend_rows
     ]
 
     prompt_performance_rows = (

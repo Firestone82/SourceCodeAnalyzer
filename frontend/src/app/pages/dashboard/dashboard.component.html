@@ -86,38 +86,33 @@
     </div>
 
     <nz-card nzTitle="Source rating changes" class="flex-1">
-      <nz-table [nzData]="sourceRatingTrends" [nzPageSize]="10" nzSize="small">
+      <p class="source-score-note">Avg score = (avg relevance + avg quality) / 2. Confidence = rated raters / all raters.</p>
+      <nz-table [nzData]="sourceRatingTrends" [nzFrontPagination]="false" nzSize="small">
         <thead>
         <tr>
           <th>Source</th>
-          <th>Prompt</th>
-          <th>Model</th>
           <th>Avg rel.</th>
           <th>Avg qual.</th>
           <th>Avg score</th>
-          <th>Complex rating</th>
-          <th>Ratings</th>
+          <th>Rated raters</th>
+          <th>Confidence</th>
+          <th>Last rated at</th>
         </tr>
         </thead>
         <tbody>
-          @for (row of sourceRatingTrends; track row.source_path + '-' + row.prompt_path + '-' + row.model) {
+          @for (row of sourceRatingTrends; track row.source_path) {
             <tr>
               <td>
                 <a [routerLink]="['/sources']" [queryParams]="{source: row.source_path}" class="dashboard-link">
                   {{ row.source_path }}
                 </a>
               </td>
-              <td>
-                <a [routerLink]="['/prompts']" [queryParams]="{prompt: row.prompt_path}" class="dashboard-link">
-                  {{ row.prompt_path }}
-                </a>
-              </td>
-              <td>{{ row.model }}</td>
               <td>{{ row.avg_relevance_rating ?? '-' }}</td>
               <td>{{ row.avg_quality_rating ?? '-' }}</td>
-              <td>{{ sourceTrendAverage(row) ?? '-' }}</td>
-              <td>{{ row.complex_rating ?? '-' }}</td>
+              <td>{{ row.avg_score ?? '-' }}</td>
               <td>{{ row.ratings_count }}</td>
+              <td>{{ sourceConfidencePercent(row) }}%</td>
+              <td>{{ row.last_rated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
             </tr>
           }
         </tbody>
