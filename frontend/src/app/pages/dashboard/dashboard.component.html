@@ -44,8 +44,8 @@
             <th>Source</th>
             <th>Prompt</th>
             <th>Model</th>
-            <th>Relevancy</th>
-            <th>Quality</th>
+            <th>Avg rel.</th>
+            <th>Avg qual.</th>
             <th nzWidth="100px"></th>
           </tr>
           </thead>
@@ -66,8 +66,8 @@
                   </a>
                 </td>
                 <td>{{ row.model }}</td>
-                <td>{{ row.relevance_rating ?? '-' }}</td>
-                <td>{{ row.quality_rating ?? '-' }}</td>
+                <td>{{ row.submit_avg_relevance_rating ?? '-' }}</td>
+                <td>{{ row.submit_avg_quality_rating ?? '-' }}</td>
                 <td>
                   <a
                     [routerLink]="['/submits', row.submit_id]"

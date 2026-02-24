@@ -296,6 +296,8 @@ export interface DashboardRatingEventDto {
   model: string;
   relevance_rating: number | null;
   quality_rating: number | null;
+  submit_avg_relevance_rating: number | null;
+  submit_avg_quality_rating: number | null;
   rated_at: string;
 }
 

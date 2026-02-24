@@ -335,6 +335,8 @@ class DashboardRatingEvent(BaseModel):
     model: str
     relevance_rating: Optional[int]
     quality_rating: Optional[int]
+    submit_avg_relevance_rating: Optional[float]
+    submit_avg_quality_rating: Optional[float]
     rated_at: datetime
 
 

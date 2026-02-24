@@ -10,6 +10,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {IssueDto, SourceCommentDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
+import {BundledLanguage} from 'shiki';
 
 interface LineViewModel {
   lineNumber: number;
@@ -44,7 +45,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fileContent'] || changes['fileComments'] || changes['issues'] || changes['fileName']) {
+    if (changes['fileContent']) {
       this.buildLines();
     }
   }
@@ -107,14 +108,55 @@ export class SourceCodeViewerComponent implements OnChanges {
       });
     }
 
-    for (const line of lines) {
-      this.syntaxHighlightService
-        .codeToHtml(line.text, 'c')
-        .then((highlighted: string) => {
-          line.highlightedHtml = this.domSanitizer.bypassSecurityTrustHtml(highlighted);
-        });
+    const language: BundledLanguage | undefined = this.detectLanguage();
+
+    if (language) {
+      for (const line of lines) {
+        this.syntaxHighlightService
+          .codeToHtml(line.text, language)
+          .then((highlighted: string) => {
+            line.highlightedHtml = this.domSanitizer.bypassSecurityTrustHtml(highlighted);
+          });
+      }
     }
 
     this.lines = lines;
+  }
+
+  private detectLanguage(): BundledLanguage | undefined {
+    const extension: string = this.fileName.split('.').pop()?.toLowerCase() ?? '';
+
+    switch (extension) {
+      case 'ts':
+        return 'typescript';
+      case 'js':
+        return 'javascript';
+      case 'py':
+        return 'python';
+      case 'java':
+        return 'java';
+      case 'cpp':
+      case 'cc':
+      case 'cxx':
+      case 'c':
+        return 'cpp';
+      case 'cs':
+        return 'csharp';
+      case 'go':
+        return 'go';
+      case 'rb':
+        return 'ruby';
+      case 'php':
+        return 'php';
+      case 'html':
+      case 'htm':
+        return 'html';
+      case 'css':
+        return 'css';
+      case 'json':
+        return 'json';
+      default:
+        return undefined;
+    }
   }
 }

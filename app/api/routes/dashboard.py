@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import and_, func
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from app.api.dto import (
@@ -32,6 +32,8 @@ def get_dashboard_stats(
             SubmitRating.rater_id.label("rater_id"),
             func.count(SubmitRating.id).label("rated_submits"),
         )
+        .join(Submit, Submit.id == SubmitRating.submit_id)
+        .filter(Submit.published.is_(True))
         .filter(SubmitRating.relevance_rating.is_not(None), SubmitRating.quality_rating.is_not(None))
         .group_by(SubmitRating.rater_id)
         .subquery()
@@ -47,7 +49,7 @@ def get_dashboard_stats(
         .order_by(Rater.name.asc())
         .all()
     )
-    total_submits = session.query(func.count(Submit.id)).scalar() or 0
+    total_submits = session.query(func.count(Submit.id)).filter(Submit.published.is_(True)).scalar() or 0
 
     raters = [
         DashboardRaterStat(
@@ -60,27 +62,6 @@ def get_dashboard_stats(
         for rater_id, rater_name, rated_submits in raters_rows
     ]
 
-    latest_summary_subquery = (
-        session.query(
-            SubmitRating.submit_id.label("submit_id"),
-            SubmitRating.rater_id.label("rater_id"),
-            func.max(SubmitRating.created_at).label("rated_at"),
-        )
-        .group_by(SubmitRating.submit_id, SubmitRating.rater_id)
-        .subquery()
-    )
-
-    latest_issue_subquery = (
-        session.query(
-            Issue.submit_id.label("submit_id"),
-            IssueRating.rater_id.label("rater_id"),
-            func.max(IssueRating.created_at).label("rated_at"),
-        )
-        .join(Issue, Issue.id == IssueRating.issue_id)
-        .group_by(Issue.submit_id, IssueRating.rater_id)
-        .subquery()
-    )
-
     summary_rows = (
         session.query(
             SubmitRating.submit_id,
@@ -88,14 +69,6 @@ def get_dashboard_stats(
             SubmitRating.relevance_rating,
             SubmitRating.quality_rating,
             SubmitRating.created_at,
-        )
-        .join(
-            latest_summary_subquery,
-            and_(
-                latest_summary_subquery.c.submit_id == SubmitRating.submit_id,
-                latest_summary_subquery.c.rater_id == SubmitRating.rater_id,
-                latest_summary_subquery.c.rated_at == SubmitRating.created_at,
-            ),
         )
         .all()
     )
@@ -109,33 +82,74 @@ def get_dashboard_stats(
             IssueRating.created_at,
         )
         .join(Issue, Issue.id == IssueRating.issue_id)
-        .join(
-            latest_issue_subquery,
-            and_(
-                latest_issue_subquery.c.submit_id == Issue.submit_id,
-                latest_issue_subquery.c.rater_id == IssueRating.rater_id,
-                latest_issue_subquery.c.rated_at == IssueRating.created_at,
-            ),
-        )
         .all()
     )
 
-    latest_by_submit_rater: dict[tuple[int, int], dict] = {}
-    for submit_id, rater_id, relevance_rating, quality_rating, rated_at in [*summary_rows, *issue_rows]:
+    rating_event_map: dict[tuple[int, int], dict] = {}
+
+    for submit_id, rater_id, relevance_rating, quality_rating, rated_at in summary_rows:
         key = (submit_id, rater_id)
-        existing = latest_by_submit_rater.get(key)
-        if existing is None or rated_at > existing["rated_at"]:
-            latest_by_submit_rater[key] = {
+        event = rating_event_map.setdefault(
+            key,
+            {
                 "submit_id": submit_id,
                 "rater_id": rater_id,
-                "relevance_rating": relevance_rating,
-                "quality_rating": quality_rating,
                 "rated_at": rated_at,
-            }
+                "latest_relevance_rating": relevance_rating,
+                "latest_quality_rating": quality_rating,
+                "relevance_sum": 0.0,
+                "relevance_count": 0,
+                "quality_sum": 0.0,
+                "quality_count": 0,
+            },
+        )
 
-    if latest_by_submit_rater:
-        submit_ids = {item["submit_id"] for item in latest_by_submit_rater.values()}
-        rater_ids = {item["rater_id"] for item in latest_by_submit_rater.values()}
+        if rated_at > event["rated_at"]:
+            event["rated_at"] = rated_at
+            event["latest_relevance_rating"] = relevance_rating
+            event["latest_quality_rating"] = quality_rating
+
+        if relevance_rating is not None:
+            event["relevance_sum"] += float(relevance_rating)
+            event["relevance_count"] += 1
+
+        if quality_rating is not None:
+            event["quality_sum"] += float(quality_rating)
+            event["quality_count"] += 1
+
+    for submit_id, rater_id, relevance_rating, quality_rating, rated_at in issue_rows:
+        key = (submit_id, rater_id)
+        event = rating_event_map.setdefault(
+            key,
+            {
+                "submit_id": submit_id,
+                "rater_id": rater_id,
+                "rated_at": rated_at,
+                "latest_relevance_rating": relevance_rating,
+                "latest_quality_rating": quality_rating,
+                "relevance_sum": 0.0,
+                "relevance_count": 0,
+                "quality_sum": 0.0,
+                "quality_count": 0,
+            },
+        )
+
+        if rated_at > event["rated_at"]:
+            event["rated_at"] = rated_at
+            event["latest_relevance_rating"] = relevance_rating
+            event["latest_quality_rating"] = quality_rating
+
+        if relevance_rating is not None:
+            event["relevance_sum"] += float(relevance_rating)
+            event["relevance_count"] += 1
+
+        if quality_rating is not None:
+            event["quality_sum"] += float(quality_rating)
+            event["quality_count"] += 1
+
+    if rating_event_map:
+        submit_ids = {item["submit_id"] for item in rating_event_map.values()}
+        rater_ids = {item["rater_id"] for item in rating_event_map.values()}
 
         submits = {
             submit.id: submit
@@ -150,7 +164,7 @@ def get_dashboard_stats(
         raters_map = {}
 
     rating_events = []
-    for item in latest_by_submit_rater.values():
+    for item in rating_event_map.values():
         submit = submits.get(item["submit_id"])
         rater = raters_map.get(item["rater_id"])
         if submit is None or rater is None:
@@ -163,6 +177,17 @@ def get_dashboard_stats(
         if model and model.strip() and submit.model != model.strip():
             continue
 
+        avg_relevance = (
+            None
+            if item["relevance_count"] == 0
+            else round(item["relevance_sum"] / item["relevance_count"], 2)
+        )
+        avg_quality = (
+            None
+            if item["quality_count"] == 0
+            else round(item["quality_sum"] / item["quality_count"], 2)
+        )
+
         rating_events.append(
             DashboardRatingEvent(
                 submit_id=submit.id,
@@ -171,8 +196,10 @@ def get_dashboard_stats(
                 source_path=submit.source_path,
                 prompt_path=submit.prompt_path,
                 model=submit.model,
-                relevance_rating=item["relevance_rating"],
-                quality_rating=item["quality_rating"],
+                relevance_rating=item["latest_relevance_rating"],
+                quality_rating=item["latest_quality_rating"],
+                submit_avg_relevance_rating=avg_relevance,
+                submit_avg_quality_rating=avg_quality,
                 rated_at=item["rated_at"],
             )
         )

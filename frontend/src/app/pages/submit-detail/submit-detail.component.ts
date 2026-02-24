@@ -244,9 +244,19 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     } else {
       this.submitDetails.summary.quality_rating = normalized;
     }
+
+    this.submitSummaryRating(false);
   }
 
-  public submitSummaryRating(): void {
+  public handleSummaryCommentBlur(): void {
+    if (this.isViewingSelectedRater || !this.submitDetails?.summary.id) {
+      return;
+    }
+
+    this.submitSummaryRating(false);
+  }
+
+  public submitSummaryRating(showSuccessMessage: boolean = true): void {
     if (this.isViewingSelectedRater || !this.submitDetails || !this.submit) {
       return;
     }
@@ -267,7 +277,9 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         }
         this.submitDetails.summary.rated_at = new Date().toISOString();
         this.submitDetails.summary.comment = trimmedComment ? trimmedComment : null;
-        this.nzMessageService.success('Summary rating submitted.');
+        if (showSuccessMessage) {
+          this.nzMessageService.success('Summary rating submitted.');
+        }
       },
       error: () => {
         if (this.submitDetails) {

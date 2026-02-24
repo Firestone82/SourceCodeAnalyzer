@@ -16,7 +16,7 @@ export class SyntaxHighlighterService {
 
     this.highlighterPromise = createHighlighter({
       themes: ['github-dark', 'github-light'] satisfies BundledTheme[],
-      langs: ['c', 'cpp', 'rs', 'java'] satisfies BundledLanguage[]
+      langs: ['c', 'cpp', 'rs', 'java', 'asm'] satisfies BundledLanguage[]
     });
 
     return this.highlighterPromise;

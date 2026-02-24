@@ -184,14 +184,45 @@ def get_submits(
         .subquery()
     )
 
+    summary_started_subquery = (
+        select(
+            SubmitRating.submit_id.label("submit_id"),
+            func.count(SubmitRating.id).label("summary_started"),
+        )
+        .where(SubmitRating.rater_id == current_rater.id)
+        .where(or_(SubmitRating.relevance_rating.is_not(None), SubmitRating.quality_rating.is_not(None)))
+        .group_by(SubmitRating.submit_id)
+        .subquery()
+    )
+
+    summary_fully_rated_subquery = (
+        select(
+            SubmitRating.submit_id.label("submit_id"),
+            func.count(SubmitRating.id).label("summary_fully_rated"),
+        )
+        .where(SubmitRating.rater_id == current_rater.id)
+        .where(SubmitRating.relevance_rating.is_not(None), SubmitRating.quality_rating.is_not(None))
+        .group_by(SubmitRating.submit_id)
+        .subquery()
+    )
+
     total_issues_column = func.coalesce(total_issues_subquery.c.total_issues, 0)
     started_issues_column = func.coalesce(started_issues_subquery.c.started_issues, 0)
     fully_rated_issues_column = func.coalesce(fully_rated_issues_subquery.c.fully_rated_issues, 0)
+    summary_started_column = func.coalesce(summary_started_subquery.c.summary_started, 0)
+    summary_fully_rated_column = func.coalesce(summary_fully_rated_subquery.c.summary_fully_rated, 0)
 
     rating_state_column = case(
-        (total_issues_column == 0, "rated"),
-        (fully_rated_issues_column >= total_issues_column, "rated"),
-        (started_issues_column > 0, "partially_rated"),
+        (
+            (fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column > 0),
+            "rated",
+        ),
+        (
+            (started_issues_column > 0)
+            | (summary_started_column > 0)
+            | ((fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column == 0)),
+            "partially_rated",
+        ),
         else_="not_rated",
     ).label("rating_state")
 
@@ -205,6 +236,8 @@ def get_submits(
         .outerjoin(total_issues_subquery, total_issues_subquery.c.submit_id == Submit.id)
         .outerjoin(started_issues_subquery, started_issues_subquery.c.submit_id == Submit.id)
         .outerjoin(fully_rated_issues_subquery, fully_rated_issues_subquery.c.submit_id == Submit.id)
+        .outerjoin(summary_started_subquery, summary_started_subquery.c.submit_id == Submit.id)
+        .outerjoin(summary_fully_rated_subquery, summary_fully_rated_subquery.c.submit_id == Submit.id)
         .outerjoin(SourceTag, SourceTag.source_path == Submit.source_path)
     )
 
@@ -284,14 +317,40 @@ def get_submit(
         .scalar_subquery()
     )
 
+    summary_started_subquery = (
+        select(func.count(SubmitRating.id))
+        .where(SubmitRating.submit_id == submit_id)
+        .where(SubmitRating.rater_id == current_rater.id)
+        .where(or_(SubmitRating.relevance_rating.is_not(None), SubmitRating.quality_rating.is_not(None)))
+        .scalar_subquery()
+    )
+
+    summary_fully_rated_subquery = (
+        select(func.count(SubmitRating.id))
+        .where(SubmitRating.submit_id == submit_id)
+        .where(SubmitRating.rater_id == current_rater.id)
+        .where(SubmitRating.relevance_rating.is_not(None))
+        .where(SubmitRating.quality_rating.is_not(None))
+        .scalar_subquery()
+    )
+
     total_issues_column = func.coalesce(total_issues_subquery, 0)
     started_issues_column = func.coalesce(started_issues_subquery, 0)
     fully_rated_issues_column = func.coalesce(fully_rated_issues_subquery, 0)
+    summary_started_column = func.coalesce(summary_started_subquery, 0)
+    summary_fully_rated_column = func.coalesce(summary_fully_rated_subquery, 0)
 
     rating_state_column = case(
-        (total_issues_column == 0, "rated"),
-        (fully_rated_issues_column >= total_issues_column, "rated"),
-        (started_issues_column > 0, "partially_rated"),
+        (
+            (fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column > 0),
+            "rated",
+        ),
+        (
+            (started_issues_column > 0)
+            | (summary_started_column > 0)
+            | ((fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column == 0)),
+            "partially_rated",
+        ),
         else_="not_rated",
     ).label("rating_state")
 
