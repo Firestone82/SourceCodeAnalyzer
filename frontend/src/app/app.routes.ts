@@ -8,6 +8,7 @@ import {LoginComponent} from './pages/login/login.component';
 import {AuthGuard} from './service/auth/auth.guard';
 import {JobsListComponent} from './pages/jobs-list/jobs-list.component';
 import {DashboardComponent} from './pages/dashboard/dashboard.component';
+import {RatersListComponent} from './pages/raters-list/raters-list.component';
 
 export const routes: Routes = [
   {
@@ -43,6 +44,10 @@ export const routes: Routes = [
       {
         path: 'dashboard',
         component: DashboardComponent
+      },
+      {
+        path: 'raters',
+        component: RatersListComponent
       },
     ]
   },

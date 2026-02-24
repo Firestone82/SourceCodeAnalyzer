@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from starlette.middleware.cors import CORSMiddleware
 
-from app.api.routes import sources, submits, prompts, ratings, auth, jobs, dashboard
+from app.api.routes import sources, submits, prompts, ratings, auth, jobs, dashboard, raters
 from app.database.db import engine
 from app.database.models import Base
 from app.logging_config import configure_logging
@@ -27,5 +27,5 @@ app.include_router(prompts.router)
 app.include_router(ratings.router)
 app.include_router(auth.router)
 app.include_router(jobs.router)
-
 app.include_router(dashboard.router)
+app.include_router(raters.router)

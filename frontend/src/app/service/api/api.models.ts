@@ -11,6 +11,29 @@ export interface RaterDto {
   id: number;
   name: string;
   admin: boolean;
+  key?: string;
+  last_login_at?: string | null;
+}
+
+export interface RatersResponseDto {
+  items: RaterDto[];
+}
+
+export interface RaterCreateRequestDto {
+  name: string;
+  key: string;
+  admin: boolean;
+}
+
+export interface RaterUpdateRequestDto {
+  name: string;
+  key?: string;
+  admin: boolean;
+}
+
+export interface RaterDeleteResponseDto {
+  id: number;
+  deleted: boolean;
 }
 
 export interface PromptNamesResponseDto {

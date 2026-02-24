@@ -36,6 +36,35 @@ class RaterResponse(BaseModel):
     admin: bool
 
 
+class RaterCreateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    key: str = Field(min_length=1)
+    admin: bool = False
+
+
+class RaterUpdateRequest(BaseModel):
+    name: str = Field(min_length=1)
+    key: Optional[str] = None
+    admin: bool
+
+
+class RaterDeleteResponse(BaseModel):
+    id: int
+    deleted: bool
+
+
+class AdminRaterResponse(BaseModel):
+    id: int
+    name: str
+    key: str
+    admin: bool
+    last_login_at: Optional[datetime]
+
+
+class RatersResponse(BaseModel):
+    items: list[AdminRaterResponse]
+
+
 class PromptNamesResponse(BaseModel):
     prompt_paths: list[str]
 

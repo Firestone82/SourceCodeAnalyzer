@@ -1,0 +1,75 @@
+<div class="flex flex-col gap-4">
+  <nz-card nzSize="small">
+    <div class="header-row">
+      <div>
+        <div nz-typography nzType="secondary">Raters management</div>
+        <div nz-typography>Create, update and delete raters.</div>
+      </div>
+
+      <button (click)="openCreateModal()" nz-button nzType="primary">Add rater</button>
+    </div>
+  </nz-card>
+
+  <nz-card nzSize="small">
+    <nz-table [nzData]="raters" [nzLoading]="isLoading" [nzFrontPagination]="false" nzSize="small">
+      <thead>
+      <tr>
+        <th>Name</th>
+        <th>API key</th>
+        <th>Role</th>
+        <th>Last login</th>
+        <th nzWidth="150px">Actions</th>
+      </tr>
+      </thead>
+      <tbody>
+        @for (rater of raters; track rater.id) {
+          <tr>
+            <td>{{ rater.name }}</td>
+            <td><code>{{ rater.key }}</code></td>
+            <td>
+              @if (rater.admin) {
+                <nz-tag nzColor="red">Admin</nz-tag>
+              } @else {
+                <nz-tag>Rater</nz-tag>
+              }
+            </td>
+            <td>{{ formatLastLogin(rater.last_login_at) }}</td>
+            <td>
+              <div class="action-row">
+                <button (click)="openEditModal(rater)" nz-button nzType="default">Edit</button>
+                <button (click)="deleteRater(rater)" nz-button nzDanger nzType="default">Delete</button>
+              </div>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </nz-table>
+  </nz-card>
+</div>
+
+<nz-modal
+  (nzOnCancel)="isModalVisible = false"
+  (nzOnOk)="saveRater()"
+  [nzVisible]="isModalVisible"
+  [nzOkLoading]="isSaving"
+  [nzTitle]="editingRater ? 'Edit rater' : 'Create rater'"
+  nzOkText="Save"
+  nzCancelText="Cancel"
+>
+  <ng-container *nzModalContent>
+    <div class="form-column">
+      <label>Name</label>
+      <input [(ngModel)]="formName" [disabled]="isSaving" nz-input placeholder="Rater name"/>
+
+      <label>API key</label>
+      <input
+        [(ngModel)]="formKey"
+        [disabled]="isSaving"
+        nz-input
+        placeholder="Rater API key"
+      />
+
+      <label nz-checkbox [(ngModel)]="formAdmin" [nzDisabled]="isSaving">Admin</label>
+    </div>
+  </ng-container>
+</nz-modal>

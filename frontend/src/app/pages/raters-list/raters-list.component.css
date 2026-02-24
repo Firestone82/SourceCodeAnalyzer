@@ -1,0 +1,31 @@
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.subtitle {
+  color: #6b7280;
+  font-size: 12px;
+}
+
+.action-row {
+  display: flex;
+  gap: 8px;
+}
+
+.form-column {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+::ng-deep code {
+  background-color: #f5f5f5;
+  border: 1px solid #e0e0e0;
+  padding: 0.25rem;
+  border-radius: 4px;
+  white-space: nowrap;
+}

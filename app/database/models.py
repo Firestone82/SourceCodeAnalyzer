@@ -47,6 +47,20 @@ class Rater(Base):
 
     ratings: Mapped[list["IssueRating"]] = relationship(back_populates="rater", cascade="all, delete-orphan")
     submit_ratings: Mapped[list["SubmitRating"]] = relationship(back_populates="rater", cascade="all, delete-orphan")
+    login_event: Mapped["RaterLoginEvent | None"] = relationship(
+        back_populates="rater",
+        cascade="all, delete-orphan",
+        uselist=False,
+    )
+
+
+class RaterLoginEvent(Base):
+    __tablename__ = "rater_login_event"
+
+    rater_id: Mapped[int] = mapped_column(ForeignKey("rater.id", ondelete="CASCADE"), primary_key=True)
+    last_login_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+
+    rater: Mapped["Rater"] = relationship(back_populates="login_event")
 
 
 class IssueRating(Base):
