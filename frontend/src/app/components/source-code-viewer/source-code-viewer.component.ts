@@ -45,8 +45,9 @@ export class SourceCodeViewerComponent implements OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fileContent']) {
+    if (changes['fileContent'] || changes['issues'] || changes['fileComments']) {
       this.buildLines();
+      console.log('Lines rebuilt due to changes in file content, issues, or comments.');
     }
   }
 

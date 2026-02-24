@@ -248,14 +248,6 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     this.submitSummaryRating(false);
   }
 
-  public handleSummaryCommentBlur(): void {
-    if (this.isViewingSelectedRater || !this.submitDetails?.summary.id) {
-      return;
-    }
-
-    this.submitSummaryRating(false);
-  }
-
   public submitSummaryRating(showSuccessMessage: boolean = true): void {
     if (this.isViewingSelectedRater || !this.submitDetails || !this.submit) {
       return;
