@@ -31,6 +31,7 @@ export class SourceCodeViewerComponent implements OnChanges {
   @Input({required: true}) public fileContent: string = '';
   @Input({required: true}) public issues: IssueDto[] = [];
   @Input() public fileComments: SourceCommentDto[] = [];
+  @Input() public readOnly: boolean = false;
 
   @Output() public rate: EventEmitter<{ issue: IssueDto; criterion: 'relevance' | 'quality'; rating: number }> = new EventEmitter();
 
@@ -43,12 +44,16 @@ export class SourceCodeViewerComponent implements OnChanges {
   }
 
   public ngOnChanges(changes: SimpleChanges): void {
-    if (changes['fileContent'] || changes['fileComments']) {
+    if (changes['fileContent'] || changes['fileComments'] || changes['issues'] || changes['fileName']) {
       this.buildLines();
     }
   }
 
   public onRatingChange(issue: IssueDto, criterion: 'relevance' | 'quality', newValue: number): void {
+    if (this.readOnly) {
+      return;
+    }
+
     const normalized: number = Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
     this.rate.emit({issue, criterion, rating: normalized});
   }

@@ -44,8 +44,9 @@
             <th>Source</th>
             <th>Prompt</th>
             <th>Model</th>
-            <th>Rel</th>
-            <th>Qual</th>
+            <th>Relevancy</th>
+            <th>Quality</th>
+            <th nzWidth="100px"></th>
           </tr>
           </thead>
           <tbody>
@@ -67,6 +68,16 @@
                 <td>{{ row.model }}</td>
                 <td>{{ row.relevance_rating ?? '-' }}</td>
                 <td>{{ row.quality_rating ?? '-' }}</td>
+                <td>
+                  <a
+                    [routerLink]="['/submits', row.submit_id]"
+                    [queryParams]="{ raterId: row.rater_id }"
+                    nz-button
+                    nzSize="small"
+                  >
+                    View rating
+                  </a>
+                </td>
               </tr>
             }
           </tbody>
@@ -81,11 +92,11 @@
           <th>Source</th>
           <th>Prompt</th>
           <th>Model</th>
-          <th>Avg rel</th>
-          <th>Avg qual</th>
+          <th>Avg rel.</th>
+          <th>Avg qual.</th>
           <th>Avg score</th>
           <th>Complex rating</th>
-          <th>Count</th>
+          <th>Ratings</th>
         </tr>
         </thead>
         <tbody>
@@ -120,9 +131,9 @@
           <tr>
             <th>Prompt</th>
             <th>Model</th>
-            <th>Avg rel</th>
-            <th>Avg qual</th>
-            <th>Complex rating</th>
+            <th>Avg rel.</th>
+            <th>Avg qual.</th>
+            <th>Rating</th>
             <th>Count</th>
           </tr>
           </thead>

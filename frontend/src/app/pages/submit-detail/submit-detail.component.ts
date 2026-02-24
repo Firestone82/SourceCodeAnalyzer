@@ -1,6 +1,6 @@
 import {Component, OnDestroy, OnInit} from '@angular/core';
 import {ActivatedRoute, RouterLink} from '@angular/router';
-import {forkJoin, of, Subject} from 'rxjs';
+import {combineLatest, forkJoin, of, Subject} from 'rxjs';
 import {DatePipe} from '@angular/common';
 import {catchError, takeUntil} from 'rxjs/operators';
 import {FormsModule} from '@angular/forms';
@@ -13,8 +13,16 @@ import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzRateModule} from 'ng-zorro-antd/rate';
 import {NzTagModule} from 'ng-zorro-antd/tag';
+import {NzSelectModule} from 'ng-zorro-antd/select';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, IssueDto, SubmitDetailsDto, SubmitDto, SubmitRaterRatingDto} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  IssueDto,
+  SubmitDetailsDto,
+  SubmitDto,
+  SubmitRaterRatingDto,
+  SubmitRaterSuggestionRatingDto
+} from '../../service/api/api.models';
 import {SourceCodeViewerComponent} from '../../components/source-code-viewer/source-code-viewer.component';
 import {NzCardComponent} from 'ng-zorro-antd/card';
 import {NzButtonComponent} from 'ng-zorro-antd/button';
@@ -42,7 +50,8 @@ import {AuthService} from '../../service/auth/auth.service';
     RouterLink,
     SourceReviewModalComponent,
     JobCreatedModalComponent,
-    SubmitRaterRatingsModalComponent
+    SubmitRaterRatingsModalComponent,
+    NzSelectModule
   ],
   templateUrl: './submit-detail.component.html',
   styleUrl: './submit-detail.component.css'
@@ -58,10 +67,14 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
   public jobModalIds: string[] = [];
-  public summaryCommentInput: string = "";
+  public summaryCommentInput: string = '';
   public isAdminRatingsModalVisible: boolean = false;
   public isAdminRatingsLoading: boolean = false;
   public submitRatingsByRater: SubmitRaterRatingDto[] = [];
+  public selectedRaterId: number | null = null;
+  private pendingSelectedRaterId: number | null = null;
+  private displayedIssuesCacheKey: string = '';
+  private displayedIssuesCache: IssueDto[] = [];
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
@@ -79,18 +92,103 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     return this.submitDetails.issues.filter((issue: IssueDto) => issue.file === this.selectedFileName);
   }
 
+  public get displayedIssuesBySelectedFile(): IssueDto[] {
+    const sourceIssues = this.issuesBySelectedFile;
+
+    if (!this.isViewingSelectedRater) {
+      return sourceIssues;
+    }
+
+    const selectedSuggestions = this.selectedRaterRating?.suggestions ?? [];
+    const key = [
+      this.selectedFileName ?? '',
+      this.selectedRaterId ?? '',
+      sourceIssues.map((issue) => issue.id).join(','),
+      selectedSuggestions.map((suggestion) => `${suggestion.issue_id}:${suggestion.relevance_rating ?? ''}:${suggestion.quality_rating ?? ''}`).join('|')
+    ].join('::');
+
+    if (this.displayedIssuesCacheKey === key) {
+      return this.displayedIssuesCache;
+    }
+
+    this.displayedIssuesCacheKey = key;
+    this.displayedIssuesCache = sourceIssues.map((issue: IssueDto) => {
+      const suggestion = this.getSelectedRaterSuggestion(issue.id);
+      if (!suggestion) {
+        return {
+          ...issue,
+          relevance_rating: null,
+          quality_rating: null
+        };
+      }
+
+      return {
+        ...issue,
+        relevance_rating: suggestion.relevance_rating,
+        quality_rating: suggestion.quality_rating
+      };
+    });
+
+    return this.displayedIssuesCache;
+  }
+
   public get nextSubmitId(): number | null {
     return this.nextUnratedSubmitId;
   }
 
+  public get isAdmin(): boolean {
+    return Boolean(this.authService.currentRater?.admin);
+  }
+
+  public get isViewingSelectedRater(): boolean {
+    return this.selectedRaterId !== null;
+  }
+
+  public get selectedRaterRating(): SubmitRaterRatingDto | null {
+    if (this.selectedRaterId === null) {
+      return null;
+    }
+
+    return this.submitRatingsByRater.find((rating: SubmitRaterRatingDto) => rating.rater_id === this.selectedRaterId) ?? null;
+  }
+
+  public get displayedSummaryRelevance(): number | null {
+    if (this.isViewingSelectedRater) {
+      return this.selectedRaterRating?.relevance_rating ?? null;
+    }
+
+    return this.submitDetails?.summary.relevance_rating ?? null;
+  }
+
+  public get displayedSummaryQuality(): number | null {
+    if (this.isViewingSelectedRater) {
+      return this.selectedRaterRating?.quality_rating ?? null;
+    }
+
+    return this.submitDetails?.summary.quality_rating ?? null;
+  }
+
+  public get displayedSummaryComment(): string | null {
+    if (this.isViewingSelectedRater) {
+      return this.selectedRaterRating?.comment ?? null;
+    }
+
+    return this.submitDetails?.summary.comment ?? null;
+  }
+
   public ngOnInit(): void {
-    this.activatedRoute.paramMap
+    combineLatest([this.activatedRoute.paramMap, this.activatedRoute.queryParamMap])
       .pipe(takeUntil(this.destroy$))
-      .subscribe((params) => {
+      .subscribe(([params, queryParams]) => {
         const submitId: number = Number(params.get('submitId'));
         if (!Number.isFinite(submitId)) {
           return;
         }
+
+        const selectedRaterParam: string | null = queryParams.get('raterId');
+        const parsedRaterId: number = Number(selectedRaterParam);
+        this.pendingSelectedRaterId = Number.isFinite(parsedRaterId) && parsedRaterId > 0 ? parsedRaterId : null;
+
         this.loadSubmit(submitId);
       });
   }
@@ -102,9 +200,14 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
   public selectFile(fileName: string): void {
     this.selectedFileName = fileName;
+    this.displayedIssuesCacheKey = '';
   }
 
   public handleRate(issue: IssueDto, criterion: 'relevance' | 'quality', rating: number): void {
+    if (this.isViewingSelectedRater) {
+      return;
+    }
+
     const previousRelevanceRating: number | null = issue.relevance_rating;
     const previousQualityRating: number | null = issue.quality_rating;
 
@@ -131,7 +234,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   public handleSummaryRate(criterion: 'relevance' | 'quality', newValue: number): void {
-    if (!this.submitDetails?.summary.id) {
+    if (this.isViewingSelectedRater || !this.submitDetails?.summary.id) {
       return;
     }
 
@@ -144,7 +247,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   public submitSummaryRating(): void {
-    if (!this.submitDetails || !this.submit) {
+    if (this.isViewingSelectedRater || !this.submitDetails || !this.submit) {
       return;
     }
 
@@ -177,6 +280,11 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     });
   }
 
+  public onSelectedRaterChange(raterId: number | null): void {
+    this.selectedRaterId = raterId;
+    this.displayedIssuesCacheKey = '';
+  }
+
   public openAdminRatingsModal(): void {
     if (!this.submit) {
       return;
@@ -197,10 +305,6 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     });
   }
 
-  public get isAdmin(): boolean {
-    return Boolean(this.authService.currentRater?.admin);
-  }
-
   public openReviewModal(): void {
     if (!this.submit) {
       return;
@@ -217,6 +321,9 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   private loadSubmit(submitId: number): void {
     this.isLoading = true;
     this.nextUnratedSubmitId = null;
+    this.submitRatingsByRater = [];
+    this.selectedRaterId = null;
+    this.displayedIssuesCacheKey = '';
 
     forkJoin({
       submit: this.submitsApiService.getSubmit(submitId),
@@ -230,14 +337,39 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
 
         this.recalculateRemainingIssues();
-        this.summaryCommentInput = this.submitDetails.summary.comment ?? "";
+        this.summaryCommentInput = this.submitDetails.summary.comment ?? '';
         this.isLoading = false;
         this.loadNextUnratedSubmitId(submit.id);
+
+        if (this.isAdmin) {
+          this.loadSubmitRatingsByRater(submit.id);
+        }
       },
       error: () => {
         this.isLoading = false;
       }
     });
+  }
+
+  private loadSubmitRatingsByRater(submitId: number): void {
+    this.submitsApiService.getSubmitRatingsByRater(submitId).subscribe({
+      next: (response) => {
+        this.submitRatingsByRater = response.raters;
+
+        if (this.pendingSelectedRaterId !== null) {
+          const matchedRater = this.submitRatingsByRater.find((rating) => rating.rater_id === this.pendingSelectedRaterId);
+          this.selectedRaterId = matchedRater ? matchedRater.rater_id : null;
+          this.pendingSelectedRaterId = null;
+        }
+      },
+      error: () => {
+        this.nzMessageService.error('Failed to load submit ratings by rater.');
+      }
+    });
+  }
+
+  private getSelectedRaterSuggestion(issueId: number): SubmitRaterSuggestionRatingDto | null {
+    return this.selectedRaterRating?.suggestions.find((suggestion) => suggestion.issue_id === issueId) ?? null;
   }
 
   private loadNextUnratedSubmitId(currentSubmitId: number): void {

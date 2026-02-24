@@ -12,81 +12,50 @@
       @if (ratings.length === 0) {
         <div nz-typography nzType="secondary">No submit ratings yet.</div>
       } @else {
-        <div class="flex flex-col gap-4">
-          <nz-select
-            [(ngModel)]="selectedRaterId"
-            [nzPlaceHolder]="'Select rater'"
-            nzShowSearch
-            nzAllowClear
-          >
+        <nz-table [nzData]="ratings" [nzFrontPagination]="false" nzSize="small">
+          <thead>
+          <tr>
+            <th>Rater</th>
+            <th>Relevance</th>
+            <th>Quality</th>
+            <th>Average</th>
+            <th style="width: 9rem;">Actions</th>
+          </tr>
+          </thead>
+
+          <tbody>
             @for (rating of ratings; track rating.rater_id) {
-              <nz-option [nzLabel]="rating.rater_name" [nzValue]="rating.rater_id"></nz-option>
+              <tr>
+                <td>{{ rating.rater_name }}</td>
+                <td><nz-rate [ngModel]="(rating.relevance_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/></td>
+                <td><nz-rate [ngModel]="(rating.quality_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/></td>
+                <td>
+                  @if (averageRating(rating) !== null) {
+                    {{ averageRating(rating) }} / 10
+                  } @else {
+                    -
+                  }
+                </td>
+                <td>
+                  <button (click)="toggleExpanded(rating.rater_id)" nz-button nzType="link" [disabled]="!rating.comment">
+                    {{ isExpanded(rating.rater_id) ? 'Hide comment' : 'Show comment' }}
+                  </button>
+                </td>
+              </tr>
+              @if (isExpanded(rating.rater_id)) {
+                <tr>
+                  <td colspan="5" class="bg-gray-50">
+                    @if (rating.comment) {
+                      {{ rating.comment }}
+                    } @else {
+                      <span nz-typography nzType="secondary">No comment.</span>
+                    }
+                  </td>
+                </tr>
+              }
             }
-          </nz-select>
-
-          @if (selectedRating) {
-            <div class="font-semibold">Summary</div>
-
-            <div class="p-3 flex flex-col gap-2 bg-gray-50">
-              <div class="flex flex-row justify-between">
-                <div class="font-semibold">Comment</div>
-
-                <div class="flex gap-6">
-                  <div class="flex flex-col items-start">
-                    <strong>Relevance: </strong>
-                    <nz-rate [ngModel]="(selectedRating.relevance_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
-                  </div>
-
-                  <div class="flex flex-col items-start">
-                    <strong>Quality:</strong>
-                    <nz-rate [ngModel]="(selectedRating.quality_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
-                  </div>
-                </div>
-
-              </div>
-
-              <div>
-                <div nz-typography nzType="secondary">{{ selectedRating.comment || 'No comment.' }}</div>
-              </div>
-            </div>
-
-            <div class="font-semibold">Suggestions</div>
-
-            @if (selectedRating.suggestions.length === 0) {
-              <div nz-typography nzType="secondary">No suggestion ratings yet.</div>
-            } @else {
-              <div class="max-h-96 overflow-auto flex flex-col gap-2" style="padding-right: 0.3rem;">
-                @for (suggestion of selectedRating.suggestions; track suggestion.issue_id) {
-                    <nz-collapse [nzBordered]="false">
-                      <ng-template #header>
-                        <div class="flex justify-between">
-                          <div style="padding-top: 0.2rem;">
-                            <strong>{{ suggestion.file }}:{{ suggestion.line }}</strong> ({{ suggestion.severity }})
-                          </div>
-
-                          <div class="flex gap-6">
-                            <div class="flex flex-col items-start">
-                              <strong>Relevance: </strong>
-                              <nz-rate [ngModel]="(suggestion.relevance_rating ?? 0) / 2" disabled nzAllowHalf nzCount="5"/>
-                            </div>
-
-                            <div class="flex flex-col items-start">
-                              <strong>Quality:</strong>
-                              <nz-rate [ngModel]="(suggestion.quality_rating ?? 0) / 2" disabled nzAllowHalf  nzCount="5"/>
-                            </div>
-                          </div>
-                        </div>
-                      </ng-template>
-
-                      <nz-collapse-panel [nzHeader]="header" [nzActive]="false">
-                        <div class="text-xs text-gray-600 mb-2">{{ suggestion.explanation }}</div>
-                      </nz-collapse-panel>
-                  </nz-collapse>
-                }
-              </div>
-            }
-          }
-        </div>
+          </tbody>
+        </nz-table>
       }
     </nz-spin>
   </ng-container>

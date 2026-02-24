@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, Query
-from sqlalchemy import func
+from sqlalchemy import and_, func
 from sqlalchemy.orm import Session
 
 from app.api.dto import (
@@ -12,7 +12,7 @@ from app.api.dto import (
 )
 from app.api.security import require_admin
 from app.database.db import get_database
-from app.database.models import Rater, Submit, SubmitRating
+from app.database.models import Issue, IssueRating, Rater, Submit, SubmitRating
 
 router = APIRouter(prefix="/dashboard", tags=["dashboard"])
 
@@ -60,33 +60,125 @@ def get_dashboard_stats(
         for rater_id, rater_name, rated_submits in raters_rows
     ]
 
-    events_query = (
-        session.query(SubmitRating, Submit, Rater)
-        .join(Submit, Submit.id == SubmitRating.submit_id)
-        .join(Rater, Rater.id == SubmitRating.rater_id)
-    )
-    if source_path and source_path.strip():
-        events_query = events_query.filter(Submit.source_path == source_path.strip())
-    if prompt_path and prompt_path.strip():
-        events_query = events_query.filter(Submit.prompt_path == prompt_path.strip())
-    if model and model.strip():
-        events_query = events_query.filter(Submit.model == model.strip())
-
-    events_rows = events_query.order_by(SubmitRating.created_at.desc()).limit(200).all()
-    rating_events = [
-        DashboardRatingEvent(
-            submit_id=submit.id,
-            rater_id=rater.id,
-            rater_name=rater.name,
-            source_path=submit.source_path,
-            prompt_path=submit.prompt_path,
-            model=submit.model,
-            relevance_rating=submit_rating.relevance_rating,
-            quality_rating=submit_rating.quality_rating,
-            rated_at=submit_rating.created_at,
+    latest_summary_subquery = (
+        session.query(
+            SubmitRating.submit_id.label("submit_id"),
+            SubmitRating.rater_id.label("rater_id"),
+            func.max(SubmitRating.created_at).label("rated_at"),
         )
-        for submit_rating, submit, rater in events_rows
-    ]
+        .group_by(SubmitRating.submit_id, SubmitRating.rater_id)
+        .subquery()
+    )
+
+    latest_issue_subquery = (
+        session.query(
+            Issue.submit_id.label("submit_id"),
+            IssueRating.rater_id.label("rater_id"),
+            func.max(IssueRating.created_at).label("rated_at"),
+        )
+        .join(Issue, Issue.id == IssueRating.issue_id)
+        .group_by(Issue.submit_id, IssueRating.rater_id)
+        .subquery()
+    )
+
+    summary_rows = (
+        session.query(
+            SubmitRating.submit_id,
+            SubmitRating.rater_id,
+            SubmitRating.relevance_rating,
+            SubmitRating.quality_rating,
+            SubmitRating.created_at,
+        )
+        .join(
+            latest_summary_subquery,
+            and_(
+                latest_summary_subquery.c.submit_id == SubmitRating.submit_id,
+                latest_summary_subquery.c.rater_id == SubmitRating.rater_id,
+                latest_summary_subquery.c.rated_at == SubmitRating.created_at,
+            ),
+        )
+        .all()
+    )
+
+    issue_rows = (
+        session.query(
+            Issue.submit_id,
+            IssueRating.rater_id,
+            IssueRating.relevance_rating,
+            IssueRating.quality_rating,
+            IssueRating.created_at,
+        )
+        .join(Issue, Issue.id == IssueRating.issue_id)
+        .join(
+            latest_issue_subquery,
+            and_(
+                latest_issue_subquery.c.submit_id == Issue.submit_id,
+                latest_issue_subquery.c.rater_id == IssueRating.rater_id,
+                latest_issue_subquery.c.rated_at == IssueRating.created_at,
+            ),
+        )
+        .all()
+    )
+
+    latest_by_submit_rater: dict[tuple[int, int], dict] = {}
+    for submit_id, rater_id, relevance_rating, quality_rating, rated_at in [*summary_rows, *issue_rows]:
+        key = (submit_id, rater_id)
+        existing = latest_by_submit_rater.get(key)
+        if existing is None or rated_at > existing["rated_at"]:
+            latest_by_submit_rater[key] = {
+                "submit_id": submit_id,
+                "rater_id": rater_id,
+                "relevance_rating": relevance_rating,
+                "quality_rating": quality_rating,
+                "rated_at": rated_at,
+            }
+
+    if latest_by_submit_rater:
+        submit_ids = {item["submit_id"] for item in latest_by_submit_rater.values()}
+        rater_ids = {item["rater_id"] for item in latest_by_submit_rater.values()}
+
+        submits = {
+            submit.id: submit
+            for submit in session.query(Submit).filter(Submit.id.in_(submit_ids)).all()
+        }
+        raters_map = {
+            rater.id: rater
+            for rater in session.query(Rater).filter(Rater.id.in_(rater_ids)).all()
+        }
+    else:
+        submits = {}
+        raters_map = {}
+
+    rating_events = []
+    for item in latest_by_submit_rater.values():
+        submit = submits.get(item["submit_id"])
+        rater = raters_map.get(item["rater_id"])
+        if submit is None or rater is None:
+            continue
+
+        if source_path and source_path.strip() and submit.source_path != source_path.strip():
+            continue
+        if prompt_path and prompt_path.strip() and submit.prompt_path != prompt_path.strip():
+            continue
+        if model and model.strip() and submit.model != model.strip():
+            continue
+
+        rating_events.append(
+            DashboardRatingEvent(
+                submit_id=submit.id,
+                rater_id=rater.id,
+                rater_name=rater.name,
+                source_path=submit.source_path,
+                prompt_path=submit.prompt_path,
+                model=submit.model,
+                relevance_rating=item["relevance_rating"],
+                quality_rating=item["quality_rating"],
+                rated_at=item["rated_at"],
+            )
+        )
+
+    rating_events.sort(key=lambda event: event.rated_at, reverse=True)
+    rating_events = rating_events[:200]
 
     complex_rating_expr = (
         (func.avg(SubmitRating.relevance_rating) + func.avg(SubmitRating.quality_rating)) / 2

@@ -115,11 +115,7 @@ export class SourcesListComponent implements OnInit, OnDestroy {
           this.selectSource(sourcePath);
         }
       });
-    this.authService.rater$
-      .pipe(takeUntil(this.destroy$))
-      .subscribe((rater) => {
-        this.isAdmin = Boolean(rater?.admin);
-      });
+    this.isAdmin = Boolean(this.authService.currentRater?.admin);
   }
 
   public ngOnDestroy(): void {
