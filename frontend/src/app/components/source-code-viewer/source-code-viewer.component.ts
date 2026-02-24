@@ -134,8 +134,13 @@ export class SourceCodeViewerComponent implements OnChanges {
         return 'javascript';
       case 'py':
         return 'python';
+      case 'rs':
+        return 'rust';
       case 'java':
         return 'java';
+      case 'asm':
+      case 's':
+        return 'asm';
       case 'cpp':
       case 'cc':
       case 'cxx':
