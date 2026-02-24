@@ -1,6 +1,7 @@
 import {Component, OnInit} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {DatePipe, DecimalPipe} from '@angular/common';
+import {RouterLink} from '@angular/router';
 import {NzCardModule} from 'ng-zorro-antd/card';
 import {NzTableModule} from 'ng-zorro-antd/table';
 import {NzInputModule} from 'ng-zorro-antd/input';
@@ -24,6 +25,7 @@ import {DashboardApiService} from '../../service/api/types/dashboard-api.service
     FormsModule,
     DatePipe,
     DecimalPipe,
+    RouterLink,
     NzCardModule,
     NzTableModule,
     NzInputModule,
@@ -82,5 +84,13 @@ export class DashboardComponent implements OnInit {
       return 0;
     }
     return Math.round((score / this.bestPromptScore) * 100);
+  }
+
+  public sourceTrendAverage(row: DashboardSourceRatingTrendDto): number | null {
+    if (row.avg_relevance_rating == null || row.avg_quality_rating == null) {
+      return null;
+    }
+
+    return (row.avg_relevance_rating + row.avg_quality_rating) / 2;
   }
 }

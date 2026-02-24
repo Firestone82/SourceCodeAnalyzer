@@ -54,8 +54,16 @@
                 <td>{{ row.rated_at | date:'yyyy-MM-dd HH:mm:ss' }}</td>
                 <td>{{ row.rater_name }}</td>
                 <td>#{{ row.submit_id }}</td>
-                <td>{{ row.source_path }}</td>
-                <td>{{ row.prompt_path }}</td>
+                <td>
+                  <a [routerLink]="['/sources']" [queryParams]="{source: row.source_path}" class="dashboard-link">
+                    {{ row.source_path }}
+                  </a>
+                </td>
+                <td>
+                  <a [routerLink]="['/prompts']" [queryParams]="{prompt: row.prompt_path}" class="dashboard-link">
+                    {{ row.prompt_path }}
+                  </a>
+                </td>
                 <td>{{ row.model }}</td>
                 <td>{{ row.relevance_rating ?? '-' }}</td>
                 <td>{{ row.quality_rating ?? '-' }}</td>
@@ -73,6 +81,9 @@
           <th>Source</th>
           <th>Prompt</th>
           <th>Model</th>
+          <th>Avg rel</th>
+          <th>Avg qual</th>
+          <th>Avg score</th>
           <th>Complex rating</th>
           <th>Count</th>
         </tr>
@@ -80,9 +91,20 @@
         <tbody>
           @for (row of sourceRatingTrends; track row.source_path + '-' + row.prompt_path + '-' + row.model) {
             <tr>
-              <td>{{ row.source_path }}</td>
-              <td>{{ row.prompt_path }}</td>
+              <td>
+                <a [routerLink]="['/sources']" [queryParams]="{source: row.source_path}" class="dashboard-link">
+                  {{ row.source_path }}
+                </a>
+              </td>
+              <td>
+                <a [routerLink]="['/prompts']" [queryParams]="{prompt: row.prompt_path}" class="dashboard-link">
+                  {{ row.prompt_path }}
+                </a>
+              </td>
               <td>{{ row.model }}</td>
+              <td>{{ row.avg_relevance_rating ?? '-' }}</td>
+              <td>{{ row.avg_quality_rating ?? '-' }}</td>
+              <td>{{ sourceTrendAverage(row) ?? '-' }}</td>
               <td>{{ row.complex_rating ?? '-' }}</td>
               <td>{{ row.ratings_count }}</td>
             </tr>
@@ -107,7 +129,11 @@
           <tbody>
             @for (row of promptModelStats; track row.prompt_path + '-' + row.model) {
               <tr>
-                <td>{{ row.prompt_path }}</td>
+                <td>
+                  <a [routerLink]="['/prompts']" [queryParams]="{prompt: row.prompt_path}" class="dashboard-link">
+                    {{ row.prompt_path }}
+                  </a>
+                </td>
                 <td>{{ row.model }}</td>
                 <td>{{ row.avg_relevance_rating ?? '-' }}</td>
                 <td>{{ row.avg_quality_rating ?? '-' }}</td>

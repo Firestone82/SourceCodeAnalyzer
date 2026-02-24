@@ -37,3 +37,8 @@
 ::ng-deep .ant-card-body {
   padding: 0.5rem;
 }
+
+.dashboard-link {
+  color: #1677ff;
+  word-break: break-all;
+}
