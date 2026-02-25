@@ -1,11 +1,11 @@
 import json
 import logging
 from time import time
-from typing import List
+from typing import List, Any, Dict
 
 from openai import OpenAI
-from openai.types.chat import ChatCompletionUserMessageParam, ChatCompletionSystemMessageParam
-from openai.types.shared_params import ResponseFormatJSONObject
+from openai.types.chat import ChatCompletionSystemMessageParam, ChatCompletionUserMessageParam
+from openai.types.shared_params import ResponseFormatJSONSchema
 from serde import from_dict
 
 from app.analyzer.dto import EmbeddedFile, ReviewResult
@@ -13,13 +13,9 @@ from app.settings import settings
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_PROMPT_SUFFIX = """
-
-"""
-
 
 def enumerate_file_lines(content: str) -> str:
-    return "\n".join(f"{i + 1}: {line}" for i, line in enumerate(content.splitlines()))
+    return "\n".join(f"{index + 1}: {line}" for index, line in enumerate(content.splitlines()))
 
 
 class Analyzer:
@@ -29,22 +25,15 @@ class Analyzer:
         self.system_prompt = system_prompt
 
     def build_user_content(self) -> str:
-        lines: List[str] = []
+        user_content_lines: List[str] = []
 
-        for file in self.files:
-            lines.append(f"\n### FILE: {file.path}")
-            lines.append(f"```{file.language}")
-            lines.append(enumerate_file_lines(file.content))
-            lines.append("```")
+        for embedded_file in self.files:
+            user_content_lines.append(f"\n### FILE: {embedded_file.path}")
+            user_content_lines.append(f"```{embedded_file.language}")
+            user_content_lines.append(enumerate_file_lines(embedded_file.content))
+            user_content_lines.append("```")
 
-        return "\n".join(lines)
-
-    def build_system_content(self) -> str:
-        return f"""
-        {self.system_prompt}
-        
-        {DEFAULT_PROMPT_SUFFIX}
-        """
+        return "\n".join(user_content_lines)
 
     def summarize(self) -> ReviewResult:
         client = OpenAI(
@@ -52,19 +41,66 @@ class Analyzer:
             base_url=settings.analyzer_base_url,
         )
 
-        messages = [
-            ChatCompletionSystemMessageParam(content=self.build_system_content(), role="system"),
-            ChatCompletionUserMessageParam(content=self.build_user_content(), role="user"),
-        ]
+        json_scheme: ResponseFormatJSONSchema = {
+            "type": "json_schema",
+            "json_schema": {
+                "name": "ReviewResult",
+                "description": "A concise review summary plus a list of issues found in the provided files.",
+                "strict": True,
+                "schema": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["summary", "issues"],
+                    "properties": {
+                        "summary": {
+                            "type": "string",
+                            "description": "3–5 sentences describing overall correctness, key positives, and notable negatives.",
+                        },
+                        "issues": {
+                            "type": "array",
+                            "description": "List of detected issues.",
+                            "items": {
+                                "type": "object",
+                                "additionalProperties": False,
+                                "required": ["file", "severity", "line", "explanation"],
+                                "properties": {
+                                    "file": {
+                                        "type": "string",
+                                        "description": "Name/path of the file where the issue was found.",
+                                    },
+                                    "severity": {
+                                        "type": "string",
+                                        "enum": ["critical", "high", "medium", "low"],
+                                        "description": "Severity of the issue.",
+                                    },
+                                    "line": {
+                                        "type": "integer",
+                                        "minimum": 1,
+                                        "description": "1-based line number where the issue occurs.",
+                                    },
+                                    "explanation": {
+                                        "type": "string",
+                                        "description": "1–3 sentences explaining what is wrong and why it matters.",
+                                    }
+                                },
+                            },
+                        },
+                    },
+                },
+            },
+        }
 
         logger.info(f"Sending {len(self.files)} file(s) to model '{self.model}'...")
         start_time = time()
 
         response = client.chat.completions.create(
             model=self.model,
-            messages=messages,
+            messages=[
+                ChatCompletionSystemMessageParam(content=self.system_prompt, role="system"),
+                ChatCompletionUserMessageParam(content=self.build_user_content(), role="user"),
+            ],
             temperature=0.2,
-            response_format=ResponseFormatJSONObject(type="json_object"),
+            response_format=json_scheme
         )
 
         elapsed = time() - start_time
