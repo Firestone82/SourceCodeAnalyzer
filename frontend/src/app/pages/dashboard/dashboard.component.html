@@ -36,7 +36,7 @@
           </button>
         </div>
 
-        <nz-table [nzData]="filteredRatingEvents" [nzPageSize]="20" nzSize="small">
+        <nz-table #ratingsTable [nzData]="filteredRatingEvents" [nzPageSize]="20" nzSize="small">
           <thead>
           <tr>
             <th>Rater</th>
@@ -50,7 +50,7 @@
           </tr>
           </thead>
           <tbody>
-            @for (row of filteredRatingEvents; track row.submit_id + '-' + row.rater_id + '-' + row.rated_at) {
+            @for (row of ratingsTable.data; track row.submit_id + '-' + row.rater_id + '-' + row.rated_at) {
               <tr>
                 <td>{{ row.rater_name }}</td>
                 <td>#{{ row.submit_id }}</td>

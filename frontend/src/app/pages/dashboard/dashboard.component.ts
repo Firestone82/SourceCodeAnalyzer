@@ -140,7 +140,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return false;
       }
       return !submitFilter || row.submit_id.toString().includes(submitFilter);
-    });
+    }).sort((left, right) => right.submit_id - left.submit_id);
   }
 
   private applyDebouncedFilters(): void {
