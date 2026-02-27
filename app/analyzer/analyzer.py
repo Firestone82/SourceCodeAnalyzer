@@ -248,8 +248,11 @@ class Analyzer:
         The LLM sometimes shortens, alters, or slightly misspells filenames.
         We match each returned name against the known paths using a simple
         longest-suffix strategy: pick the known path whose suffix best matches
-        the returned value (case-insensitive). If no match is found, the original
-        value is kept and a warning is logged so the problem is visible.
+        the returned value (case-insensitive). If no match is found and there
+        is only a single embedded file, that file is used as an unambiguous
+        fallback. Otherwise, the original value is kept and a warning is logged.
+
+        THIS IS NIGHTMARE... BUT I SPENT WHOLE DAY TRY TO FIX THIS. STUPID LLMS
         """
         known_paths: List[str] = [f.path for f in self.files]
 
@@ -277,7 +280,6 @@ class Analyzer:
                 return candidates[0]
 
             # Fuzzy fallback: strip browser-added ` (N)` copy suffixes from known paths
-            # e.g. "main (6).c" → "main.c" so the LLM's clean name still matches
             import re
             def strip_copy_suffix(path: str) -> str:
                 base = path.replace("\\", "/").lower().rsplit("/", 1)[-1]
@@ -286,6 +288,14 @@ class Analyzer:
             candidates = [p for p in known_paths if strip_copy_suffix(p) == name_base]
             if len(candidates) == 1:
                 return candidates[0]
+
+            # Last resort: if there is only one embedded file, it must be the one
+            if len(known_paths) == 1:
+                logger.info(
+                    "Single-file submission — mapping unmatched filename %r to the only known path %r",
+                    name, known_paths[0],
+                )
+                return known_paths[0]
 
             logger.warning("Could not normalize issue filename %r to any known path %s", name, known_paths)
             return name
