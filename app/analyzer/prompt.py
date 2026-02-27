@@ -37,6 +37,8 @@ and a final overall quality assessment. Do NOT enumerate individual findings in 
 - Accept only issues that are **deterministically real** given the visible code.
 - Discard anything that requires assumptions about unseen callers or external state.
 - If two issues describe the same root cause, merge them into one.
+- If an issue is technically real but very unlikely to cause actual harm, mark it as `minor` severity and note this in the `reasoning_trace`.
+- Do not speculate, ignore any issue that cannot be confirmed with certainty, and do not add any new issues.
 
 # Teacher-oriented explanations
 Each issue explanation must clearly state: what the issue is, why it is a problem, and how to fix it.
