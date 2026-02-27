@@ -17,8 +17,7 @@ Then produce an updated `candidate_issues` list that:
 - Promotes confirmed items unchanged.
 
 # Filename rule
-The `file` field of every issue **must exactly match** the filename shown after `### FILE:` in the
-source listing — character for character, including path separators and casing.
+The `file` field in each issue **MUST not change**. Its used to link the issue to the relevant code, and changing it would break this connection. 
 Do NOT shorten, abbreviate, or alter the filename in any way.
 
 # Output
@@ -35,6 +34,10 @@ Your task is to produce the final, authoritative review from the surviving candi
 The `summary` field must describe the **whole codebase quality** — not a recap of issues.
 Cover: overall architecture/readability/maintainability, strengths, important risks or weak areas,
 and a final overall quality assessment. Do NOT enumerate individual findings in the summary.
+
+# Filename rule
+Make no changes to the `file` field of any issue. This field is the canonical link between the issue and the code, 
+and changing it would break this connection. Do NOT shorten, abbreviate, or alter the filename in any way.
 
 # Verification rules
 - Accept only issues that are **deterministically real** given the visible code.
