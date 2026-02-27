@@ -284,6 +284,17 @@ class Analyzer:
             if len(candidates) == 1:
                 return candidates[0]
 
+            # Fuzzy fallback: strip browser-added ` (N)` copy suffixes from known paths
+            # e.g. "main (6).c" → "main.c" so the LLM's clean name still matches
+            import re
+            def strip_copy_suffix(path: str) -> str:
+                base = path.replace("\\", "/").lower().rsplit("/", 1)[-1]
+                return re.sub(r"\s*\(\d+\)(?=\.[^.]+$)", "", base)
+
+            candidates = [p for p in known_paths if strip_copy_suffix(p) == name_base]
+            if len(candidates) == 1:
+                return candidates[0]
+
             logger.warning("Could not normalize issue filename %r to any known path %s", name, known_paths)
             return name
 
