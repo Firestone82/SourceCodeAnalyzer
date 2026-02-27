@@ -20,12 +20,7 @@ _CANDIDATE_ISSUE_SCHEMA = {
     "properties": {
         "file": {
             "type": "string",
-            "description": (
-                "MUST be copied verbatim from the input. "
-                "Do NOT normalize, shorten, rename, or alter the filename in any way. "
-                "Preserve the exact string — including directory components, copy-number suffixes "
-                "such as (2), and the original extension."
-            ),
+            "description": "Name/path of the file where the issue was found.",
         },
         "category": {
             "type": "string",
@@ -198,8 +193,13 @@ CRITIQUE_RESULT_SCHEME: ResponseFormatJSONSchema = {
                         "additionalProperties": False,
                         "required": ["file", "note"],
                         "properties": {
-                            "file": {"type": "string"},
-                            "note": {"type": "string"},
+                            "file": {
+                                "type": "string",
+                                "description": "Filename/path this observation pertains to.",
+                            },
+                            "note": {
+                                "type": "string",
+                            },
                         },
                     },
                 },
