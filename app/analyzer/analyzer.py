@@ -260,8 +260,7 @@ class Analyzer:
                 | ChatCompletionAssistantMessageParam
                 ],
             response_format,
-            temperature: float,
-            max_tokens: int = 4096,
+            temperature: float
     ) -> Tuple[float, str]:
         step_start_time: float = time()
 
@@ -270,7 +269,6 @@ class Analyzer:
             messages=messages,
             response_format=response_format,
             temperature=temperature,
-            max_tokens=max_tokens,
         )
 
         elapsed_seconds: float = time() - step_start_time
