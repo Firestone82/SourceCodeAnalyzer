@@ -220,7 +220,11 @@ def get_submits(
         (
             (started_issues_column > 0)
             | (summary_started_column > 0)
-            | ((fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column == 0)),
+            | (
+                (total_issues_column > 0)
+                & (fully_rated_issues_column >= total_issues_column)
+                & (summary_fully_rated_column == 0)
+            ),
             "partially_rated",
         ),
         else_="not_rated",
@@ -348,7 +352,11 @@ def get_submit(
         (
             (started_issues_column > 0)
             | (summary_started_column > 0)
-            | ((fully_rated_issues_column >= total_issues_column) & (summary_fully_rated_column == 0)),
+            | (
+                (total_issues_column > 0)
+                & (fully_rated_issues_column >= total_issues_column)
+                & (summary_fully_rated_column == 0)
+            ),
             "partially_rated",
         ),
         else_="not_rated",
