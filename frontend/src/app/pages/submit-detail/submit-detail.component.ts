@@ -75,6 +75,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   private pendingSelectedRaterId: number | null = null;
   private displayedIssuesCacheKey: string = '';
   private displayedIssuesCache: IssueDto[] = [];
+  public readonly viewerRebuild$ = new Subject<void>();
   private readonly destroy$ = new Subject<void>();
 
   public constructor(
@@ -196,6 +197,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public ngOnDestroy(): void {
     this.destroy$.next();
     this.destroy$.complete();
+    this.viewerRebuild$.complete();
   }
 
   public selectFile(fileName: string): void {
@@ -223,6 +225,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     }).subscribe({
       next: () => {
         this.recalculateRemainingIssues();
+        this.viewerRebuild$.next();
         this.nzMessageService.success('Rating submitted.');
       },
       error: () => {
@@ -287,6 +290,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public onSelectedRaterChange(raterId: number | null): void {
     this.selectedRaterId = raterId;
     this.displayedIssuesCacheKey = '';
+    this.viewerRebuild$.next();
   }
 
   public openAdminRatingsModal(): void {
@@ -341,6 +345,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         this.selectedFileName = this.fileNames.length > 0 ? this.fileNames[0] : null;
 
         this.recalculateRemainingIssues();
+        this.viewerRebuild$.next();
         this.summaryCommentInput = this.submitDetails.summary.comment ?? '';
         this.isLoading = false;
         this.loadNextUnratedSubmitId(submit.id);
@@ -364,6 +369,8 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
           const matchedRater = this.submitRatingsByRater.find((rating) => rating.rater_id === this.pendingSelectedRaterId);
           this.selectedRaterId = matchedRater ? matchedRater.rater_id : null;
           this.pendingSelectedRaterId = null;
+          this.displayedIssuesCacheKey = '';
+          this.viewerRebuild$.next();
         }
       },
       error: () => {

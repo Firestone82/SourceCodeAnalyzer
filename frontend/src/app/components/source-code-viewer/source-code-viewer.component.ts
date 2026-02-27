@@ -1,4 +1,4 @@
-import {Component, EventEmitter, Input, OnDestroy, Output} from '@angular/core';
+import {Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges} from '@angular/core';
 import {FormsModule} from '@angular/forms';
 import {DatePipe} from '@angular/common';
 
@@ -11,7 +11,7 @@ import {IssueDto, SourceCommentDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
 import {SyntaxHighlighterService} from '../../service/syntax-highlighting.service';
 import {BundledLanguage} from 'shiki';
-import {auditTime, Subject, Subscription} from 'rxjs';
+import {auditTime, Subject, Subscribable, Subscription, Unsubscribable} from 'rxjs';
 
 interface LineViewModel {
   lineNumber: number;
@@ -28,56 +28,17 @@ interface LineViewModel {
   templateUrl: 'source-code-viewer.component.html',
   styleUrl: 'source-code-viewer.component.css',
 })
-export class SourceCodeViewerComponent implements OnDestroy {
+export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
   private readonly rebuildLines$: Subject<void> = new Subject<void>();
   private readonly rebuildSubscription: Subscription;
+  private externalRebuildSubscription: Unsubscribable | null = null;
   private lastRequestedRebuildSignature: string = '';
 
-  private _fileName: string = '';
-  private _fileContent: string = '';
-  private _issues: IssueDto[] = [];
-  private _fileComments: SourceCommentDto[] = [];
-
-  @Input({required: true})
-  public set fileName(value: string) {
-    this._fileName = value || '';
-    this.requestLinesRebuild();
-  }
-
-  public get fileName(): string {
-    return this._fileName;
-  }
-
-  @Input({required: true})
-  public set fileContent(value: string) {
-    this._fileContent = value || '';
-    this.requestLinesRebuild();
-  }
-
-  public get fileContent(): string {
-    return this._fileContent;
-  }
-
-  @Input({required: true})
-  public set issues(value: IssueDto[]) {
-    this._issues = value || [];
-    this.requestLinesRebuild();
-  }
-
-  public get issues(): IssueDto[] {
-    return this._issues;
-  }
-
-  @Input()
-  public set fileComments(value: SourceCommentDto[]) {
-    this._fileComments = value || [];
-    this.requestLinesRebuild();
-  }
-
-  public get fileComments(): SourceCommentDto[] {
-    return this._fileComments;
-  }
-
+  @Input({required: true}) public fileName: string = '';
+  @Input({required: true}) public fileContent: string = '';
+  @Input({required: true}) public issues: IssueDto[] = [];
+  @Input() public fileComments: SourceCommentDto[] = [];
+  @Input() public rebuildLinesTrigger: Subscribable<unknown> | null = null;
   @Input() public readOnly: boolean = false;
 
   @Output() public rate: EventEmitter<{ issue: IssueDto; criterion: 'relevance' | 'quality'; rating: number }> = new EventEmitter();
@@ -93,8 +54,17 @@ export class SourceCodeViewerComponent implements OnDestroy {
       .subscribe(() => this.buildLines());
   }
 
+  public ngOnChanges(changes: SimpleChanges): void {
+    if (changes['rebuildLinesTrigger']) {
+      this.subscribeToExternalRebuildTrigger();
+    }
+
+    this.requestLinesRebuild();
+  }
+
   public ngOnDestroy(): void {
     this.rebuildSubscription.unsubscribe();
+    this.externalRebuildSubscription?.unsubscribe();
   }
 
   public onRatingChange(issue: IssueDto, criterion: 'relevance' | 'quality', newValue: number): void {
@@ -123,7 +93,7 @@ export class SourceCodeViewerComponent implements OnDestroy {
   }
 
   private buildLines(): void {
-    console.log('Building lines for file:', this.fileName);
+    console.log("Building lines for file:", this.fileName);
 
     const contentLines: string[] = (this.fileContent || '').split('\n');
     const issuesByLine: Map<number, IssueDto[]> = new Map<number, IssueDto[]>();
@@ -185,7 +155,7 @@ export class SourceCodeViewerComponent implements OnDestroy {
 
   private createRebuildSignature(): string {
     const issueSignature: string = (this.issues || [])
-      .map((issue: IssueDto) => `${issue.id}|${issue.file}|${issue.line}|${issue.severity}|${issue.explanation}`)
+      .map((issue: IssueDto) => `${issue.id}|${issue.file}|${issue.line}|${issue.severity}|${issue.explanation}|${issue.relevance_rating}|${issue.quality_rating}`)
       .join('~');
 
     const commentSignature: string = (this.fileComments || [])
@@ -193,6 +163,19 @@ export class SourceCodeViewerComponent implements OnDestroy {
       .join('~');
 
     return `${this.fileName}::${this.fileContent}::${issueSignature}::${commentSignature}`;
+  }
+
+  private subscribeToExternalRebuildTrigger(): void {
+    this.externalRebuildSubscription?.unsubscribe();
+    this.externalRebuildSubscription = null;
+
+    if (!this.rebuildLinesTrigger) {
+      return;
+    }
+
+    this.externalRebuildSubscription = this.rebuildLinesTrigger.subscribe({
+      next: () => this.requestLinesRebuild(),
+    });
   }
 
   private detectLanguage(): BundledLanguage | undefined {

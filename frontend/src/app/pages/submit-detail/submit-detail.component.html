@@ -185,7 +185,8 @@
                 [fileContent]="submit.files[selectedFileName] || ''"
                 [fileName]="selectedFileName"
                 [issues]="displayedIssuesBySelectedFile"
-                [readOnly]="isViewingSelectedRater">
+                [readOnly]="isViewingSelectedRater"
+                [rebuildLinesTrigger]="viewerRebuild$">
               </app-file-viewer>
             } @else {
               <div nz-typography>Select a file to view its content and issues.</div>
