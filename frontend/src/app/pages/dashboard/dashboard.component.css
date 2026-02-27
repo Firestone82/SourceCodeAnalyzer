@@ -6,8 +6,9 @@
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr)) auto;
   gap: 12px;
+  margin-bottom: 12px;
 }
 
 .graph-list {
@@ -41,16 +42,4 @@
 .dashboard-link {
   color: #1677ff;
   word-break: break-all;
-}
-
-.source-score-note {
-  margin: 0 0 8px 0;
-  color: #666;
-  font-size: 12px;
-}
-
-.source-score-note {
-  margin: 0 0 8px 0;
-  color: #666;
-  font-size: 12px;
 }
