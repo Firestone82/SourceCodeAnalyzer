@@ -291,6 +291,7 @@ export interface DashboardRaterStatDto {
 }
 
 export interface DashboardRatingEventDto {
+  rating_id: number;
   submit_id: number;
   rater_id: number;
   rater_name: string;

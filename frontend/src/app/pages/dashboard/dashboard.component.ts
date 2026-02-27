@@ -6,6 +6,7 @@ import {Subject, debounceTime, takeUntil} from 'rxjs';
 import {NzCardModule} from 'ng-zorro-antd/card';
 import {NzTableModule} from 'ng-zorro-antd/table';
 import {NzInputModule} from 'ng-zorro-antd/input';
+import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzProgressModule} from 'ng-zorro-antd/progress';
@@ -29,6 +30,7 @@ import {DashboardApiService} from '../../service/api/types/dashboard-api.service
     NzCardModule,
     NzTableModule,
     NzInputModule,
+    NzAutocompleteModule,
     NzButtonModule,
     NzSpinModule,
     NzProgressModule,
@@ -44,6 +46,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public modelFilter: string = '';
   public raterFilter: string = '';
   public submitFilter: string = '';
+  public ratingsPageSize: number = 20;
 
   public debouncedSourceFilter: string = '';
   public debouncedPromptFilter: string = '';
@@ -105,6 +108,11 @@ export class DashboardComponent implements OnInit, OnDestroy {
     this.applyDebouncedFilters();
   }
 
+
+  public onRatingsPageSizeChange(pageSize: number): void {
+    this.ratingsPageSize = pageSize;
+  }
+
   public get bestPromptScore(): number {
     const scores: number[] = this.promptPerformance
       .map((item) => item.complex_rating ?? 0)
@@ -140,7 +148,36 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return false;
       }
       return !submitFilter || row.submit_id.toString().includes(submitFilter);
-    }).sort((left, right) => right.submit_id - left.submit_id);
+    }).sort((left, right) => right.rating_id - left.rating_id);
+  }
+
+  public get filteredSubmitIdOptions(): string[] {
+    const sourceFilter = this.debouncedSourceFilter.trim().toLowerCase();
+    const promptFilter = this.debouncedPromptFilter.trim().toLowerCase();
+    const modelFilter = this.debouncedModelFilter.trim().toLowerCase();
+    const raterFilter = this.debouncedRaterFilter.trim().toLowerCase();
+    const submitFilter = this.debouncedSubmitFilter.trim();
+
+    const submitIds = this.ratingEvents
+      .filter((row) => {
+        if (sourceFilter && !row.source_path.toLowerCase().includes(sourceFilter)) {
+          return false;
+        }
+        if (promptFilter && !row.prompt_path.toLowerCase().includes(promptFilter)) {
+          return false;
+        }
+        if (modelFilter && !row.model.toLowerCase().includes(modelFilter)) {
+          return false;
+        }
+        if (raterFilter && !row.rater_name.toLowerCase().includes(raterFilter)) {
+          return false;
+        }
+
+        return !submitFilter || row.submit_id.toString().includes(submitFilter);
+      })
+      .map((row) => row.submit_id.toString());
+
+    return Array.from(new Set(submitIds)).slice(0, 20);
   }
 
   private applyDebouncedFilters(): void {

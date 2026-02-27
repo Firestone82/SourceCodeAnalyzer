@@ -36,7 +36,15 @@
           </button>
         </div>
 
-        <nz-table #ratingsTable [nzData]="filteredRatingEvents" [nzPageSize]="20" nzSize="small">
+        <nz-table
+          #ratingsTable
+          [nzData]="filteredRatingEvents"
+          [nzPageSize]="ratingsPageSize"
+          [nzPageSizeOptions]="[10, 20, 50, 100]"
+          [nzShowSizeChanger]="true"
+          (nzPageSizeChange)="onRatingsPageSizeChange($event)"
+          nzSize="small"
+        >
           <thead>
           <tr>
             <th>Rater</th>
