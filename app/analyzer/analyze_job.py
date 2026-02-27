@@ -1,5 +1,4 @@
 import logging
-import traceback
 from datetime import datetime
 from io import StringIO
 from typing import Dict
@@ -17,7 +16,7 @@ from app.utils.files import find_prompt_file, save_job_error_log, find_source_fi
 logger = logging.getLogger(__name__)
 
 
-class _InMemoryLogHandler(logging.StreamHandler):
+class InMemoryLogHandler(logging.StreamHandler):
     def __init__(self) -> None:
         self.stream = StringIO()
         super().__init__(self.stream)
@@ -26,11 +25,11 @@ class _InMemoryLogHandler(logging.StreamHandler):
         return self.stream.getvalue()
 
 
-def _configure_job_log_capture(job_id: str | None) -> _InMemoryLogHandler | None:
+def configure_job_log_capture(job_id: str | None) -> InMemoryLogHandler | None:
     if not job_id:
         return None
 
-    handler = _InMemoryLogHandler()
+    handler = InMemoryLogHandler()
     handler.setLevel(logging.INFO)
     handler.setFormatter(logging.Formatter('%(asctime)s [%(levelname)s] %(name)s - %(message)s'))
 
@@ -39,24 +38,27 @@ def _configure_job_log_capture(job_id: str | None) -> _InMemoryLogHandler | None
     return handler
 
 
-def _store_failed_job_log(job_id: str | None, log_handler: _InMemoryLogHandler | None, exc: Exception) -> None:
+def store_job_log(job_id: str | None, log_handler: InMemoryLogHandler | None, stack_trace: str | None = None) -> None:
     if not job_id:
         return
 
-    stack_trace = ''.join(traceback.format_exception(type(exc), exc, exc.__traceback__))
     captured_log = log_handler.get_value() if log_handler else ''
 
     log_parts: list[str] = []
     if captured_log.strip():
         log_parts.append(captured_log.rstrip())
-    if stack_trace.strip():
-        log_parts.append('--- Exception traceback ---\n' + stack_trace.rstrip())
 
-    persisted_log = '\n\n'.join(log_parts) if log_parts else stack_trace
+    persisted_log = '\n\n'.join(log_parts)
+    if not persisted_log and stack_trace:
+        persisted_log = stack_trace
+
+    if not persisted_log:
+        return
+
     try:
         save_job_error_log(job_id, persisted_log)
     except Exception:
-        logger.exception("Failed to store error log for job '%s'", job_id)
+        logger.exception("Failed to store job log for job '%s'", job_id)
 
 
 def delete_previous_submit(
@@ -69,6 +71,7 @@ def delete_previous_submit(
         Submit.source_path == source_path,
         Submit.prompt_path == prompt_path,
     ]
+
     if rater_id is not None:
         conditions.append(Submit.created_by_id == rater_id)
 
@@ -95,20 +98,24 @@ def run_submit_analysis(
         published: bool = False,
 ) -> None:
     session: Session = SessionLocal()
+
     job = get_current_job()
     job_id = job.id if job else None
-    job_log_handler = _configure_job_log_capture(job_id)
+    job_log_handler = configure_job_log_capture(job_id)
 
     def update_job_status(status: str, error: str | None = None, submit_id: int | None = None) -> None:
         if not job_id:
             return
+
         job_session: Session = SessionLocal()
         try:
             record = job_session.execute(
                 select(AnalysisJob).where(AnalysisJob.job_id == job_id)
             ).scalar_one_or_none()
+
             if not record:
                 return
+
             record.status = status
             record.error = error
             record.submit_id = submit_id
@@ -125,8 +132,10 @@ def run_submit_analysis(
             "Failed to delete previous analysis results for source_path='%s' and prompt_path='%s'",
             source_path, prompt_path
         )
+
         session.rollback()
-        _store_failed_job_log(job_id, job_log_handler, exc)
+        store_job_log(job_id, job_log_handler)
+
         update_job_status("failed", error=str(exc) or "Failed to clean previous submit")
         session.close()
         raise
@@ -166,12 +175,14 @@ def run_submit_analysis(
                 explanation=issue.explanation,
             ))
 
-        session.commit()
-        update_job_status("succeeded", submit_id=submit.id)
         logger.info(
             "Model '%s' analysis with prompt '%s' completed for files at '%s'. Issues found: %d",
             model, prompt_path, source_path, len(review_result.issues)
         )
+        session.commit()
+
+        store_job_log(job_id, job_log_handler)
+        update_job_status("succeeded", submit_id=submit.id)
     except Exception as exc:
         logger.exception(
             "Model '%s' analysis with prompt '%s' failed for files at '%s'",
@@ -179,12 +190,12 @@ def run_submit_analysis(
         )
         session.rollback()
 
-        _store_failed_job_log(job_id, job_log_handler, exc)
-
+        store_job_log(job_id, job_log_handler)
         update_job_status("failed", error=str(exc) or "Analysis failed")
         raise
     finally:
         if job_log_handler is not None:
             logging.getLogger().removeHandler(job_log_handler)
             job_log_handler.close()
+
         session.close()

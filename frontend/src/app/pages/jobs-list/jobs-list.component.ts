@@ -34,6 +34,7 @@ import {JobDto, JobListResponseDto} from '../../service/api/api.models';
   templateUrl: './jobs-list.component.html'
 })
 export class JobsListComponent implements OnInit, OnDestroy {
+  public readonly refreshIntervalMs: number = 5000;
   public jobs: JobDto[] = [];
   public isLoading: boolean = false;
   public statusFilter: string | null = null;
@@ -42,8 +43,8 @@ export class JobsListComponent implements OnInit, OnDestroy {
   public totalJobs: number = 0;
 
   public selectedLogJob: JobDto | null = null;
-  public isErrorLogModalVisible: boolean = false;
-  public selectedErrorLogText: string = '';
+  public isLogModalVisible: boolean = false;
+  public selectedLogText: string = '';
 
   private readonly destroy$ = new Subject<void>();
 
@@ -51,7 +52,7 @@ export class JobsListComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit(): void {
-    interval(5000)
+    interval(this.refreshIntervalMs)
       .pipe(
         startWith(0),
         switchMap(() => this.fetchJobs(false)),
@@ -100,10 +101,10 @@ export class JobsListComponent implements OnInit, OnDestroy {
     return jobId;
   }
 
-  public openErrorLog(job: JobDto): void {
-    this.isErrorLogModalVisible = true;
+  public openJobLog(job: JobDto): void {
+    this.isLogModalVisible = true;
     this.selectedLogJob = job;
-    this.selectedErrorLogText = "Loading error log...";
+    this.selectedLogText = 'Loading log...';
 
     this.jobsApiService.getJobErrorLog(job.job_id)
       .pipe(
@@ -113,18 +114,18 @@ export class JobsListComponent implements OnInit, OnDestroy {
         takeUntil(this.destroy$)
       )
       .subscribe((response) => {
-        this.selectedErrorLogText = response.error_log;
+        this.selectedLogText = response.error_log;
       });
   }
 
-  public closeErrorLogModal(): void {
+  public closeLogModal(): void {
     if (!this.selectedLogJob) {
       return;
     }
 
-    this.isErrorLogModalVisible = false;
+    this.isLogModalVisible = false;
     this.selectedLogJob = null;
-    this.selectedErrorLogText = "";
+    this.selectedLogText = '';
   }
 
 

@@ -46,13 +46,15 @@ def embed_text_files(files: Dict[str, str]) -> List[EmbeddedFile]:
     embedded: List[EmbeddedFile] = []
     total_chars: int = 0
 
+    logger.info(f"Embedding {len(files)} files")
+
     for file_path, content in sorted(files.items(), key=lambda item: item[0]):
         total_chars += len(content)
         total_lines = content.count("\n") + 1
 
         language: str = detect_language(file_path)
         if language == "text":
-            logger.info(f"Skipping {file_path}: unsupported file type")
+            logger.info(f"- Skipping {file_path}: unsupported file type")
             continue
 
         embedded.append(EmbeddedFile(
@@ -62,9 +64,6 @@ def embed_text_files(files: Dict[str, str]) -> List[EmbeddedFile]:
             total_lines=total_lines,
         ))
 
-    logger.info(
-        f"Embedded {len(embedded)} files ({total_chars} total characters)"
-    )
     return embedded
 
 
@@ -128,6 +127,7 @@ class Analyzer:
 
         logger.info("Draft analysis completed in %d seconds. Identified %d candidate issues.",
                     elapsed, len(draft_result.candidate_issues))
+        logger.debug(json.dumps(to_dict(draft_result), indent=2))
         return draft_result
 
     def run_review_analysis(self, user_content: str, draft_result: DraftResult) -> ReviewResult:
@@ -159,6 +159,7 @@ class Analyzer:
 
         logger.info("Review analysis completed in %d seconds. Final issues count: %d",
                     elapsed, len(review_result.issues))
+        logger.debug(json.dumps(to_dict(review_result), indent=2))
         return review_result
 
     def translate_review_result(self, review_result: ReviewResult) -> ReviewResult:

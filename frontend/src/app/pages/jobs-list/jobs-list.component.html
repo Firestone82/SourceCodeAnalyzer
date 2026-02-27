@@ -1,6 +1,6 @@
 <div class="flex flex-col gap-4">
   <nz-card class="ml-[5px] w-full max-w-none rounded-[10px]" nzSize="small">
-    <div class="flex flex-wrap items-center justify-between gap-3">
+    <div class="flex flex-wrap items-start justify-between gap-3">
       <div>
         <div nz-typography nzType="secondary">Jobs</div>
         <div nz-typography>Track running and completed analysis jobs.</div>
@@ -46,7 +46,7 @@
         <th>Source path</th>
         <th class="w-[170px]">Updated</th>
         <th class="w-[120px] text-center">Status</th>
-        <th class="w-[120px]">Submit</th>
+        <th class="w-[195px]">Actions</th>
       </tr>
       </thead>
       <tbody>
@@ -61,11 +61,25 @@
             </td>
 
             <td [title]="job.prompt_path || '-'" class="truncate max-w-[200px] py-1">
-              {{ job.prompt_path || '-' }}
+              @if (job.prompt_path) {
+                <a [routerLink]="['/prompts']" [queryParams]="{prompt: job.prompt_path}"
+                   class="text-blue-600 hover:underline">
+                  {{ job.prompt_path }}
+                </a>
+              } @else {
+                <span>Undefied</span>
+              }
             </td>
 
             <td [title]="job.source_path || '-'" class="truncate max-w-[200px] py-1">
-              {{ job.source_path || '-' }}
+              @if (job.source_path) {
+                <a [routerLink]="['/sources']" [queryParams]="{source: job.source_path}"
+                   class="text-blue-600 hover:underline">
+                  {{ job.source_path }}
+                </a>
+              } @else {
+                <span>Undefined</span>
+              }
             </td>
 
             <td class="py-1">
@@ -79,17 +93,16 @@
             </td>
 
             <td class="py-1">
-              @if (job.status === 'failed') {
-                <button (click)="openErrorLog(job)" nz-button nzSize="small" nzType="default" nzDanger>
-                  View error log
+              <div class="flex flex-wrap gap-2 justify-between">
+                <button (click)="openJobLog(job)" nz-button nzSize="small" nzType="default">
+                  View log
                 </button>
-              } @else if (job.submit_id) {
-                <button [routerLink]="['/submits', job.submit_id]" nz-button nzSize="small" nzType="default">
+
+                <button [routerLink]="['/submits', job.submit_id]" nz-button nzSize="small" nzType="default"
+                        [disabled]="!job.submit_id">
                   Show submit
                 </button>
-              } @else {
-                <span>-</span>
-              }
+              </div>
             </td>
           </tr>
         }
@@ -99,24 +112,25 @@
 </div>
 
 <nz-modal
-  (nzOnCancel)="closeErrorLogModal()"
-  (nzOnOk)="closeErrorLogModal()"
+  (nzOnCancel)="closeLogModal()"
+  (nzOnOk)="closeLogModal()"
   [nzCancelText]="null"
   [nzClosable]="true"
   [nzFooter]="modalFooter"
   [nzMaskClosable]="false"
   [nzOkText]="'Close'"
-  [nzTitle]="'Worker error log'"
-  [(nzVisible)]="isErrorLogModalVisible"
+  [nzTitle]="'Worker log'"
+  [(nzVisible)]="isLogModalVisible"
   [nzWidth]="'70vw'"
 >
   <ng-container *nzModalContent>
-    <pre class="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded bg-[#111827] p-4 text-xs text-[#e5e7eb]">{{ (selectedErrorLogText || 'No error log available.').replaceAll('\\n', '\n') }}    </pre>
+    <pre
+      class="max-h-[72vh] overflow-auto whitespace-pre-wrap rounded bg-[#111827] p-4 text-xs text-[#e5e7eb]">{{ (selectedLogText || 'No log available.').replaceAll('\\n', '\n') }}    </pre>
   </ng-container>
 
   <ng-template #modalFooter>
     <div class="flex items-center justify-end gap-2">
-      <button (click)="closeErrorLogModal()" nz-button nzType="primary">Close</button>
+      <button (click)="closeLogModal()" nz-button nzType="primary">Close</button>
     </div>
   </ng-template>
 </nz-modal>
