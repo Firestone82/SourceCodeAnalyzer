@@ -1,19 +1,18 @@
 import logging
 import traceback
-from io import StringIO
 from datetime import datetime
-from pathlib import Path
-from typing import List, Dict
+from io import StringIO
+from typing import Dict
 
 from rq import get_current_job
 from sqlalchemy import delete, select, Sequence
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyzer import Analyzer
-from app.analyzer.dto import EmbeddedFile, ReviewResult
+from app.analyzer.dto import ReviewResult
 from app.database.db import SessionLocal
 from app.database.models import Submit, Issue, AnalysisJob
-from app.utils.files import find_prompt_file, find_source_files_or_extract, save_job_error_log
+from app.utils.files import find_prompt_file, save_job_error_log, find_source_files_or_extract
 
 logger = logging.getLogger(__name__)
 
@@ -58,50 +57,6 @@ def _store_failed_job_log(job_id: str | None, log_handler: _InMemoryLogHandler |
         save_job_error_log(job_id, persisted_log)
     except Exception:
         logger.exception("Failed to store error log for job '%s'", job_id)
-
-
-def detect_language(file_path: str) -> str:
-    ext = Path(file_path).suffix.lower()
-    mapping = {
-        ".c": "c",
-        ".cpp": "cpp",
-        ".cc": "cpp",
-        ".h": "c",
-        ".hpp": "cpp",
-        ".py": "python",
-        ".java": "java",
-        ".js": "javascript",
-        ".ts": "typescript",
-    }
-    return mapping.get(ext, "text")
-
-
-def embed_text_files(source_path: str) -> List[EmbeddedFile]:
-    embedded: List[EmbeddedFile] = []
-    total_chars: int = 0
-
-    submit_files: Dict[str, str] = find_source_files_or_extract(source_path)
-
-    for file_path, content in sorted(submit_files.items(), key=lambda item: item[0]):
-        total_chars += len(content)
-        total_lines = content.count("\n") + 1
-
-        language: str = detect_language(file_path)
-        if language == "text":
-            logger.info(f"Skipping {file_path}: unsupported file type")
-            continue
-
-        embedded.append(EmbeddedFile(
-            path=file_path,
-            language=language,
-            content=content,
-            total_lines=total_lines,
-        ))
-
-    logger.info(
-        f"Embedded {len(embedded)} files ({total_chars} total characters)"
-    )
-    return embedded
 
 
 def delete_previous_submit(
@@ -177,10 +132,10 @@ def run_submit_analysis(
         raise
 
     try:
-        system_prompt: str = find_prompt_file(prompt_path)
-        files: List[EmbeddedFile] = embed_text_files(source_path)
+        draft_prompt: str = find_prompt_file(prompt_path)
+        submit_files: Dict[str, str] = find_source_files_or_extract(source_path)
 
-        summarizer: Analyzer = Analyzer(model, files, system_prompt)
+        summarizer: Analyzer = Analyzer(model, submit_files, draft_prompt, language="Czech")
         review_result: ReviewResult = summarizer.summarize()
 
         submit: Submit = Submit(

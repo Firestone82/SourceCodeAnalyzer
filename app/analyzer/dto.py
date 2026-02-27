@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Any
+from typing import List, Any, Literal
 
 from serde import serde, field
 
@@ -62,3 +62,41 @@ class ReviewIssue:
 class ReviewResult:
     summary: str
     issues: List[ReviewIssue]
+
+
+@dataclass
+class DraftStats:
+    files: int
+    total_lines: int
+    candidate_issue_count: int
+
+
+@dataclass
+class DraftObservation:
+    file: str
+    note: str
+
+
+@dataclass
+class DraftEvidenceItem:
+    line: int
+    snippet: str
+
+
+@dataclass
+class DraftCandidateIssue:
+    file: str
+    category: str
+    line: int
+    title: str
+    evidence: List[DraftEvidenceItem]
+    why_it_matters: str
+    suggested_fix: str
+    confidence: Literal["low", "medium", "high"]
+
+
+@dataclass
+class DraftResult:
+    stats: DraftStats
+    observations: List[DraftObservation]
+    candidate_issues: List[DraftCandidateIssue]
