@@ -16,11 +16,9 @@ Then produce an updated `candidate_issues` list that:
 - Adds a `critique_note` to uncertain items explaining the doubt.
 - Promotes confirmed items unchanged.
 
-Also look for any issues the draft MISSED while re-reading the code, and add them.
-
 # Output
 Return a JSON object matching the DraftResult schema. Carry forward all fields unchanged except where
-your critique modifies them. Add your reasoning inside `reasoning_trace` (append, do not replace).
+your critique modifies them. Modify the reasoning while keeping it consistent with your verdicts.
 """
 
 REVIEW_ANALYSIS_PROMPT = """

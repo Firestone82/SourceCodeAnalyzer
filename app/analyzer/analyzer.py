@@ -155,8 +155,8 @@ class Analyzer:
                 ChatCompletionAssistantMessageParam(content=draft_content, role="assistant"),
                 ChatCompletionUserMessageParam(
                     content=(
-                        "Challenge every candidate issue. Remove false positives, annotate uncertain ones, "
-                        "and add any missed issues. Output the updated DraftResult JSON."
+                        "Challenge every candidate issue. Remove false positives, annotate uncertain ones. "
+                        "Output the updated DraftResult JSON."
                     ),
                     role="user",
                 ),
@@ -261,6 +261,7 @@ class Analyzer:
                 ],
             response_format,
             temperature: float,
+            max_tokens: int = 4096,
     ) -> Tuple[float, str]:
         step_start_time: float = time()
 
@@ -269,10 +270,12 @@ class Analyzer:
             messages=messages,
             response_format=response_format,
             temperature=temperature,
+            max_tokens=max_tokens,
         )
 
         elapsed_seconds: float = time() - step_start_time
         message_content: str | None = response.choices[0].message.content
+        logger.info("Step '%s' used %d completion tokens", step_name, response.usage.completion_tokens)
 
         if message_content is None:
             raise ValueError(f"{step_name} returned empty message content.")
