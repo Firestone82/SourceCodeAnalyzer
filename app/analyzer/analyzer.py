@@ -82,16 +82,8 @@ class Analyzer:
         logger.info("Starting analysis on %d files...", len(self.files))
         analysis_start_time = time()
 
-        user_content: str = "\n".join(
-            line
-            for embedded_file in self.files
-            for line in (
-                f"\n### FILE: {embedded_file.path}",
-                f"```{embedded_file.language}",
-                enumerate_file_lines(embedded_file.content),
-                "```",
-            )
-        )
+        user_content: str = self.build_user_content()
+        logger.warning(f"User content: {user_content}")
 
         # Step 1 — Draft: broad sweep with chain-of-thought scratchpad
         draft_result: DraftResult = self.run_draft_analysis(user_content)
@@ -310,6 +302,17 @@ class Analyzer:
     # Shared helpers
     # -------------------------
 
+    def build_user_content(self) -> str:
+        user_content_lines: List[str] = []
+
+        for embedded_file in self.files:
+            user_content_lines.append(f"\n### FILE: {embedded_file.path}")
+            user_content_lines.append(f"```{embedded_file.language}")
+            user_content_lines.append(enumerate_file_lines(embedded_file.content))
+            user_content_lines.append("```")
+
+        return "\n".join(user_content_lines)
+
     def timed_chat_completion(
             self,
             step_name: str,
@@ -328,6 +331,7 @@ class Analyzer:
             messages=messages,
             response_format=response_format,
             temperature=temperature,
+            timeout=180,
         )
 
         elapsed_seconds: float = time() - step_start_time

@@ -18,7 +18,15 @@ _CANDIDATE_ISSUE_SCHEMA = {
         "false_positive_risk",
     ],
     "properties": {
-        "file": {"type": "string"},
+        "file": {
+            "type": "string",
+            "description": (
+                "MUST be copied verbatim from the input. "
+                "Do NOT normalize, shorten, rename, or alter the filename in any way. "
+                "Preserve the exact string — including directory components, copy-number suffixes "
+                "such as (2), and the original extension."
+            ),
+        },
         "category": {
             "type": "string",
             "description": "Normalized category for easier filtering in the verifier pass.",

@@ -3,6 +3,12 @@ CRITIQUE_PROMPT = """
 You are a **skeptical peer reviewer** challenging a first-pass code analysis draft.
 Your job is to stress-test every candidate issue and decide whether it survives scrutiny.
 
+# Critical file-name rule
+**NEVER** alter the `file` field under any circumstances.
+Copy it character-for-character from the draft input — including path separators, copy-number
+suffixes and the original extension. Renaming, normalising, or shortening the filename is a
+**hard error** that invalidates the entire output.
+
 # Task
 For EACH candidate issue in the draft:
 1. Re-read the referenced lines and surrounding context carefully.
@@ -18,7 +24,7 @@ Then produce an updated `candidate_issues` list that:
 
 # Output
 Return a JSON object matching the DraftResult schema. Carry forward all fields unchanged except where
-your critique modifies them. **DO NOT** alter `file` field in any matters. Modify the reasoning while keeping it consistent with your verdicts.
+your critique modifies them. Modify the reasoning while keeping it consistent with your verdicts.
 """
 
 REVIEW_ANALYSIS_PROMPT = """
@@ -37,6 +43,9 @@ and a final overall quality assessment. Do NOT enumerate individual findings in 
 - If two issues describe the same root cause, merge them into one.
 - If an issue is technically real but very unlikely to cause actual harm, mark it as `minor` severity and note this in the `reasoning_trace`.
 - Do not speculate, ignore any issue that cannot be confirmed with certainty, and do not add any new issues.
+
+# File naming rule
+Output issues must retain the exact `file` field from the draft input. Any alteration is a hard error that invalidates the entire output.
 
 # Teacher-oriented explanations
 Each issue explanation must clearly state: what the issue is, why it is a problem, and how to fix it.
