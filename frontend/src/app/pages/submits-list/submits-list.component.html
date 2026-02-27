@@ -108,6 +108,10 @@
         <label (ngModelChange)="applyFilters()" [(ngModel)]="onlyUnrated" nz-checkbox>
           Only not rated
         </label>
+
+        <label (ngModelChange)="handleRandomizedNavigationChange($event)" [(ngModel)]="isRandomizedNavigation" nz-checkbox>
+          Randomize submits table
+        </label>
       </div>
     </div>
 

@@ -61,6 +61,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   promptFilter: string = '';
   sourceFilter: string = '';
   sourceTagFilter: string = '';
+  isRandomizedNavigation: boolean = false;
 
   isUploadModalVisible: boolean = false;
   pendingUpload: { jobId: string; sourcePath: string; promptPath: string; model: string } | null = null;
@@ -91,12 +92,17 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit(): void {
-    this.loadSubmits();
     this.loadPromptPaths();
     this.authService.rater$
       .pipe(takeUntil(this.destroy$))
       .subscribe((rater) => {
-        this.isAdmin = Boolean(rater?.admin);
+        if (!rater) {
+          return;
+        }
+
+        this.isAdmin = Boolean(rater.admin);
+        this.isRandomizedNavigation = this.resolveRandomizedNavigationDefault(this.isAdmin);
+        this.loadSubmits();
       });
   }
 
@@ -131,6 +137,13 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     setTimeout(() => {
       this.loadSubmits();
     });
+  }
+
+
+  public handleRandomizedNavigationChange(value: boolean): void {
+    this.isRandomizedNavigation = value;
+    localStorage.setItem('submitRandomizedNavigation', value ? '1' : '0');
+    this.loadSubmits();
   }
 
   public onPageIndexChange(pageIndex: number): void {
@@ -402,6 +415,19 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
       });
   }
 
+  private resolveRandomizedNavigationDefault(isAdmin: boolean): boolean {
+    const storedPreference = localStorage.getItem('submitRandomizedNavigation');
+    if (storedPreference === '1') {
+      return true;
+    }
+
+    if (storedPreference === '0') {
+      return false;
+    }
+
+    return !isAdmin;
+  }
+
   private loadSubmits(): void {
     this.isLoading = true;
     this.errorMessage = null;
@@ -431,9 +457,22 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
         })
       )
       .subscribe((response: SubmitListResponseDto) => {
-        this.submits = response.items;
+        this.submits = this.isRandomizedNavigation ? this.shuffleSubmits(response.items) : response.items;
         this.totalSubmits = response.total;
       });
+  }
+
+  private shuffleSubmits(items: SubmitListItemDto[]): SubmitListItemDto[] {
+    const shuffled: SubmitListItemDto[] = [...items];
+
+    for (let index = shuffled.length - 1; index > 0; index -= 1) {
+      const randomIndex = Math.floor(Math.random() * (index + 1));
+      const current = shuffled[index];
+      shuffled[index] = shuffled[randomIndex];
+      shuffled[randomIndex] = current;
+    }
+
+    return shuffled;
   }
 
   private loadPromptPaths(): void {

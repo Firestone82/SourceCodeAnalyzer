@@ -415,24 +415,36 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
   private loadNextUnratedSubmitId(currentSubmitId: number): void {
     const pageSize = 50;
+    this.loadRandomUnratedSubmitId(currentSubmitId, pageSize);
+  }
+
+  private loadRandomUnratedSubmitId(currentSubmitId: number, pageSize: number): void {
+    const candidates: number[] = [];
 
     const fetchPage = (page: number): void => {
       this.submitsApiService
         .getSubmits(page, pageSize, true, '')
         .pipe(catchError(() => of({items: [], total: 0, page, page_size: pageSize})))
         .subscribe((response) => {
-          const index = response.items.findIndex((item) => item.id === currentSubmitId);
-
-          if (index !== -1) {
-            const nextItem = response.items[index + 1];
-            this.nextUnratedSubmitId = nextItem ? nextItem.id : null;
-            return;
+          for (const item of response.items) {
+            if (item.id !== currentSubmitId) {
+              candidates.push(item.id);
+            }
           }
 
           const hasMore = page * pageSize < response.total;
           if (hasMore) {
             fetchPage(page + 1);
+            return;
           }
+
+          if (candidates.length === 0) {
+            this.nextUnratedSubmitId = null;
+            return;
+          }
+
+          const randomIndex = Math.floor(Math.random() * candidates.length);
+          this.nextUnratedSubmitId = candidates[randomIndex];
         });
     };
 
