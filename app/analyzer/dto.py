@@ -1,17 +1,9 @@
 from dataclasses import dataclass
 from enum import Enum
-from typing import List, Any, Literal
+from typing import Any
+from typing import List
 
-from serde import serde, field
-
-
-@serde
-@dataclass
-class EmbeddedFile:
-    path: str
-    language: str
-    content: str
-    total_lines: int = 0
+from serde import field, serde
 
 
 class Severity(Enum):
@@ -48,12 +40,81 @@ def deserialize_severity(value: Any) -> Severity:
     raise ValueError(f"Invalid severity: {value!r}")
 
 
+# ---------------------------------------------------------------------------
+# File embedding
+# ---------------------------------------------------------------------------
+
+@serde
+@dataclass
+class EmbeddedFile:
+    path: str
+    language: str
+    content: str
+    total_lines: int
+
+
+# ---------------------------------------------------------------------------
+# Draft pass (Step 1)
+# ---------------------------------------------------------------------------
+
+@serde
+@dataclass
+class EvidenceItem:
+    line: int
+    snippet: str
+    relevance: str
+
+
+@serde
+@dataclass
+class CandidateIssue:
+    file: str
+    category: str
+    severity: str  # "critical" | "major" | "minor" | "informational"
+    line: int
+    title: str
+    reasoning: str
+    evidence: List[EvidenceItem]
+    why_it_matters: str
+    suggested_fix: str
+    confidence: str  # "low" | "medium" | "high"
+    false_positive_risk: str
+    critique_note: str = field(default="")  # populated by the Critique pass
+
+
+@serde
+@dataclass
+class DraftStats:
+    files: int
+    total_lines: int
+    candidate_issue_count: int
+
+
+@serde
+@dataclass
+class DraftObservation:
+    file: str
+    note: str
+
+
+@serde
+@dataclass
+class DraftResult:
+    stats: DraftStats
+    reasoning_trace: str
+    observations: List[DraftObservation]
+    candidate_issues: List[CandidateIssue]
+
+
+# ---------------------------------------------------------------------------
+# Review pass (Step 3) — final output
+# ---------------------------------------------------------------------------
 @serde
 @dataclass
 class ReviewIssue:
     file: str
-    line: int = field(deserializer=deserialize_int)
     severity: Severity = field(deserializer=deserialize_severity)
+    line: int = field(deserializer=deserialize_int)
     explanation: str = ""
 
 
@@ -62,41 +123,3 @@ class ReviewIssue:
 class ReviewResult:
     summary: str
     issues: List[ReviewIssue]
-
-
-@dataclass
-class DraftStats:
-    files: int
-    total_lines: int
-    candidate_issue_count: int
-
-
-@dataclass
-class DraftObservation:
-    file: str
-    note: str
-
-
-@dataclass
-class DraftEvidenceItem:
-    line: int
-    snippet: str
-
-
-@dataclass
-class DraftCandidateIssue:
-    file: str
-    category: str
-    line: int
-    title: str
-    evidence: List[DraftEvidenceItem]
-    why_it_matters: str
-    suggested_fix: str
-    confidence: Literal["low", "medium", "high"]
-
-
-@dataclass
-class DraftResult:
-    stats: DraftStats
-    observations: List[DraftObservation]
-    candidate_issues: List[DraftCandidateIssue]

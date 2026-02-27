@@ -13,8 +13,8 @@ from openai.types.chat import (
 from serde import from_dict, to_dict
 
 from app.analyzer.dto import DraftResult, EmbeddedFile, ReviewResult
-from app.analyzer.prompt import REVIEW_ANALYSIS_PROMPT
-from app.analyzer.scheme import DRAFT_RESULT_SCHEME, REVIEW_RESULT_SCHEME
+from app.analyzer.prompt import CRITIQUE_PROMPT, REVIEW_ANALYSIS_PROMPT
+from app.analyzer.scheme import DRAFT_RESULT_SCHEME, CRITIQUE_RESULT_SCHEME, REVIEW_RESULT_SCHEME
 from app.settings import settings
 
 logger = logging.getLogger(__name__)
@@ -93,15 +93,24 @@ class Analyzer:
             )
         )
 
+        # Step 1 — Draft: broad sweep with chain-of-thought scratchpad
         draft_result: DraftResult = self.run_draft_analysis(user_content)
-        review_result: ReviewResult = self.run_review_analysis(user_content, draft_result)
+
+        # Step 2 — Critique: peer-review the draft, remove false positives
+        critique_result: DraftResult = self.run_critique_analysis(user_content, draft_result)
+
+        # Step 3 — Review: produce final authoritative output from surviving issues
+        review_result: ReviewResult = self.run_review_analysis(user_content, critique_result)
 
         if self.language:
             review_result = self.translate_review_result(review_result)
 
         total_elapsed_seconds: float = time() - analysis_start_time
-        logger.info("Source code review completed. Total elapsed time: %.2f seconds. Issues found: %d",
-                    total_elapsed_seconds, len(review_result.issues))
+        logger.info(
+            "Source code review completed. Total elapsed time: %.2f seconds. Issues found: %d",
+            total_elapsed_seconds,
+            len(review_result.issues),
+        )
         return review_result
 
     # -------------------------
@@ -125,28 +134,68 @@ class Analyzer:
             error_context="draft JSON",
         )
 
-        logger.info("Draft analysis completed in %d seconds. Identified %d candidate issues.",
-                    elapsed, len(draft_result.candidate_issues))
-        logger.info(json.dumps(to_dict(draft_result), indent=2))
+        logger.info(
+            "Draft analysis completed in %d seconds. Identified %d candidate issues.",
+            elapsed,
+            len(draft_result.candidate_issues),
+        )
+        logger.warning(json.dumps(to_dict(draft_result), indent=2))
         return draft_result
 
-    def run_review_analysis(self, user_content: str, draft_result: DraftResult) -> ReviewResult:
+    def run_critique_analysis(self, user_content: str, draft_result: DraftResult) -> DraftResult:
         draft_json = json.dumps(to_dict(draft_result), indent=2)
-        draft_content: str = f"""\n 
-        Thought process and candidate issues identified by the model: {draft_json} 
-        """
+        draft_content: str = f"Draft analysis to critique:\n{draft_json}"
+
+        elapsed, critique_text = self.timed_chat_completion(
+            step_name="Critique analysis",
+            messages=[
+                ChatCompletionSystemMessageParam(content=CRITIQUE_PROMPT, role="system"),
+                # Source code so the model can re-read lines while challenging each issue
+                ChatCompletionUserMessageParam(content=user_content, role="user"),
+                ChatCompletionAssistantMessageParam(content=draft_content, role="assistant"),
+                ChatCompletionUserMessageParam(
+                    content=(
+                        "Challenge every candidate issue. Remove false positives, annotate uncertain ones, "
+                        "and add any missed issues. Output the updated DraftResult JSON."
+                    ),
+                    role="user",
+                ),
+            ],
+            response_format=CRITIQUE_RESULT_SCHEME,
+            temperature=0.2,
+        )
+
+        critique_result: DraftResult = self.parse_typed_json(
+            raw_text=critique_text,
+            target_type=DraftResult,
+            error_context="critique JSON",
+        )
+
+        logger.info(
+            "Critique completed in %d seconds. Surviving issues: %d (was %d after draft).",
+            elapsed,
+            len(critique_result.candidate_issues),
+            len(draft_result.candidate_issues),
+        )
+        logger.warning(json.dumps(to_dict(critique_result), indent=2))
+        return critique_result
+
+    def run_review_analysis(self, user_content: str, critique_result: DraftResult) -> ReviewResult:
+        critique_json = json.dumps(to_dict(critique_result), indent=2)
+        critique_content: str = f"Peer-reviewed candidate issues:\n{critique_json}"
 
         elapsed, review_text = self.timed_chat_completion(
             step_name="Review analysis",
             messages=[
                 ChatCompletionSystemMessageParam(content=REVIEW_ANALYSIS_PROMPT, role="system"),
                 ChatCompletionUserMessageParam(content=user_content, role="user"),
-                ChatCompletionAssistantMessageParam(content=draft_content, role="assistant"),
+                ChatCompletionAssistantMessageParam(content=critique_content, role="assistant"),
                 ChatCompletionUserMessageParam(
-                    content="""
-                        Verify the draft issues against the code. Keep only deterministic valid issues and output final JSON.
-                        The `summary` must evaluate the whole codebase quality and must not be a list/recap of issues.
-                    """,
+                    content=(
+                        "Verify the surviving issues against the code. "
+                        "Keep only deterministic, real issues and output the final ReviewResult JSON. "
+                        "The `summary` must evaluate the whole codebase quality — not a list of issues."
+                    ),
                     role="user",
                 ),
             ],
@@ -160,22 +209,27 @@ class Analyzer:
             error_context="review JSON",
         )
 
-        logger.info("Review analysis completed in %d seconds. Final issues count: %d",
-                    elapsed, len(review_result.issues))
-        logger.info(json.dumps(to_dict(review_result), indent=2))
+        logger.info(
+            "Review analysis completed in %d seconds. Final issues count: %d",
+            elapsed,
+            len(review_result.issues),
+        )
+        logger.warning(json.dumps(to_dict(review_result), indent=2))
         return review_result
 
     def translate_review_result(self, review_result: ReviewResult) -> ReviewResult:
         review_json = json.dumps(to_dict(review_result), indent=2)
-        review_content = f"""\n 
-        Final verified issues after reviewing the draft: {review_json} 
-        """
+        review_content = f"Final verified review to translate:\n{review_json}"
 
         elapsed, translated_text = self.timed_chat_completion(
             step_name="Translation",
             messages=[
                 ChatCompletionSystemMessageParam(
-                    content="Translate review response into Czech language. You *must* preserve technical details and formatting",
+                    content=(
+                        f"Translate the review response into {self.language}. "
+                        "You *must* preserve all technical terms, variable names, function names, "
+                        "code snippets, and backtick formatting exactly as-is."
+                    ),
                     role="system",
                 ),
                 ChatCompletionUserMessageParam(content=review_content, role="user"),
