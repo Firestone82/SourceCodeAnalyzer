@@ -127,7 +127,7 @@ class Analyzer:
 
         logger.info("Draft analysis completed in %d seconds. Identified %d candidate issues.",
                     elapsed, len(draft_result.candidate_issues))
-        logger.debug(json.dumps(to_dict(draft_result), indent=2))
+        logger.info(json.dumps(to_dict(draft_result), indent=2))
         return draft_result
 
     def run_review_analysis(self, user_content: str, draft_result: DraftResult) -> ReviewResult:
@@ -162,7 +162,7 @@ class Analyzer:
 
         logger.info("Review analysis completed in %d seconds. Final issues count: %d",
                     elapsed, len(review_result.issues))
-        logger.debug(json.dumps(to_dict(review_result), indent=2))
+        logger.info(json.dumps(to_dict(review_result), indent=2))
         return review_result
 
     def translate_review_result(self, review_result: ReviewResult) -> ReviewResult:
