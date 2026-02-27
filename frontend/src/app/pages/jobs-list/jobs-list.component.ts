@@ -10,6 +10,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzModalModule} from 'ng-zorro-antd/modal';
+import {NzMessageService} from 'ng-zorro-antd/message';
 import {catchError, interval, Observable, of, startWith, Subject, switchMap, takeUntil} from 'rxjs';
 
 import {JobsApiService} from '../../service/api/types/jobs-api.service';
@@ -48,7 +49,10 @@ export class JobsListComponent implements OnInit, OnDestroy {
 
   private readonly destroy$ = new Subject<void>();
 
-  public constructor(private readonly jobsApiService: JobsApiService) {
+  public constructor(
+    private readonly jobsApiService: JobsApiService,
+    private readonly nzMessageService: NzMessageService
+  ) {
   }
 
   public ngOnInit(): void {
@@ -126,6 +130,26 @@ export class JobsListComponent implements OnInit, OnDestroy {
     this.isLogModalVisible = false;
     this.selectedLogJob = null;
     this.selectedLogText = '';
+  }
+
+  public restartJob(job: JobDto): void {
+    if (job.status !== 'failed') {
+      return;
+    }
+
+    this.jobsApiService.restartJob(job.job_id)
+      .pipe(takeUntil(this.destroy$))
+      .subscribe({
+        next: (response) => {
+          this.nzMessageService.success(`Restarted job as ${response.job_id}`);
+          this.applyFilters(false);
+        },
+        error: (error) => {
+          const detail = error?.error?.detail;
+          const errorText = typeof detail === 'string' ? detail : 'Failed to restart job';
+          this.nzMessageService.error(errorText);
+        }
+      });
   }
 
 

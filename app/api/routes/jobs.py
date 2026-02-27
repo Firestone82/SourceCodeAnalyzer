@@ -4,10 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
-from app.api.dto import JobErrorLogRequest, JobErrorLogResponse, JobListResponse, JobResponse
+from app.analyzer.analyze_job import run_submit_analysis
+from app.api.dto import AnalyzeSourceResponse, JobErrorLogRequest, JobErrorLogResponse, JobListResponse, JobResponse
 from app.api.routes.auth import get_current_rater
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater
+from app.database.rq_queue import get_analysis_queue
 from app.utils.files import load_job_error_log, save_job_error_log
 
 router = APIRouter(prefix="/jobs", tags=["jobs"])
@@ -131,3 +133,51 @@ def upload_job_error_log(
     session.commit()
 
     return JobErrorLogResponse(job_id=job_id, error_log=request.error_log)
+
+
+@router.post("/{job_id}/restart")
+def restart_failed_job(
+        job_id: str,
+        session: Session = Depends(get_database),
+        current_rater: Rater = Depends(get_current_rater),
+) -> AnalyzeSourceResponse:
+    job = session.execute(
+        select(AnalysisJob).where(AnalysisJob.job_id == job_id)
+    ).scalar_one_or_none()
+    if not job:
+        raise HTTPException(status_code=404, detail="Job not found")
+
+    if job.status != "failed":
+        raise HTTPException(status_code=400, detail="Only failed jobs can be restarted")
+
+    if not job.source_path or not job.prompt_path or not job.model:
+        raise HTTPException(status_code=400, detail="Job is missing source, prompt, or model")
+
+    analysis_queue = get_analysis_queue()
+    new_job = analysis_queue.enqueue(
+        run_submit_analysis,
+        job.source_path,
+        job.prompt_path,
+        job.model,
+        current_rater.id,
+        False,
+        job_timeout=1800,
+    )
+
+    session.add(AnalysisJob(
+        job_id=new_job.id,
+        status="running",
+        job_type=job.job_type,
+        source_path=job.source_path,
+        prompt_path=job.prompt_path,
+        model=job.model,
+    ))
+    session.commit()
+
+    return AnalyzeSourceResponse(
+        ok=True,
+        job_id=new_job.id,
+        source_path=job.source_path,
+        prompt_path=job.prompt_path,
+        model=job.model,
+    )
