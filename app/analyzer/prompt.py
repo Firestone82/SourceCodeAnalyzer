@@ -16,6 +16,11 @@ Then produce an updated `candidate_issues` list that:
 - Adds a `critique_note` to uncertain items explaining the doubt.
 - Promotes confirmed items unchanged.
 
+# Filename rule
+The `file` field of every issue **must exactly match** the filename shown after `### FILE:` in the
+source listing — character for character, including path separators and casing.
+Do NOT shorten, abbreviate, or alter the filename in any way.
+
 # Output
 Return a JSON object matching the DraftResult schema. Carry forward all fields unchanged except where
 your critique modifies them. Modify the reasoning while keeping it consistent with your verdicts.
@@ -30,11 +35,6 @@ Your task is to produce the final, authoritative review from the surviving candi
 The `summary` field must describe the **whole codebase quality** — not a recap of issues.
 Cover: overall architecture/readability/maintainability, strengths, important risks or weak areas,
 and a final overall quality assessment. Do NOT enumerate individual findings in the summary.
-
-# Filename rule
-The `file` field of every issue **must exactly match** the filename shown after `### FILE:` in the
-source listing — character for character, including path separators and casing.
-Do NOT shorten, abbreviate, or alter the filename in any way.
 
 # Verification rules
 - Accept only issues that are **deterministically real** given the visible code.
