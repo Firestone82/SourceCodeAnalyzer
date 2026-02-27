@@ -143,7 +143,10 @@ class Analyzer:
                 ChatCompletionUserMessageParam(content=user_content, role="user"),
                 ChatCompletionAssistantMessageParam(content=draft_content, role="assistant"),
                 ChatCompletionUserMessageParam(
-                    content="Verify the draft issues against the code. Keep only deterministic valid issues and output final JSON.",
+                    content="""
+                        Verify the draft issues against the code. Keep only deterministic valid issues and output final JSON.
+                        The `summary` must evaluate the whole codebase quality and must not be a list/recap of issues.
+                    """,
                     role="user",
                 ),
             ],

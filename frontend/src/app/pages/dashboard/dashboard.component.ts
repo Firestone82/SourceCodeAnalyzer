@@ -46,7 +46,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public modelFilter: string = '';
   public raterFilter: string = '';
   public submitFilter: string = '';
-  public ratingsPageSize: number = 20;
+  public ratingsPageSize: number = 10;
 
   public debouncedSourceFilter: string = '';
   public debouncedPromptFilter: string = '';
