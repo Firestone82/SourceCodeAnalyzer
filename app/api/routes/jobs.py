@@ -23,7 +23,7 @@ def list_jobs(
         page: int = Query(1, ge=1),
         page_size: int = Query(20, ge=1, le=100),
 ) -> JobListResponse:
-    statement = select(AnalysisJob).order_by(AnalysisJob.created_at.desc())
+    statement = select(AnalysisJob).order_by(AnalysisJob.updated_at.desc())
     if status:
         statement = statement.where(AnalysisJob.status == status)
 
