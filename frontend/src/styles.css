@@ -58,3 +58,7 @@
   max-height: 10000px !important;
   overflow-y: auto !important;
 }
+
+pre {
+  overflow: hidden;
+}

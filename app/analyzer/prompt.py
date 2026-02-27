@@ -31,6 +31,11 @@ The `summary` field must describe the **whole codebase quality** — not a recap
 Cover: overall architecture/readability/maintainability, strengths, important risks or weak areas,
 and a final overall quality assessment. Do NOT enumerate individual findings in the summary.
 
+# Filename rule
+The `file` field of every issue **must exactly match** the filename shown after `### FILE:` in the
+source listing — character for character, including path separators and casing.
+Do NOT shorten, abbreviate, or alter the filename in any way.
+
 # Verification rules
 - Accept only issues that are **deterministically real** given the visible code.
 - Discard anything that requires assumptions about unseen callers or external state.

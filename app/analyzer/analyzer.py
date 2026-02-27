@@ -105,6 +105,9 @@ class Analyzer:
         if self.language:
             review_result = self.translate_review_result(review_result)
 
+        # Step 4 — Post-process: normalize filenames to match known paths exactly
+        review_result = self.normalize_issue_filenames(review_result)
+
         total_elapsed_seconds: float = time() - analysis_start_time
         logger.info(
             "Source code review completed. Total elapsed time: %.2f seconds. Issues found: %d",
@@ -246,6 +249,51 @@ class Analyzer:
 
         logger.info("Translation completed in %d seconds.", elapsed)
         return translated_result
+
+    def normalize_issue_filenames(self, review_result: ReviewResult) -> ReviewResult:
+        """Ensure every issue's file field exactly matches one of the embedded file paths.
+
+        The LLM sometimes shortens, alters, or slightly misspells filenames.
+        We match each returned name against the known paths using a simple
+        longest-suffix strategy: pick the known path whose suffix best matches
+        the returned value (case-insensitive). If no match is found, the original
+        value is kept and a warning is logged so the problem is visible.
+        """
+        known_paths: List[str] = [f.path for f in self.files]
+
+        def best_match(name: str) -> str:
+            # Exact match first
+            if name in known_paths:
+                return name
+
+            name_normalized = name.replace("\\", "/").lower()
+
+            # Try suffix match: pick the known path that ends with the returned name
+            candidates = [p for p in known_paths if p.replace("\\", "/").lower().endswith(name_normalized)]
+            if len(candidates) == 1:
+                return candidates[0]
+
+            # Try prefix match (model may have stripped a leading directory)
+            candidates = [p for p in known_paths if name_normalized.endswith(p.replace("\\", "/").lower())]
+            if len(candidates) == 1:
+                return candidates[0]
+
+            # Fallback: match by basename only
+            name_base = name_normalized.rsplit("/", 1)[-1]
+            candidates = [p for p in known_paths if p.replace("\\", "/").lower().rsplit("/", 1)[-1] == name_base]
+            if len(candidates) == 1:
+                return candidates[0]
+
+            logger.warning("Could not normalize issue filename %r to any known path %s", name, known_paths)
+            return name
+
+        for issue in review_result.issues:
+            original = issue.file
+            issue.file = best_match(original)
+            if issue.file != original:
+                logger.info("Normalized issue filename %r → %r", original, issue.file)
+
+        return review_result
 
     # -------------------------
     # Shared helpers
