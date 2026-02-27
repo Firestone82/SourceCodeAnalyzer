@@ -74,6 +74,7 @@ class IssueRating(Base):
     rater_id: Mapped[int] = mapped_column(ForeignKey("rater.id"), nullable=False)
     relevance_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     quality_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
 
     issue: Mapped["Issue"] = relationship(back_populates="ratings")

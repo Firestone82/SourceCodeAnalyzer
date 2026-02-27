@@ -26,43 +26,13 @@
               >
                 <div class="mb-2 flex items-start justify-between gap-2.5">
                   <div class="flex items-center gap-2">
-                    <nz-tag [nzColor]="severityColor(issue.severity)">
+                    <nz-tag [nzColor]="severityColor(issue.severity)" class="m-0!">
                       {{ issue.severity }}
                     </nz-tag>
 
                     <span nz-typography nzType="secondary">
                       Line {{ issue.line }} · Issue #{{ issue.id }}
                     </span>
-                  </div>
-
-                  <div class="flex items-start leading-[5px]">
-                    <div class="rating-box rating-criteria-grid">
-                      <div class="rating-criterion">
-                        <span class="text-xs font-semibold">Relevance</span>
-
-                        <nz-rate
-                          (ngModelChange)="onRatingChange(issue, 'relevance', $event)"
-                          [ngModel]="(issue.relevance_rating ?? 0) / 2"
-                          [nzAllowClear]="false"
-                          [nzAllowHalf]="true"
-                          [nzCount]="5"
-                          [disabled]="readOnly"
-                        />
-                      </div>
-
-                      <div class="rating-criterion quality-rating-box">
-                        <span class="text-xs font-semibold">Quality</span>
-
-                        <nz-rate
-                          (ngModelChange)="onRatingChange(issue, 'quality', $event)"
-                          [ngModel]="(issue.quality_rating ?? 0) / 2"
-                          [nzAllowClear]="false"
-                          [nzAllowHalf]="true"
-                          [nzCount]="5"
-                          [disabled]="readOnly"
-                        />
-                      </div>
-                    </div>
                   </div>
                 </div>
 
@@ -71,6 +41,61 @@
                     <span [innerHTML]="issue.highlightedExplanation" class="issue-text"></span>
                   } @else {
                     <span>{{ issue.explanation }}</span>
+                  }
+                </div>
+
+                <div class="mt-3 flex flex-col gap-2">
+                  <div class="flex justify-between gap-2.5 items-end">
+                    <div class="flex flex-1">
+                      <div nz-typography nzType="secondary" class="mb-0!">Comment</div>
+                    </div>
+
+                    <div class="flex items-start leading-[5px]">
+                      <div class="rating-box rating-criteria-grid">
+                        <div class="rating-criterion">
+                          <span class="text-xs font-semibold">Relevance</span>
+
+                          <nz-rate
+                            (ngModelChange)="onRatingChange(issue, 'relevance', $event)"
+                            [ngModel]="(issue.relevance_rating ?? 0) / 2"
+                            [nzAllowClear]="false"
+                            [nzAllowHalf]="true"
+                            [nzCount]="5"
+                            [disabled]="readOnly"
+                          />
+                        </div>
+
+                        <div class="rating-criterion quality-rating-box">
+                          <span class="text-xs font-semibold">Quality</span>
+
+                          <nz-rate
+                            (ngModelChange)="onRatingChange(issue, 'quality', $event)"
+                            [ngModel]="(issue.quality_rating ?? 0) / 2"
+                            [nzAllowClear]="false"
+                            [nzAllowHalf]="true"
+                            [nzCount]="5"
+                            [disabled]="readOnly"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  @if (readOnly) {
+                    <div class="p-2 bg-gray-50 border border-gray-200 text-gray-700">
+                      {{ issue.comment || 'No comment.' }}
+                    </div>
+                  } @else {
+                    <textarea
+                      [(ngModel)]="issueCommentInputs[issue.id]"
+                      class="p-2 bg-gray-50 border border-gray-200"
+                      placeholder="Leave optional comment for this issue"
+                      rows="2"
+                    ></textarea>
+
+                    <div class="flex justify-end">
+                      <button (click)="saveIssueComment(issue)" nz-button nzType="primary">Save comment</button>
+                    </div>
                   }
                 </div>
               </nz-card>

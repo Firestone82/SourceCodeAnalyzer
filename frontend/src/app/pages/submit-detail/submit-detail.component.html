@@ -5,31 +5,31 @@
     </nz-card>
   } @else {
     <nz-card>
-      <div class="flex gap-4 justify-between items-center mb-4">
+      <div class="flex gap-4 justify-between items-start mb-4 flex-col xl:flex-row">
         <div class="flex gap-5">
           <div>
-            <div nz-typography nzType="secondary">Submit</div>
+            <div nz-typography nzType="secondary" class="mb-1!">Submit</div>
             <div nz-typography><strong>#{{ submit.id }}</strong></div>
           </div>
 
           <div>
-            <div nz-typography nzType="secondary">Model</div>
+            <div nz-typography nzType="secondary" class="mb-1!">Model</div>
             <div nz-typography><strong>{{ submit.model }}</strong></div>
           </div>
 
           <div>
-            <div nz-typography nzType="secondary">Source tag</div>
+            <div nz-typography nzType="secondary" class="mb-1!">Source tag</div>
             <div nz-typography>
-                @if (submit.source_tag) {
-                  <nz-tag nzColor="blue">{{ submit.source_tag }}</nz-tag>
-                } @else {
-                  <span class="text-gray-500">No tag</span>
-                }
+              @if (submit.source_tag) {
+                <nz-tag nzColor="blue">{{ submit.source_tag }}</nz-tag>
+              } @else {
+                <span class="text-gray-500">No tag</span>
+              }
             </div>
           </div>
 
           <div>
-            <div nz-typography nzType="secondary">Source path</div>
+            <div nz-typography nzType="secondary" class="mb-1!">Source path</div>
             <div nz-typography>
               <a
                 [queryParams]="{source: submit.source_path}"
@@ -42,7 +42,7 @@
           </div>
 
           <div>
-            <div nz-typography nzType="secondary">Prompt path</div>
+            <div nz-typography nzType="secondary" class="mb-1!">Prompt path</div>
             <div nz-typography>
               <a
                 [queryParams]="{prompt: submit.prompt_path}"
@@ -86,48 +86,51 @@
       </div>
 
       <div class="summary">
-        <div class="flex items-center justify-between mb-2 ">
-          <div nz-typography nzType="secondary">Summary</div>
 
-          <div class="flex items-center leading-[5px]">
-            <div class="rating-box rating-criteria-grid">
-              <div class="rating-criterion">
-                <span class="text-xs font-semibold">Relevance</span>
+        <div class="mt-3 flex flex-col gap-2">
+          <div class=" lex flex-col gap-2">
+            <div nz-typography nzType="secondary">Summary</div>
 
-                <nz-rate
-                  (ngModelChange)="handleSummaryRate('relevance', $event)"
-                  [ngModel]="(displayedSummaryRelevance ?? 0) / 2"
-                  [nzAllowClear]="false"
-                  [nzAllowHalf]="true"
-                  [nzCount]="5"
-                  [nzDisabled]="!submitDetails.summary.id || isViewingSelectedRater"
-                />
-              </div>
+            @if (submitDetails.summary.highlightedExplanation) {
+              <span [innerHTML]="submitDetails.summary.highlightedExplanation" class="issue-text"></span>
+            } @else {
+              <span>{{ submitDetails.summary.explanation }}</span>
+            }
+          </div>
 
-              <div class="rating-criterion quality-rating-box">
-                <span class="text-xs font-semibold">Quality</span>
+          <div class="flex items-end justify-between">
+            <div nz-typography nzType="secondary" class="mb-0!">Comment</div>
 
-                <nz-rate
-                  (ngModelChange)="handleSummaryRate('quality', $event)"
-                  [ngModel]="(displayedSummaryQuality ?? 0) / 2"
-                  [nzAllowClear]="false"
-                  [nzAllowHalf]="true"
-                  [nzCount]="5"
-                  [nzDisabled]="!submitDetails.summary.id || isViewingSelectedRater"
-                />
+            <div class="flex items-center leading-[5px]">
+              <div class="rating-box rating-criteria-grid">
+                <div class="rating-criterion">
+                  <span class="text-xs font-semibold">Relevance</span>
+
+                  <nz-rate
+                    (ngModelChange)="handleSummaryRate('relevance', $event)"
+                    [ngModel]="(displayedSummaryRelevance ?? 0) / 2"
+                    [nzAllowClear]="false"
+                    [nzAllowHalf]="true"
+                    [nzCount]="5"
+                    [nzDisabled]="!submitDetails.summary.id || isViewingSelectedRater"
+                  />
+                </div>
+
+                <div class="rating-criterion quality-rating-box">
+                  <span class="text-xs font-semibold">Quality</span>
+
+                  <nz-rate
+                    (ngModelChange)="handleSummaryRate('quality', $event)"
+                    [ngModel]="(displayedSummaryQuality ?? 0) / 2"
+                    [nzAllowClear]="false"
+                    [nzAllowHalf]="true"
+                    [nzCount]="5"
+                    [nzDisabled]="!submitDetails.summary.id || isViewingSelectedRater"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
-
-        @if (submitDetails.summary.highlightedExplanation) {
-          <span [innerHTML]="submitDetails.summary.highlightedExplanation" class="issue-text"></span>
-        } @else {
-          <span>{{ submitDetails.summary.explanation }}</span>
-        }
-
-        <div class="mt-3 flex flex-col gap-2">
-          <div nz-typography nzType="secondary" class="mb-0!">Comment</div>
 
           @if (isViewingSelectedRater) {
             <div class="p-2 bg-gray-50 border border-gray-200 text-gray-700">
@@ -175,12 +178,14 @@
           <nz-card>
             @if (isViewingSelectedRater && selectedRaterRating) {
               <div class="mb-6 rounded border border-red-300 bg-red-50 p-3 text-red-700">
-                You are viewing rating of <strong>{{ selectedRaterRating.rater_name }}</strong>. To view your own ratings, please deselect the rater from the dropdown above.
+                You are viewing rating of <strong>{{ selectedRaterRating.rater_name }}</strong>. To view your own
+                ratings, please deselect the rater from the dropdown above.
               </div>
             }
 
             @if (selectedFileName && submit) {
               <app-file-viewer
+                (commentSave)="saveIssueComment($event.issue, $event.comment)"
                 (rate)="handleRate($event.issue, $event.criterion, $event.rating)"
                 [fileContent]="submit.files[selectedFileName] || ''"
                 [fileName]="selectedFileName"

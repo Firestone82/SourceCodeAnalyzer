@@ -24,6 +24,7 @@ def upsert_issue_rating(
         issue_id: int | None,
         relevance_rating: int | None,
         quality_rating: int | None,
+        comment: str | None,
 ) -> IssueRating:
     existing_rating: IssueRating | None = (
         session.query(IssueRating)
@@ -40,6 +41,7 @@ def upsert_issue_rating(
             rater_id=rater_id,
             relevance_rating=relevance_rating,
             quality_rating=quality_rating,
+            comment=comment,
         )
         session.add(rating)
         session.commit()
@@ -48,6 +50,7 @@ def upsert_issue_rating(
 
     existing_rating.relevance_rating = relevance_rating
     existing_rating.quality_rating = quality_rating
+    existing_rating.comment = comment
     session.commit()
     session.refresh(existing_rating)
     return existing_rating
@@ -74,11 +77,16 @@ def rate_issue(
     validate_rating_value(request.relevance_rating, "Relevance rating")
     validate_rating_value(request.quality_rating, "Quality rating")
 
+    comment: str | None = request.comment.strip() if request.comment is not None else None
+    if comment == "":
+        comment = None
+
     rating: IssueRating = upsert_issue_rating(
         session,
         rater_id=current_rater.id,
         relevance_rating=request.relevance_rating,
         quality_rating=request.quality_rating,
+        comment=comment,
         issue_id=issue_id,
     )
 

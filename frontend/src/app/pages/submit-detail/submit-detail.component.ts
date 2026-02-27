@@ -119,14 +119,16 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         return {
           ...issue,
           relevance_rating: null,
-          quality_rating: null
+          quality_rating: null,
+          comment: null
         };
       }
 
       return {
         ...issue,
         relevance_rating: suggestion.relevance_rating,
-        quality_rating: suggestion.quality_rating
+        quality_rating: suggestion.quality_rating,
+        comment: suggestion.comment
       };
     });
 
@@ -221,7 +223,8 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
     this.submitsApiService.rateIssue(issue.id, {
       relevance_rating: issue.relevance_rating ?? undefined,
-      quality_rating: issue.quality_rating ?? undefined
+      quality_rating: issue.quality_rating ?? undefined,
+      comment: issue.comment ?? null
     }).subscribe({
       next: () => {
         this.recalculateRemainingIssues();
@@ -283,6 +286,33 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
           this.submitDetails.summary.comment = previousComment;
         }
         this.nzMessageService.error('Failed to save summary rating.');
+      }
+    });
+  }
+
+
+  public saveIssueComment(issue: IssueDto, commentInput: string): void {
+    if (this.isViewingSelectedRater) {
+      return;
+    }
+
+    const previousComment: string | null = issue.comment;
+    const trimmedComment: string = commentInput.trim();
+    issue.comment = trimmedComment ? trimmedComment : null;
+
+    this.submitsApiService.rateIssue(issue.id, {
+      relevance_rating: issue.relevance_rating ?? undefined,
+      quality_rating: issue.quality_rating ?? undefined,
+      comment: issue.comment
+    }).subscribe({
+      next: () => {
+        this.viewerRebuild$.next();
+        this.nzMessageService.success('Issue comment saved.');
+      },
+      error: () => {
+        issue.comment = previousComment;
+        this.viewerRebuild$.next();
+        this.nzMessageService.error('Failed to save issue comment.');
       }
     });
   }

@@ -6,6 +6,7 @@ import {NzCardModule} from 'ng-zorro-antd/card';
 import {NzRateModule} from 'ng-zorro-antd/rate';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
+import {NzButtonModule} from 'ng-zorro-antd/button';
 
 import {IssueDto, SourceCommentDto} from '../../service/api/api.models';
 import {DomSanitizer, SafeHtml} from '@angular/platform-browser';
@@ -24,7 +25,7 @@ interface LineViewModel {
 @Component({
   selector: 'app-file-viewer',
   standalone: true,
-  imports: [FormsModule, DatePipe, NzCardModule, NzRateModule, NzTagModule, NzTypographyModule],
+  imports: [FormsModule, DatePipe, NzCardModule, NzRateModule, NzTagModule, NzTypographyModule, NzButtonModule],
   templateUrl: 'source-code-viewer.component.html',
   styleUrl: 'source-code-viewer.component.css',
 })
@@ -42,8 +43,10 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
   @Input() public readOnly: boolean = false;
 
   @Output() public rate: EventEmitter<{ issue: IssueDto; criterion: 'relevance' | 'quality'; rating: number }> = new EventEmitter();
+  @Output() public commentSave: EventEmitter<{ issue: IssueDto; comment: string }> = new EventEmitter();
 
   public lines: LineViewModel[] = [];
+  public issueCommentInputs: Record<number, string> = {};
 
   public constructor(
     private readonly syntaxHighlightService: SyntaxHighlighterService,
@@ -74,6 +77,17 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
 
     const normalized: number = Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
     this.rate.emit({issue, criterion, rating: normalized});
+  }
+
+  public saveIssueComment(issue: IssueDto): void {
+    if (this.readOnly) {
+      return;
+    }
+
+    this.commentSave.emit({
+      issue,
+      comment: this.issueCommentInputs[issue.id] ?? ''
+    });
   }
 
   public severityColor(severity: string): string {
@@ -140,6 +154,12 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
     }
 
     this.lines = lines;
+
+    const commentInputs: Record<number, string> = {};
+    for (const issue of this.issues || []) {
+      commentInputs[issue.id] = issue.comment ?? '';
+    }
+    this.issueCommentInputs = commentInputs;
   }
 
   private requestLinesRebuild(): void {

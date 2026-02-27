@@ -220,12 +220,14 @@ export interface IssueDto {
   highlightedExplanation?: SafeHtml;
   relevance_rating: number | null;
   quality_rating: number | null;
+  comment: string | null;
   rated_at: string | null;
 }
 
 export interface RateIssueRequestDto {
   relevance_rating?: number;
   quality_rating?: number;
+  comment?: string | null;
 }
 
 export interface RateSubmitSummaryRequestDto {
@@ -242,6 +244,7 @@ export interface SubmitRaterSuggestionRatingDto {
   explanation: string;
   relevance_rating: number | null;
   quality_rating: number | null;
+  comment: string | null;
   rated_at: string | null;
 }
 

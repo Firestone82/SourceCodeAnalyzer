@@ -436,6 +436,7 @@ def get_submit_details(
     for issue, rating in rater_issues:
         relevance_rating = None if rating is None else rating.relevance_rating
         quality_rating = None if rating is None else rating.quality_rating
+        comment = None if rating is None else rating.comment
         rated_at = None if rating is None else rating.created_at
 
         if issue.file is None and issue.line is None:
@@ -456,6 +457,7 @@ def get_submit_details(
                 explanation=issue.explanation,
                 relevance_rating=relevance_rating,
                 quality_rating=quality_rating,
+                comment=comment,
                 rated_at=rated_at,
             ))
 
@@ -529,6 +531,7 @@ def get_submit_ratings_by_rater(
                 explanation=issue.explanation,
                 relevance_rating=rating.relevance_rating,
                 quality_rating=rating.quality_rating,
+                comment=rating.comment,
                 rated_at=rating.created_at,
             )
         )

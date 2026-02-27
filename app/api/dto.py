@@ -18,6 +18,7 @@ class BatchAnalyzeRequest(BaseModel):
 class IssueRatingRequest(BaseModel):
     relevance_rating: Optional[int] = None
     quality_rating: Optional[int] = None
+    comment: Optional[str] = None
 
 
 class SubmitRatingRequest(BaseModel):
@@ -259,6 +260,7 @@ class SubmitIssue(BaseModel):
     explanation: str
     relevance_rating: Optional[int]
     quality_rating: Optional[int]
+    comment: Optional[str]
     rated_at: Optional[datetime]
 
 
@@ -300,6 +302,7 @@ class SubmitRaterSuggestionRating(BaseModel):
     explanation: str
     relevance_rating: Optional[int]
     quality_rating: Optional[int]
+    comment: Optional[str]
     rated_at: Optional[datetime]
 
 
