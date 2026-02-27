@@ -162,7 +162,7 @@ class Analyzer:
                 ),
             ],
             response_format=CRITIQUE_RESULT_SCHEME,
-            temperature=0.15,
+            temperature=0.2,
         )
 
         critique_result: DraftResult = self.parse_typed_json(
