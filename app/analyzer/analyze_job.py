@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session
 from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import ReviewResult
 from app.database.db import SessionLocal
-from app.database.models import Submit, Issue, AnalysisJob
+from app.database.models import Submit, Issue, IssueRating, SubmitRating, AnalysisJob
 from app.utils.files import find_prompt_file, save_job_error_log, find_source_files_or_extract
 
 logger = logging.getLogger(__name__)
@@ -85,6 +85,23 @@ def delete_previous_submit(
 
     if len(submit_identifier_list) == 0:
         return
+
+    issue_identifier_list: Sequence[int] = (
+        session.execute(
+            select(Issue.id).where(Issue.submit_id.in_(submit_identifier_list))
+        )
+        .scalars()
+        .all()
+    )
+
+    session.query(AnalysisJob).filter(AnalysisJob.submit_id.in_(submit_identifier_list)).update(
+        {AnalysisJob.submit_id: None},
+        synchronize_session=False,
+    )
+    session.execute(delete(SubmitRating).where(SubmitRating.submit_id.in_(submit_identifier_list)))
+
+    if len(issue_identifier_list) > 0:
+        session.execute(delete(IssueRating).where(IssueRating.issue_id.in_(issue_identifier_list)))
 
     session.execute(delete(Issue).where(Issue.submit_id.in_(submit_identifier_list)))
     session.execute(delete(Submit).where(Submit.id.in_(submit_identifier_list)))
