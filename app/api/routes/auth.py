@@ -1,12 +1,11 @@
-from datetime import datetime
-
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
 from app.api.dto import LoginRequest, RaterResponse
+from app.api.auth_activity import touch_last_login
 from app.api.security import get_current_rater
 from app.database.db import get_database
-from app.database.models import Rater, RaterLoginEvent
+from app.database.models import Rater
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -25,17 +24,15 @@ def login(
     if rater is None:
         raise HTTPException(status_code=401, detail="Invalid API key")
 
-    login_event = session.query(RaterLoginEvent).filter(RaterLoginEvent.rater_id == rater.id).one_or_none()
-    if login_event is None:
-        login_event = RaterLoginEvent(rater_id=rater.id, last_login_at=datetime.now())
-    else:
-        login_event.last_login_at = datetime.now()
-    session.add(login_event)
-    session.commit()
+    touch_last_login(session, rater.id)
 
     return RaterResponse(id=rater.id, name=rater.name, admin=rater.admin)
 
 
 @router.get("/me")
-def get_me(current_rater: Rater = Depends(get_current_rater)) -> RaterResponse:
+def get_me(
+        current_rater: Rater = Depends(get_current_rater),
+        session: Session = Depends(get_database),
+) -> RaterResponse:
+    touch_last_login(session, current_rater.id)
     return RaterResponse(id=current_rater.id, name=current_rater.name, admin=current_rater.admin)

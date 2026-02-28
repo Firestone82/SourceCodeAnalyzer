@@ -65,11 +65,13 @@ def delete_previous_submit(
         session: Session,
         source_path: str,
         prompt_path: str,
+        model: str,
         rater_id: int | None = None,
 ) -> None:
     conditions = [
         Submit.source_path == source_path,
         Submit.prompt_path == prompt_path,
+        Submit.model == model,
     ]
 
     if rater_id is not None:
@@ -143,11 +145,11 @@ def run_submit_analysis(
 
     # Detele previous analysis results for the same source_path and prompt_path if any
     try:
-        delete_previous_submit(session, source_path, prompt_path, rater_id)
+        delete_previous_submit(session, source_path, prompt_path, model, rater_id)
     except Exception as exc:
         logger.exception(
-            "Failed to delete previous analysis results for source_path='%s' and prompt_path='%s'",
-            source_path, prompt_path
+            "Failed to delete previous analysis results for source_path='%s', prompt_path='%s', and model='%s'",
+            source_path, prompt_path, model
         )
 
         session.rollback()
