@@ -34,6 +34,7 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
   private readonly rebuildSubscription: Subscription;
   private externalRebuildSubscription: Unsubscribable | null = null;
   private lastRequestedRebuildSignature: string = '';
+  private commentSaveTimeoutByIssueId: Record<number, ReturnType<typeof setTimeout>> = {};
 
   @Input({required: true}) public fileName: string = '';
   @Input({required: true}) public fileContent: string = '';
@@ -68,12 +69,18 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
   public ngOnDestroy(): void {
     this.rebuildSubscription.unsubscribe();
     this.externalRebuildSubscription?.unsubscribe();
+
+    for (const issueId of Object.keys(this.commentSaveTimeoutByIssueId)) {
+      this.clearCommentSaveTimeout(Number(issueId));
+    }
   }
 
   public onRatingChange(issue: IssueDto, criterion: 'relevance' | 'quality', newValue: number): void {
     if (this.readOnly) {
       return;
     }
+
+    this.flushPendingCommentSave(issue);
 
     const normalized: number = Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
     this.rate.emit({issue, criterion, rating: normalized});
@@ -83,11 +90,33 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
     if (this.readOnly) {
       return;
     }
+    this.clearCommentSaveTimeout(issue.id);
+    this.emitIssueCommentSave(issue);
+  }
 
-    this.commentSave.emit({
-      issue,
-      comment: this.issueCommentInputs[issue.id] ?? ''
-    });
+  public onIssueCommentInputChange(issue: IssueDto): void {
+    if (this.readOnly) {
+      return;
+    }
+
+    this.clearCommentSaveTimeout(issue.id);
+    this.commentSaveTimeoutByIssueId[issue.id] = setTimeout(() => {
+      this.emitIssueCommentSave(issue);
+      this.clearCommentSaveTimeout(issue.id);
+    }, 500);
+  }
+
+  public flushPendingCommentSave(issue: IssueDto): void {
+    if (this.readOnly) {
+      return;
+    }
+
+    if (!this.commentSaveTimeoutByIssueId[issue.id]) {
+      return;
+    }
+
+    this.clearCommentSaveTimeout(issue.id);
+    this.emitIssueCommentSave(issue);
   }
 
   public severityColor(severity: string): string {
@@ -196,6 +225,28 @@ export class SourceCodeViewerComponent implements OnChanges, OnDestroy {
     this.externalRebuildSubscription = this.rebuildLinesTrigger.subscribe({
       next: () => this.requestLinesRebuild(),
     });
+  }
+
+  private emitIssueCommentSave(issue: IssueDto): void {
+    const issueComment: string = this.issueCommentInputs[issue.id] ?? '';
+    if (issueComment === (issue.comment ?? '')) {
+      return;
+    }
+
+    this.commentSave.emit({
+      issue,
+      comment: issueComment
+    });
+  }
+
+  private clearCommentSaveTimeout(issueId: number): void {
+    const timeoutHandle: ReturnType<typeof setTimeout> | undefined = this.commentSaveTimeoutByIssueId[issueId];
+    if (!timeoutHandle) {
+      return;
+    }
+
+    clearTimeout(timeoutHandle);
+    delete this.commentSaveTimeoutByIssueId[issueId];
   }
 
   private detectLanguage(): BundledLanguage | undefined {

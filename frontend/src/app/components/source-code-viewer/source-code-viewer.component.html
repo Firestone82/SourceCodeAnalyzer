@@ -88,6 +88,7 @@
                   } @else {
                     <textarea
                       [(ngModel)]="issueCommentInputs[issue.id]"
+                      (ngModelChange)="onIssueCommentInputChange(issue)"
                       class="p-2 bg-gray-50 border border-gray-200"
                       placeholder="Leave optional comment for this issue"
                       rows="2"
