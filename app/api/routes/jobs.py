@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -164,6 +165,8 @@ def restart_failed_job(
         job_timeout=1800,
     )
 
+    now = datetime.now()
+
     session.add(AnalysisJob(
         job_id=new_job.id,
         status="running",
@@ -171,6 +174,8 @@ def restart_failed_job(
         source_path=job.source_path,
         prompt_path=job.prompt_path,
         model=job.model,
+        created_at=now,
+        updated_at=now,
     ))
     session.commit()
 

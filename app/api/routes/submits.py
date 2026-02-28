@@ -1,3 +1,4 @@
+from datetime import datetime
 import shutil
 from pathlib import Path
 
@@ -116,6 +117,8 @@ def upload_submit(
         job_timeout=1800,
     )
 
+    now = datetime.now()
+
     session.add(AnalysisJob(
         job_id=job.id,
         status="running",
@@ -123,6 +126,8 @@ def upload_submit(
         source_path=stored_source_path,
         prompt_path=stored_prompt_path,
         model=model.strip(),
+        created_at=now,
+        updated_at=now,
     ))
     session.commit()
 

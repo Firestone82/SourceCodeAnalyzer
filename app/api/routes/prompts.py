@@ -1,3 +1,4 @@
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -120,6 +121,8 @@ def analyze_sources_with_prompt(
             job_timeout=1800,
         )
 
+        now = datetime.now()
+
         session.add(AnalysisJob(
             job_id=job.id,
             status="running",
@@ -127,6 +130,8 @@ def analyze_sources_with_prompt(
             source_path=source_path,
             prompt_path=prompt_path,
             model=request.model,
+            created_at=now,
+            updated_at=now,
         ))
 
         jobs.append(PromptAnalysisJob(

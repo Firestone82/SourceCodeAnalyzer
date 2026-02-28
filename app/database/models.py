@@ -120,9 +120,9 @@ class AnalysisJob(Base):
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
     submit_id: Mapped[int | None] = mapped_column(ForeignKey("submit.id"), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime, nullable=False, default=datetime.now(), onupdate=datetime.now()
+        DateTime, nullable=False, default=datetime.now, onupdate=datetime.now
     )
 
     submit: Mapped["Submit"] = relationship()

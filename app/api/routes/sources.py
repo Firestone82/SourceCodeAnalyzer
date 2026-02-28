@@ -1,3 +1,4 @@
+from datetime import datetime
 import os
 from pathlib import Path
 from typing import List
@@ -283,6 +284,8 @@ def analyze_source_file(
         job_timeout=1800,
     )
 
+    now = datetime.now()
+
     session.add(AnalysisJob(
         job_id=job.id,
         status="running",
@@ -290,6 +293,8 @@ def analyze_source_file(
         source_path=source_path,
         prompt_path=prompt_path,
         model=request.model,
+        created_at=now,
+        updated_at=now,
     ))
     session.commit()
 
