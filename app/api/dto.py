@@ -3,11 +3,14 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, Field
 
+from app.analyzer.analyzer import AnalysisMode
+
 
 class AnalyzeRequest(BaseModel):
     model: str = Field(min_length=1)
     prompt_path: str = Field(min_length=1)
     prompt_content: Optional[str] = None
+    analysis_mode: AnalysisMode = "chain_of_thought"
 
 
 class BatchAnalyzeRequest(BaseModel):
@@ -144,7 +147,6 @@ class SourceUpdateRequest(BaseModel):
 
 class SourceUpdateResponse(BaseModel):
     source_path: str
-
 
 
 class SourceTagRequest(BaseModel):

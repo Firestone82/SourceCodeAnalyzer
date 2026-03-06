@@ -28,6 +28,21 @@
         </nz-autocomplete>
       </div>
 
+
+      <div>
+        <label class="mb-1 block text-sm font-medium">Analysis mode</label>
+        <nz-select
+          (ngModelChange)="handleAnalysisModeChange($event)"
+          [ngModel]="analysisMode"
+          class="w-full"
+          nzPlaceHolder="Select analysis mode"
+        >
+          @for (mode of analysisModeOptions; track mode.value) {
+            <nz-option [nzLabel]="mode.label" [nzValue]="mode.value"></nz-option>
+          }
+        </nz-select>
+      </div>
+
       <div>
         <label class="mb-1 block text-sm font-medium">Prompt template</label>
         <nz-select

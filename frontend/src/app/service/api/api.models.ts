@@ -1,7 +1,8 @@
 import {SafeHtml} from '@angular/platform-browser';
 
-export type IssueSeverity = 'low' | 'medium' | 'high';
+export type IssueSeverity = 'critical' | 'hight' | 'medium' | 'low';
 export type SubmitRatingState = 'not_rated' | 'partially_rated' | 'rated';
+export type AnalysisMode = 'chain_of_thought' | 'one_shot';
 
 export interface LoginRequestDto {
   key: string;
@@ -123,6 +124,7 @@ export interface AnalyzeSourceRequestDto {
   model: string;
   prompt_path: string;
   prompt_content?: string;
+  analysis_mode?: AnalysisMode;
 }
 
 export interface AnalyzeSourceResponseDto {

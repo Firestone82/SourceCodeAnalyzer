@@ -8,7 +8,7 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {catchError, finalize, of} from 'rxjs';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, AnalysisMode, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {environment} from '../../../environments/environment';
 
@@ -32,6 +32,11 @@ export class SubmitUploadModalComponent implements OnChanges {
   @Output() public readonly uploadComplete = new EventEmitter<AnalyzeSourceResponseDto>();
 
   public uploadModel: string = '';
+  public analysisMode: AnalysisMode = 'chain_of_thought';
+  public readonly analysisModeOptions: Array<{label: string; value: AnalysisMode}> = [
+    {label: 'Chain of thought', value: 'chain_of_thought'},
+    {label: 'One-shot', value: 'one_shot'}
+  ];
   public sourceName: string = '';
   public promptName: string = '';
   public promptPaths: string[] = [];
@@ -95,6 +100,10 @@ export class SubmitUploadModalComponent implements OnChanges {
 
   public handleModelChange(model: string): void {
     this.uploadModel = model;
+  }
+
+  public handleAnalysisModeChange(mode: AnalysisMode): void {
+    this.analysisMode = mode;
   }
 
   public handlePromptSelection(promptPath: string | null): void {
@@ -172,6 +181,7 @@ export class SubmitUploadModalComponent implements OnChanges {
     const finalizeUpload = (promptPath: string, promptFile?: File): void => {
       const formData = new FormData();
       formData.append('model', this.uploadModel.trim());
+      formData.append('analysis_mode', this.analysisMode);
 
       const normalizedSourceName = this.normalizeUploadName(this.sourceName.trim());
       const sourcePath = normalizedSourceName || this.buildSourceUploadName();
@@ -224,6 +234,7 @@ export class SubmitUploadModalComponent implements OnChanges {
 
   private resetForm(): void {
     this.uploadModel = '';
+    this.analysisMode = 'chain_of_thought';
     this.sourceName = '';
     this.promptName = '';
     this.promptPaths = [];

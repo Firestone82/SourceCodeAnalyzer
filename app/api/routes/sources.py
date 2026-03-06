@@ -1,5 +1,5 @@
-from datetime import datetime
 import os
+from datetime import datetime
 from pathlib import Path
 from typing import List
 
@@ -60,14 +60,13 @@ def get_source_tag(session: Session, source_path: str) -> str | None:
     return record.tag
 
 
-
-
 def source_name_sort_key(name: str) -> tuple[int, int | str]:
     stripped_name = name.strip()
     if stripped_name.isdigit():
         return 0, int(stripped_name)
 
     return 1, stripped_name.lower()
+
 
 def normalize_source_path(source_path: str) -> str:
     candidate = source_path.strip()
@@ -113,7 +112,8 @@ def list_source_paths(
 
     if tag is not None and tag.strip():
         tag_value = tag.strip()
-        tagged_paths = {record.source_path for record in session.query(SourceTag).filter(SourceTag.tag == tag_value).all()}
+        tagged_paths = {record.source_path for record in
+                        session.query(SourceTag).filter(SourceTag.tag == tag_value).all()}
         file_paths = [path for path in file_paths if path in tagged_paths]
 
     sorted_paths = sorted(file_paths, key=lambda path: tuple(source_name_sort_key(part) for part in path.split("/")))
@@ -196,14 +196,13 @@ def list_source_folder_children(
     return SourceFolderChildrenResponse(children=paged_children, total=total, next_offset=next_offset)
 
 
-
-
 @router.get("/tags")
 def list_source_tags(
         session: Session = Depends(get_database),
 ) -> SourceTagsResponse:
     tags = [row[0] for row in session.query(SourceTag.tag).distinct().order_by(SourceTag.tag.asc()).all()]
     return SourceTagsResponse(tags=tags)
+
 
 @router.get("/tags/{source_path:path}")
 def get_source_path_tag(
@@ -281,6 +280,7 @@ def analyze_source_file(
         request.model,
         current_rater.id,
         False,
+        request.analysis_mode,
         job_timeout=1800,
     )
 

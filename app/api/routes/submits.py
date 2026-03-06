@@ -1,6 +1,7 @@
-from datetime import datetime
 import shutil
+from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 from sqlalchemy import select, and_, func, case, Select, or_
@@ -90,6 +91,7 @@ def upload_submit(
         source_file: UploadFile = File(...),
         prompt_path: str | None = Form(None),
         prompt_file: UploadFile | None = File(None),
+        analysis_mode: Literal["chain_of_thought", "one_shot"] = Form("chain_of_thought"),
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> AnalyzeSourceResponse:
@@ -114,6 +116,7 @@ def upload_submit(
         model.strip(),
         current_rater.id,
         False,
+        analysis_mode,
         job_timeout=1800,
     )
 
@@ -226,9 +229,9 @@ def get_submits(
             (started_issues_column > 0)
             | (summary_started_column > 0)
             | (
-                (total_issues_column > 0)
-                & (fully_rated_issues_column >= total_issues_column)
-                & (summary_fully_rated_column == 0)
+                    (total_issues_column > 0)
+                    & (fully_rated_issues_column >= total_issues_column)
+                    & (summary_fully_rated_column == 0)
             ),
             "partially_rated",
         ),
@@ -358,9 +361,9 @@ def get_submit(
             (started_issues_column > 0)
             | (summary_started_column > 0)
             | (
-                (total_issues_column > 0)
-                & (fully_rated_issues_column >= total_issues_column)
-                & (summary_fully_rated_column == 0)
+                    (total_issues_column > 0)
+                    & (fully_rated_issues_column >= total_issues_column)
+                    & (summary_fully_rated_column == 0)
             ),
             "partially_rated",
         ),

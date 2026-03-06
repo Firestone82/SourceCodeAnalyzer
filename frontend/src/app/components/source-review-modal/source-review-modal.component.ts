@@ -10,6 +10,7 @@ import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
   AnalyzeSourceResponseDto,
+  AnalysisMode,
   PromptContentResponseDto,
   PromptNamesResponseDto
 } from '../../service/api/api.models';
@@ -39,6 +40,11 @@ export class SourceReviewModalComponent implements OnChanges {
   @Output() public readonly reviewQueued = new EventEmitter<AnalyzeSourceResponseDto>();
 
   public reviewModel: string = '';
+  public analysisMode: AnalysisMode = 'chain_of_thought';
+  public readonly analysisModeOptions: Array<{label: string; value: AnalysisMode}> = [
+    {label: 'Chain of thought', value: 'chain_of_thought'},
+    {label: 'One-shot', value: 'one_shot'}
+  ];
   public promptPaths: string[] = [];
   public selectedPromptPath: string | null = null;
   public promptName: string = '';
@@ -138,6 +144,10 @@ export class SourceReviewModalComponent implements OnChanges {
     this.promptName = name;
   }
 
+  public handleAnalysisModeChange(mode: AnalysisMode): void {
+    this.analysisMode = mode;
+  }
+
   public handleSubmit(): void {
     if (!this.canSubmitReview || !this.selectedSourcePath || !this.selectedPromptPath) {
       return;
@@ -152,8 +162,8 @@ export class SourceReviewModalComponent implements OnChanges {
 
     const finalizeSubmission = (promptPath: string, promptContent?: string): void => {
       const requestPayload = promptContent
-        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent}
-        : {model: this.reviewModel.trim(), prompt_path: promptPath};
+        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent, analysis_mode: this.analysisMode}
+        : {model: this.reviewModel.trim(), prompt_path: promptPath, analysis_mode: this.analysisMode};
 
       this.sourcesApiService
         .analyzeSource(this.selectedSourcePath!, requestPayload)
@@ -188,6 +198,7 @@ export class SourceReviewModalComponent implements OnChanges {
     this.reviewSubmitError = null;
     this.promptErrorMessage = null;
     this.reviewModel = this.defaultModel ?? '';
+    this.analysisMode = 'chain_of_thought';
     if (this.defaultPromptPath) {
       this.promptPaths = [this.defaultPromptPath];
       this.selectedPromptPath = this.defaultPromptPath;
@@ -199,6 +210,7 @@ export class SourceReviewModalComponent implements OnChanges {
 
   private resetForm(): void {
     this.reviewModel = '';
+    this.analysisMode = 'chain_of_thought';
     this.promptPaths = [];
     this.selectedPromptPath = null;
     this.promptName = '';

@@ -117,6 +117,9 @@ class ReviewIssue:
     line: int = field(deserializer=deserialize_int)
     explanation: str = ""
 
+    def location(self) -> str:
+        return f"({self.file}:{self.line})"
+
 
 @serde
 @dataclass

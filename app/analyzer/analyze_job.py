@@ -1,7 +1,7 @@
 import logging
 from datetime import datetime
 from io import StringIO
-from typing import Dict
+from typing import Dict, Literal
 
 from rq import get_current_job
 from sqlalchemy import delete, select, Sequence
@@ -115,6 +115,7 @@ def run_submit_analysis(
         model: str,
         rater_id: int | None = None,
         published: bool = False,
+        analysis_mode: Literal["chain_of_thought", "one_shot"] = "chain_of_thought",
 ) -> None:
     session: Session = SessionLocal()
 
@@ -163,8 +164,13 @@ def run_submit_analysis(
         draft_prompt: str = find_prompt_file(prompt_path)
         submit_files: Dict[str, str] = find_source_files_or_extract(source_path)
 
-        summarizer: Analyzer = Analyzer(model, submit_files, draft_prompt, language="Czech")
-        review_result: ReviewResult = summarizer.summarize()
+        review_result: ReviewResult = Analyzer(
+            model,
+            submit_files,
+            draft_prompt,
+            language=None,
+            analysis_mode=analysis_mode,
+        ).summarize()
 
         submit: Submit = Submit(
             source_path=source_path,

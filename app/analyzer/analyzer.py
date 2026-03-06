@@ -1,8 +1,9 @@
 import json
 import logging
+import re
 from pathlib import Path
 from time import time
-from typing import List, TypeVar, Any, Dict, Tuple
+from typing import List, TypeVar, Any, Dict, Tuple, Literal
 
 from openai import OpenAI
 from openai.types.chat import (
@@ -12,7 +13,7 @@ from openai.types.chat import (
 )
 from serde import from_dict, to_dict
 
-from app.analyzer.dto import DraftResult, EmbeddedFile, ReviewResult
+from app.analyzer.dto import DraftResult, EmbeddedFile, ReviewResult, ReviewIssue
 from app.analyzer.prompt import CRITIQUE_PROMPT, REVIEW_ANALYSIS_PROMPT
 from app.analyzer.scheme import DRAFT_RESULT_SCHEME, CRITIQUE_RESULT_SCHEME, REVIEW_RESULT_SCHEME
 from app.settings import settings
@@ -20,6 +21,7 @@ from app.settings import settings
 logger = logging.getLogger(__name__)
 
 ResultType = TypeVar("ResultType")
+AnalysisMode = Literal["chain_of_thought", "one_shot"]
 
 
 def detect_language(file_path: str) -> str:
@@ -68,11 +70,19 @@ def embed_text_files(files: Dict[str, str]) -> List[EmbeddedFile]:
 
 
 class Analyzer:
-    def __init__(self, model: str, files: Dict[str, str], draft_prompt: str, language: str | None = None) -> None:
+    def __init__(
+            self,
+            model: str,
+            files: Dict[str, str],
+            draft_prompt: str,
+            language: str | None = None,
+            analysis_mode: AnalysisMode = "chain_of_thought",
+    ) -> None:
         self.model = model
         self.files = embed_text_files(files)
         self.draft_prompt = draft_prompt
         self.language = language
+        self.analysis_mode = analysis_mode
         self.client = OpenAI(
             api_key=settings.analyzer_api_key,
             base_url=settings.analyzer_base_url,
@@ -85,19 +95,14 @@ class Analyzer:
         user_content: str = self.build_user_content()
         logger.warning(f"User content: {user_content}")
 
-        # Step 1 — Draft: broad sweep with chain-of-thought scratchpad
-        draft_result: DraftResult = self.run_draft_analysis(user_content)
+        if self.analysis_mode == "one_shot":
+            review_result: ReviewResult = self.run_one_shot_review(user_content)
+        else:
+            draft_result: DraftResult = self.run_draft_analysis(user_content)
+            critique_result: DraftResult = self.run_critique_analysis(user_content, draft_result)
+            review_result = self.run_review_analysis(user_content, critique_result)
 
-        # Step 2 — Critique: peer-review the draft, remove false positives
-        critique_result: DraftResult = self.run_critique_analysis(user_content, draft_result)
-
-        # Step 3 — Review: produce final authoritative output from surviving issues
-        review_result: ReviewResult = self.run_review_analysis(user_content, critique_result)
-
-        if self.language:
-            review_result = self.translate_review_result(review_result)
-
-        # Step 4 — Post-process: normalize filenames to match known paths exactly
+        # Post-process: normalize filenames to match known paths exactly
         review_result = self.normalize_issue_filenames(review_result)
 
         total_elapsed_seconds: float = time() - analysis_start_time
@@ -111,6 +116,32 @@ class Analyzer:
     # -------------------------
     # Pipeline steps
     # -------------------------
+
+    def run_one_shot_review(self, user_content: str) -> ReviewResult:
+        elapsed, review_text = self.timed_chat_completion(
+            step_name="One-shot analysis",
+            messages=[
+                ChatCompletionSystemMessageParam(content=self.draft_prompt, role="system"),
+                ChatCompletionSystemMessageParam(content=REVIEW_ANALYSIS_PROMPT, role="system"),
+                ChatCompletionUserMessageParam(content=user_content, role="user"),
+            ],
+            response_format=REVIEW_RESULT_SCHEME,
+            temperature=0.1,
+        )
+
+        review_result: ReviewResult = self.parse_typed_json(
+            raw_text=review_text,
+            target_type=ReviewResult,
+            error_context="one-shot review JSON",
+        )
+
+        logger.info(
+            "One-shot review analysis completed in %d seconds. Final issues count: %d",
+            elapsed,
+            len(review_result.issues),
+        )
+        logger.warning(json.dumps(to_dict(review_result), indent=2))
+        return review_result
 
     def run_draft_analysis(self, user_content: str) -> DraftResult:
         elapsed, draft_text = self.timed_chat_completion(
@@ -141,20 +172,18 @@ class Analyzer:
         draft_json = json.dumps(to_dict(draft_result), indent=2)
         draft_content: str = f"Draft analysis to critique:\n{draft_json}"
 
+        final_prompt: str = (
+            "Challenge every candidate issue. Remove false positives, annotate uncertain ones. "
+            "Output the updated DraftResult JSON."
+        )
+
         elapsed, critique_text = self.timed_chat_completion(
             step_name="Critique analysis",
             messages=[
                 ChatCompletionSystemMessageParam(content=CRITIQUE_PROMPT, role="system"),
-                # Source code so the model can re-read lines while challenging each issue
                 ChatCompletionUserMessageParam(content=user_content, role="user"),
                 ChatCompletionAssistantMessageParam(content=draft_content, role="assistant"),
-                ChatCompletionUserMessageParam(
-                    content=(
-                        "Challenge every candidate issue. Remove false positives, annotate uncertain ones. "
-                        "Output the updated DraftResult JSON."
-                    ),
-                    role="user",
-                ),
+                ChatCompletionUserMessageParam(content=final_prompt, role="user"),
             ],
             response_format=CRITIQUE_RESULT_SCHEME,
             temperature=0.2,
@@ -179,20 +208,22 @@ class Analyzer:
         critique_json = json.dumps(to_dict(critique_result), indent=2)
         critique_content: str = f"Peer-reviewed candidate issues:\n{critique_json}"
 
+        final_prompt: str = (
+            "Verify the surviving issues against the code. "
+            "Keep only deterministic, real issues and output the final ReviewResult JSON. "
+        )
+
+        if self.language:
+            final_prompt += (f"Produce final review in {self.language} language. "
+                             f"All technical terms, code sippets or function/variables names must preserve exactly as-is.")
+
         elapsed, review_text = self.timed_chat_completion(
             step_name="Review analysis",
             messages=[
                 ChatCompletionSystemMessageParam(content=REVIEW_ANALYSIS_PROMPT, role="system"),
                 ChatCompletionUserMessageParam(content=user_content, role="user"),
                 ChatCompletionAssistantMessageParam(content=critique_content, role="assistant"),
-                ChatCompletionUserMessageParam(
-                    content=(
-                        "Verify the surviving issues against the code. "
-                        "Keep only deterministic, real issues and output the final ReviewResult JSON. "
-                        "The `summary` must evaluate the whole codebase quality — not a list of issues."
-                    ),
-                    role="user",
-                ),
+                ChatCompletionUserMessageParam(content=final_prompt, role="user"),
             ],
             response_format=REVIEW_RESULT_SCHEME,
             temperature=0.1,
@@ -212,36 +243,6 @@ class Analyzer:
         logger.warning(json.dumps(to_dict(review_result), indent=2))
         return review_result
 
-    def translate_review_result(self, review_result: ReviewResult) -> ReviewResult:
-        review_json = json.dumps(to_dict(review_result), indent=2)
-        review_content = f"Final verified review to translate:\n{review_json}"
-
-        elapsed, translated_text = self.timed_chat_completion(
-            step_name="Translation",
-            messages=[
-                ChatCompletionSystemMessageParam(
-                    content=(
-                        f"Translate the review response into {self.language}. "
-                        "You *must* preserve all technical terms, variable names, function names, "
-                        "code snippets, and backtick formatting exactly as-is."
-                    ),
-                    role="system",
-                ),
-                ChatCompletionUserMessageParam(content=review_content, role="user"),
-            ],
-            response_format=REVIEW_RESULT_SCHEME,
-            temperature=0.1,
-        )
-
-        translated_result: ReviewResult = self.parse_typed_json(
-            raw_text=translated_text,
-            target_type=ReviewResult,
-            error_context="translated JSON",
-        )
-
-        logger.info("Translation completed in %d seconds.", elapsed)
-        return translated_result
-
     def normalize_issue_filenames(self, review_result: ReviewResult) -> ReviewResult:
         """Ensure every issue's file field exactly matches one of the embedded file paths.
 
@@ -256,10 +257,13 @@ class Analyzer:
         """
         known_paths: List[str] = [f.path for f in self.files]
 
-        def best_match(name: str) -> str:
-            # Exact match first
+        def best_match(target_issue: ReviewIssue, name: str) -> str:
             if name in known_paths:
                 return name
+
+            # If there is only one embedded file, it must be the one :D
+            if len(known_paths) == 1:
+                return known_paths[0]
 
             name_normalized = name.replace("\\", "/").lower()
 
@@ -273,14 +277,13 @@ class Analyzer:
             if len(candidates) == 1:
                 return candidates[0]
 
-            # Fallback: match by basename only
+            # Try to match by basename only (model may have stripped directories or returned only the filename)
             name_base = name_normalized.rsplit("/", 1)[-1]
             candidates = [p for p in known_paths if p.replace("\\", "/").lower().rsplit("/", 1)[-1] == name_base]
             if len(candidates) == 1:
                 return candidates[0]
 
-            # Fuzzy fallback: strip browser-added ` (N)` copy suffixes from known paths
-            import re
+            # Try to ignore common "copy" suffixes. (models retrieves "foo.c (1)" and returns it only a "foo.c")
             def strip_copy_suffix(path: str) -> str:
                 base = path.replace("\\", "/").lower().rsplit("/", 1)[-1]
                 return re.sub(r"\s*\(\d+\)(?=\.[^.]+$)", "", base)
@@ -289,22 +292,17 @@ class Analyzer:
             if len(candidates) == 1:
                 return candidates[0]
 
-            # Last resort: if there is only one embedded file, it must be the one
-            if len(known_paths) == 1:
-                logger.info(
-                    "Single-file submission — mapping unmatched filename %r to the only known path %r",
-                    name, known_paths[0],
-                )
-                return known_paths[0]
-
-            logger.warning("Could not normalize issue filename %r to any known path %s", name, known_paths)
+            # We failed... Let AI rule the world!
+            logger.warning("Could not normalize issue %s filename %r to any known path %s",
+                           target_issue.location(), name, known_paths)
             return name
 
         for issue in review_result.issues:
             original = issue.file
-            issue.file = best_match(original)
+            issue.file = best_match(issue, original)
+
             if issue.file != original:
-                logger.info("Normalized issue filename %r → %r", original, issue.file)
+                logger.info("Normalized issue %s filename %r → %r", issue.location(), original, issue.file)
 
         return review_result
 

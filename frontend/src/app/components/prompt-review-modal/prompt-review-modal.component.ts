@@ -3,12 +3,13 @@ import {FormsModule} from '@angular/forms';
 import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzModalModule} from 'ng-zorro-antd/modal';
+import {NzSelectModule} from 'ng-zorro-antd/select';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {catchError, finalize, forkJoin, of} from 'rxjs';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
-import {AnalyzeSourceResponseDto} from '../../service/api/api.models';
+import {AnalyzeSourceResponseDto, AnalysisMode} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {environment} from '../../../environments/environment';
 import {SourceTreeSelectorComponent} from '../source-tree-selector/source-tree-selector.component';
@@ -23,6 +24,7 @@ import {SourceTreeSelectorComponent} from '../source-tree-selector/source-tree-s
     NzModalModule,
     NzSpinModule,
     NzTypographyModule,
+    NzSelectModule,
     SubmitFooterComponent,
     SourceTreeSelectorComponent
   ],
@@ -36,6 +38,11 @@ export class PromptReviewModalComponent implements OnChanges {
   @Output() public readonly reviewsQueued = new EventEmitter<AnalyzeSourceResponseDto[]>();
 
   public reviewModel: string = '';
+  public analysisMode: AnalysisMode = 'chain_of_thought';
+  public readonly analysisModeOptions: Array<{label: string; value: AnalysisMode}> = [
+    {label: 'Chain of thought', value: 'chain_of_thought'},
+    {label: 'One-shot', value: 'one_shot'}
+  ];
   public selectedSourceKeys: string[] = [];
   public selectedSourceLeafKeys: string[] = [];
   public isSourceOptionsLoading: boolean = false;
@@ -87,6 +94,10 @@ export class PromptReviewModalComponent implements OnChanges {
     this.reviewModel = model;
   }
 
+  public handleAnalysisModeChange(mode: AnalysisMode): void {
+    this.analysisMode = mode;
+  }
+
   public handleSourceKeysChange(keys: string[]): void {
     this.selectedSourceKeys = keys;
   }
@@ -120,7 +131,8 @@ export class PromptReviewModalComponent implements OnChanges {
       this.sourcesApiService
         .analyzeSource(sourcePath, {
           model: this.reviewModel.trim(),
-          prompt_path: this.selectedPromptPath!
+          prompt_path: this.selectedPromptPath!,
+          analysis_mode: this.analysisMode
         })
         .pipe(catchError(() => of(null)))
     ));
@@ -154,12 +166,14 @@ export class PromptReviewModalComponent implements OnChanges {
   private initializeModal(): void {
     this.reviewSubmitError = null;
     this.reviewModel = this.defaultModel ?? '';
+    this.analysisMode = 'chain_of_thought';
     this.selectedSourceKeys = [];
     this.selectedSourceLeafKeys = [];
   }
 
   private resetForm(): void {
     this.reviewModel = '';
+    this.analysisMode = 'chain_of_thought';
     this.selectedSourceKeys = [];
     this.selectedSourceLeafKeys = [];
     this.isSourceOptionsLoading = false;

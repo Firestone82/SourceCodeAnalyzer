@@ -1,6 +1,5 @@
 from openai.types.shared_params import ResponseFormatJSONSchema
 
-# Candidate issue schema shared between Draft and Critique passes
 _CANDIDATE_ISSUE_SCHEMA = {
     "type": "object",
     "additionalProperties": False,
@@ -28,7 +27,7 @@ _CANDIDATE_ISSUE_SCHEMA = {
         },
         "severity": {
             "type": "string",
-            "enum": ["critical", "major", "minor", "informational"],
+            "enum": ["critical", "high", "medium", "low"],
             "description": "Estimated impact if the issue is real.",
         },
         "line": {
@@ -100,6 +99,17 @@ _CANDIDATE_ISSUE_SCHEMA = {
     },
 }
 
+_STATS_SCHEMA = {
+    "type": "object",
+    "additionalProperties": False,
+    "required": ["files", "total_lines", "candidate_issue_count"],
+    "properties": {
+        "files": {"type": "integer", "minimum": 0},
+        "total_lines": {"type": "integer", "minimum": 0},
+        "candidate_issue_count": {"type": "integer", "minimum": 0},
+    },
+}
+
 DRAFT_RESULT_SCHEME: ResponseFormatJSONSchema = {
     "type": "json_schema",
     "json_schema": {
@@ -114,21 +124,12 @@ DRAFT_RESULT_SCHEME: ResponseFormatJSONSchema = {
             "additionalProperties": False,
             "required": ["stats", "reasoning_trace", "observations", "candidate_issues"],
             "properties": {
-                "stats": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["files", "total_lines", "candidate_issue_count"],
-                    "properties": {
-                        "files": {"type": "integer", "minimum": 0},
-                        "total_lines": {"type": "integer", "minimum": 0},
-                        "candidate_issue_count": {"type": "integer", "minimum": 0},
-                    },
-                },
+                "stats": _STATS_SCHEMA,
                 "reasoning_trace": {
                     "type": "string",
                     "description": (
                         "Free-form scratchpad written BEFORE populating candidate_issues. "
-                        "Must follow the 7-step chain-of-thought defined in the system prompt."
+                        "Must follow the chain-of-thought steps defined in the system prompt."
                     ),
                 },
                 "observations": {
@@ -157,7 +158,6 @@ DRAFT_RESULT_SCHEME: ResponseFormatJSONSchema = {
     },
 }
 
-# Critique pass reuses the DraftResult shape so the verifier receives a consistent format
 CRITIQUE_RESULT_SCHEME: ResponseFormatJSONSchema = {
     "type": "json_schema",
     "json_schema": {
@@ -172,16 +172,7 @@ CRITIQUE_RESULT_SCHEME: ResponseFormatJSONSchema = {
             "additionalProperties": False,
             "required": ["stats", "reasoning_trace", "observations", "candidate_issues"],
             "properties": {
-                "stats": {
-                    "type": "object",
-                    "additionalProperties": False,
-                    "required": ["files", "total_lines", "candidate_issue_count"],
-                    "properties": {
-                        "files": {"type": "integer", "minimum": 0},
-                        "total_lines": {"type": "integer", "minimum": 0},
-                        "candidate_issue_count": {"type": "integer", "minimum": 0},
-                    },
-                },
+                "stats": _STATS_SCHEMA,
                 "reasoning_trace": {
                     "type": "string",
                     "description": "Original trace plus critique verdicts appended.",
@@ -226,7 +217,11 @@ REVIEW_RESULT_SCHEME: ResponseFormatJSONSchema = {
             "properties": {
                 "summary": {
                     "type": "string",
-                    "description": "3–5 sentences describing overall correctness, key positives, and notable negatives.",
+                    "description": (
+                        "Overall quality assessment of the **whole codebase**. "
+                        "Must cover architecture/readability/maintainability, strengths, important risks or weak areas, "
+                        "and a final overall quality assessment. Do NOT enumerate individual findings in the summary."
+                    ),
                 },
                 "issues": {
                     "type": "array",
@@ -257,7 +252,10 @@ REVIEW_RESULT_SCHEME: ResponseFormatJSONSchema = {
                             },
                             "explanation": {
                                 "type": "string",
-                                "description": "1–3 sentences explaining what is wrong, why it matters, and how to fix it.",
+                                "description": (
+                                    "Clearly state: what the issue is, why it is a problem, and how to fix it in one concise paragraph. "
+                                    "Be specific — reference exact variable/function names in backticks. Avoid generic filler phrases."
+                                )
                             },
                         },
                     },
