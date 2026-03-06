@@ -175,10 +175,10 @@
 
             <td class="text-center">
               @if (submit.analysis_mode === 'one_shot') {
-                <nz-icon nzType="rocket" nzTheme="outline"
+                <nz-icon nzType="rocket" nzTheme="outline" nz-tooltip nzTooltipTitle="One-shot"
                          [ngStyle]="{ fontSize: '20px', verticalAlign: 'text-top' }"/>
               } @else {
-                <nz-icon nzType="share-alt" nzTheme="outline"
+                <nz-icon nzType="share-alt" nzTheme="outline" nz-tooltip nzTooltipTitle="Chain of toughts"
                          [ngStyle]="{ fontSize: '20px', verticalAlign: 'text-top' }"/>
               }
             </td>

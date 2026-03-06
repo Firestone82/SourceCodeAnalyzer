@@ -24,6 +24,7 @@ import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzIconDirective} from 'ng-zorro-antd/icon';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {NgStyle} from '@angular/common';
+import {NzTooltipDirective} from 'ng-zorro-antd/tooltip';
 
 @Component({
   selector: 'app-submits-list',
@@ -41,7 +42,8 @@ import {NgStyle} from '@angular/common';
     SubmitUploadModalComponent,
     JobCreatedModalComponent,
     NzIconDirective,
-    NgStyle
+    NgStyle,
+    NzTooltipDirective
   ],
   templateUrl: './submits-list.component.html',
   styleUrl: './submits-list.component.css'
