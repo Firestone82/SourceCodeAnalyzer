@@ -14,6 +14,7 @@ from app.api.dto import (
     PromptNamesResponse,
     PromptUpdateRequest,
 )
+from app.analyzer.servers import get_default_openai_server_id
 from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
 from app.database.models import AnalysisJob, Rater, Submit
@@ -118,6 +119,8 @@ def analyze_sources_with_prompt(
             request.model,
             current_rater.id,
             False,
+            "chain_of_thought",
+            get_default_openai_server_id(),
             job_timeout=1800,
         )
 
@@ -130,6 +133,8 @@ def analyze_sources_with_prompt(
             source_path=source_path,
             prompt_path=prompt_path,
             model=request.model,
+            analysis_mode="chain_of_thought",
+            openai_server=get_default_openai_server_id(),
             created_at=now,
             updated_at=now,
         ))

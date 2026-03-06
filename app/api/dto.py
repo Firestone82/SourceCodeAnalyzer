@@ -11,6 +11,7 @@ class AnalyzeRequest(BaseModel):
     prompt_path: str = Field(min_length=1)
     prompt_content: Optional[str] = None
     analysis_mode: AnalysisMode = "chain_of_thought"
+    openai_server: str = Field(min_length=1)
 
 
 class BatchAnalyzeRequest(BaseModel):
@@ -173,6 +174,8 @@ class AnalyzeSourceResponse(BaseModel):
     source_path: str
     model: str
     prompt_path: str
+    analysis_mode: AnalysisMode = "chain_of_thought"
+    openai_server: str
 
 
 class JobResponse(BaseModel):
@@ -183,6 +186,8 @@ class JobResponse(BaseModel):
     source_path: Optional[str]
     prompt_path: Optional[str]
     model: Optional[str]
+    analysis_mode: str
+    openai_server: str
     submit_id: Optional[int]
     error: Optional[str]
     error_log: Optional[str] = None
@@ -209,6 +214,8 @@ class JobErrorLogResponse(BaseModel):
 class SubmitResponse(BaseModel):
     id: int
     model: str
+    analysis_mode: AnalysisMode = "chain_of_thought"
+    openai_server: str
     source_path: str
     prompt_path: str
     source_tag: Optional[str] = None
@@ -221,6 +228,8 @@ class SubmitResponse(BaseModel):
 class SubmitListItemResponse(BaseModel):
     id: int
     model: str
+    analysis_mode: AnalysisMode = "chain_of_thought"
+    openai_server: str
     source_path: str
     prompt_path: str
     source_tag: Optional[str] = None
@@ -316,6 +325,16 @@ class SubmitRaterRating(BaseModel):
     comment: Optional[str]
     rated_at: Optional[datetime]
     suggestions: list[SubmitRaterSuggestionRating]
+
+
+class OpenAIServerResponse(BaseModel):
+    id: str
+    label: str
+    models: list[str] = Field(default_factory=list)
+
+
+class OpenAIServerListResponse(BaseModel):
+    servers: list[OpenAIServerResponse]
 
 
 class SubmitRaterRatingsResponse(BaseModel):

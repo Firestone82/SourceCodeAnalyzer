@@ -176,9 +176,8 @@ DATABASE_URL=sqlite:///./dev.db
 REDIS_URL=redis://localhost:6379/0
 RQ_QUEUE_NAME=analysis
 
-# Analyzer (OpenAI-compatible)
-ANALYZER_BASE_URL=http://localhost:11434/v1
-ANALYZER_API_KEY=
+# Analyzer servers configuration
+# Configure OpenAI-compatible targets in data/openai_servers.json
 
 ## Frontend configuration
 FRONTEND_PORT=4200
@@ -191,6 +190,42 @@ For local frontend development, regenerate `frontend/public/env.js` when you cha
 
 `CORS_ORIGINS` is a comma-separated list of allowed browser origins for the API (for example,
 `http://localhost:4200,http://127.0.0.1:4200`). Update it in `.env` if your frontend runs on a different host.
+
+
+### OpenAI server configuration
+
+The backend now reads analyzer targets from `data/openai_servers.json` and auto-creates this file if it does not exist. The first server in the list is treated as the default fallback server.
+
+Each server can define a `models` list. The "new submit" UI uses this to show model options specific to the selected server.
+
+Example:
+```json
+{
+  "servers": [
+    {
+      "id": "server-1",
+      "label": "OpenAI server 1",
+      "base_url": "http://localhost:11434/v1",
+      "api_key": "",
+      "models": ["qwen3", "qwen3-coder"]
+    }
+  ]
+}
+```
+
+### Database migration command
+
+If you already have an existing database, run this SQL once before starting the updated app:
+
+```bash
+sqlite3 dev.db < app/database/migrations/20260306_add_analysis_mode_and_openai_server.sql
+```
+
+For Postgres:
+
+```bash
+psql "$DATABASE_URL" -f app/database/migrations/20260306_add_analysis_mode_and_openai_server.sql
+```
 
 ### Using Postgres instead of SQLite
 

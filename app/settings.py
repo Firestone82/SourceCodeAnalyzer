@@ -3,6 +3,7 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from dotenv import load_dotenv
+from app.analyzer.servers import ensure_openai_servers_config
 
 load_dotenv()
 
@@ -17,13 +18,12 @@ class Settings:
     database_url: str
     redis_url: str
 
-    analyzer_base_url: str
-    analyzer_api_key: str
     cors_origins: list[str]
 
     @staticmethod
     def load() -> "Settings":
         data_dir_raw: str = os.getenv("DATA_DIR", "data").strip()
+        data_dir: Path = Path(data_dir_raw).resolve()
         cors_origins_raw: str = os.getenv(
             "CORS_ORIGINS",
             "http://localhost:4200,http://127.0.0.1:4200",
@@ -31,17 +31,17 @@ class Settings:
         cors_origins: list[str] = [
             origin.strip() for origin in cors_origins_raw.split(",") if origin.strip()
         ]
+        # Ensure OpenAI server config exists at startup so operators can edit defaults.
+        ensure_openai_servers_config(data_dir)
+
         return Settings(
             app_name=os.getenv("APP_NAME", "analyzer-backend").strip(),
             app_env=os.getenv("APP_ENV", "dev").strip(),
             log_level=os.getenv("LOG_LEVEL", "INFO").strip(),
 
-            data_dir=Path(data_dir_raw).resolve(),
+            data_dir=data_dir,
             database_url=os.getenv("DATABASE_URL", "sqlite:///./dev.db").strip(),
             redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0").strip(),
-
-            analyzer_base_url=os.getenv("ANALYZER_BASE_URL", "").strip(),
-            analyzer_api_key=os.getenv("ANALYZER_API_KEY", "").strip(),
             cors_origins=cors_origins,
         )
 

@@ -16,7 +16,7 @@ from serde import from_dict, to_dict
 from app.analyzer.dto import DraftResult, EmbeddedFile, ReviewResult, ReviewIssue
 from app.analyzer.prompt import CRITIQUE_PROMPT, REVIEW_ANALYSIS_PROMPT
 from app.analyzer.scheme import DRAFT_RESULT_SCHEME, CRITIQUE_RESULT_SCHEME, REVIEW_RESULT_SCHEME
-from app.settings import settings
+from app.analyzer.servers import get_openai_server
 
 logger = logging.getLogger(__name__)
 
@@ -77,15 +77,17 @@ class Analyzer:
             draft_prompt: str,
             language: str | None = None,
             analysis_mode: AnalysisMode = "chain_of_thought",
+            openai_server_id: str | None = None,
     ) -> None:
         self.model = model
         self.files = embed_text_files(files)
         self.draft_prompt = draft_prompt
         self.language = language
         self.analysis_mode = analysis_mode
+        openai_server = get_openai_server(openai_server_id)
         self.client = OpenAI(
-            api_key=settings.analyzer_api_key,
-            base_url=settings.analyzer_base_url,
+            api_key=openai_server.api_key,
+            base_url=openai_server.base_url,
         )
 
     def summarize(self) -> ReviewResult:

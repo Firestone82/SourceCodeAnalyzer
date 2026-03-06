@@ -11,11 +11,14 @@ import {SourcesApiService} from '../../service/api/types/sources-api.service';
 import {
   AnalyzeSourceResponseDto,
   AnalysisMode,
+  OpenAIServerDto,
+  OpenAIServerListResponseDto,
   PromptContentResponseDto,
   PromptNamesResponseDto
 } from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
-import {environment} from '../../../environments/environment';
+import {ConfigApiService} from '../../service/api/types/config-api.service';
+import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
 
 @Component({
   selector: 'app-source-review-modal',
@@ -27,7 +30,9 @@ import {environment} from '../../../environments/environment';
     NzModalModule,
     NzSelectModule,
     NzTypographyModule,
-    SubmitFooterComponent
+    SubmitFooterComponent,
+    NzRadioComponent,
+    NzRadioGroupComponent
   ],
   templateUrl: './source-review-modal.component.html'
 })
@@ -51,23 +56,36 @@ export class SourceReviewModalComponent implements OnChanges {
   public promptDraft: string = '';
   public promptErrorMessage: string | null = null;
   public reviewSubmitError: string | null = null;
+  public openaiServerOptions: OpenAIServerDto[] = [];
+  public selectedOpenaiServer: string | null = null;
   public isPromptOptionsLoading: boolean = false;
   public isSubmittingReview: boolean = false;
   private promptContent: string = '';
 
   public constructor(
     private readonly promptsApiService: PromptsApiService,
-    private readonly sourcesApiService: SourcesApiService
+    private readonly sourcesApiService: SourcesApiService,
+    private readonly configApiService: ConfigApiService
   ) {
   }
 
   public get filteredModelOptions(): string[] {
+    const availableModels = this.selectedServerModels;
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
-      return environment.models ?? [];
+      return availableModels;
     }
 
-    return (environment.models ?? []).filter((model: string) => model.toLowerCase().includes(query));
+    return availableModels.filter((model: string) => model.toLowerCase().includes(query));
+  }
+
+  public get selectedServerModels(): string[] {
+    if (!this.selectedOpenaiServer) {
+      return [];
+    }
+
+    const selectedServer = this.openaiServerOptions.find((server) => server.id === this.selectedOpenaiServer);
+    return selectedServer?.models ?? [];
   }
 
   public get canSubmitReview(): boolean {
@@ -75,6 +93,7 @@ export class SourceReviewModalComponent implements OnChanges {
       this.selectedSourcePath
       && this.selectedPromptPath
       && this.reviewModel.trim()
+      && this.selectedOpenaiServer
       && !this.isSubmittingReview
       && !this.isPromptOptionsLoading
     );
@@ -148,6 +167,15 @@ export class SourceReviewModalComponent implements OnChanges {
     this.analysisMode = mode;
   }
 
+  public handleOpenaiServerChange(serverId: string | null): void {
+    this.selectedOpenaiServer = serverId;
+    const serverModels = this.selectedServerModels;
+
+    if (serverModels.length > 0 && !serverModels.includes(this.reviewModel.trim())) {
+      this.reviewModel = '';
+    }
+  }
+
   public handleSubmit(): void {
     if (!this.canSubmitReview || !this.selectedSourcePath || !this.selectedPromptPath) {
       return;
@@ -162,8 +190,8 @@ export class SourceReviewModalComponent implements OnChanges {
 
     const finalizeSubmission = (promptPath: string, promptContent?: string): void => {
       const requestPayload = promptContent
-        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent, analysis_mode: this.analysisMode}
-        : {model: this.reviewModel.trim(), prompt_path: promptPath, analysis_mode: this.analysisMode};
+        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!}
+        : {model: this.reviewModel.trim(), prompt_path: promptPath, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!};
 
       this.sourcesApiService
         .analyzeSource(this.selectedSourcePath!, requestPayload)
@@ -199,6 +227,7 @@ export class SourceReviewModalComponent implements OnChanges {
     this.promptErrorMessage = null;
     this.reviewModel = this.defaultModel ?? '';
     this.analysisMode = 'chain_of_thought';
+    this.loadOpenaiServers();
     if (this.defaultPromptPath) {
       this.promptPaths = [this.defaultPromptPath];
       this.selectedPromptPath = this.defaultPromptPath;
@@ -218,6 +247,8 @@ export class SourceReviewModalComponent implements OnChanges {
     this.promptContent = '';
     this.promptErrorMessage = null;
     this.reviewSubmitError = null;
+    this.openaiServerOptions = [];
+    this.selectedOpenaiServer = null;
     this.isPromptOptionsLoading = false;
     this.isSubmittingReview = false;
   }
@@ -287,5 +318,17 @@ export class SourceReviewModalComponent implements OnChanges {
     const date = iso.slice(0, 10);
     const time = iso.slice(11, 16).replace(':', '-');
     return `${date}-${time}`;
+  }
+
+  private loadOpenaiServers(): void {
+    this.configApiService
+      .getOpenAIServers()
+      .pipe(
+        catchError(() => of<OpenAIServerListResponseDto>({servers: []}))
+      )
+      .subscribe((response) => {
+        this.openaiServerOptions = response.servers;
+        this.selectedOpenaiServer = null;
+      });
   }
 }

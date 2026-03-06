@@ -22,7 +22,6 @@
         <div class="flex flex-wrap items-center gap-2">
           <input
             [(ngModel)]="massReanalyzePromptPath"
-            [nzAutocomplete]="promptPathAutoComplete"
             class="max-w-[320px]"
             nz-input
             placeholder="Prompt path for reevaluation"
@@ -109,7 +108,8 @@
           Only not rated
         </label>
 
-        <label (ngModelChange)="handleRandomizedNavigationChange($event)" [(ngModel)]="isRandomizedNavigation" nz-checkbox>
+        <label (ngModelChange)="handleRandomizedNavigationChange($event)" [(ngModel)]="isRandomizedNavigation"
+               nz-checkbox>
           Randomize submits table
         </label>
       </div>
@@ -143,9 +143,10 @@
         </th>
         <th nzWidth="40px">Id</th>
         <th nzWidth="150px">Model</th>
+        <th nzWidth="60px">Mode</th>
         <th>Prompt path</th>
         <th>Source path</th>
-        <th nzWidth="150px">Source tag</th>
+        <th nzWidth="120px">Source tag</th>
         @if (isAdmin) {
           <th nzWidth="80px" nzAlign="center">Visibility</th>
         }
@@ -171,6 +172,16 @@
             </td>
 
             <td>{{ submit.model }}</td>
+
+            <td class="text-center">
+              @if (submit.analysis_mode === 'one_shot') {
+                <nz-icon nzType="rocket" nzTheme="outline"
+                         [ngStyle]="{ fontSize: '20px', verticalAlign: 'text-top' }"/>
+              } @else {
+                <nz-icon nzType="share-alt" nzTheme="outline"
+                         [ngStyle]="{ fontSize: '20px', verticalAlign: 'text-top' }"/>
+              }
+            </td>
 
             <td class="whitespace-normal break-all">
               <a
@@ -260,11 +271,6 @@
       </tbody>
     </nz-table>
 
-    <nz-autocomplete #promptPathAutoComplete>
-      @for (path of availablePromptPaths; track path) {
-        <nz-auto-option [nzValue]="path">{{ path }}</nz-auto-option>
-      }
-    </nz-autocomplete>
   </nz-card>
 </div>
 

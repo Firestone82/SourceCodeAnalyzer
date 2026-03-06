@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.analyzer.analyzer import Analyzer
 from app.analyzer.dto import ReviewResult
+from app.analyzer.servers import get_default_openai_server_id
 from app.database.db import SessionLocal
 from app.database.models import Submit, Issue, IssueRating, SubmitRating, AnalysisJob
 from app.utils.files import find_prompt_file, save_job_error_log, find_source_files_or_extract
@@ -116,6 +117,7 @@ def run_submit_analysis(
         rater_id: int | None = None,
         published: bool = False,
         analysis_mode: Literal["chain_of_thought", "one_shot"] = "chain_of_thought",
+        openai_server: str | None = None,
 ) -> None:
     session: Session = SessionLocal()
 
@@ -170,12 +172,15 @@ def run_submit_analysis(
             draft_prompt,
             language=None,
             analysis_mode=analysis_mode,
+            openai_server_id=openai_server,
         ).summarize()
 
         submit: Submit = Submit(
             source_path=source_path,
             prompt_path=prompt_path,
             model=model,
+            analysis_mode=analysis_mode,
+            openai_server=(openai_server or get_default_openai_server_id()),
             created_by_id=rater_id,
             published=published,
         )

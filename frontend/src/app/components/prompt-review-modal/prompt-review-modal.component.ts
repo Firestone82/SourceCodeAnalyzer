@@ -9,10 +9,16 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {catchError, finalize, forkJoin, of} from 'rxjs';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
-import {AnalyzeSourceResponseDto, AnalysisMode} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  AnalysisMode,
+  OpenAIServerDto,
+  OpenAIServerListResponseDto
+} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
-import {environment} from '../../../environments/environment';
 import {SourceTreeSelectorComponent} from '../source-tree-selector/source-tree-selector.component';
+import {ConfigApiService} from '../../service/api/types/config-api.service';
+import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
 
 @Component({
   selector: 'app-prompt-review-modal',
@@ -26,7 +32,9 @@ import {SourceTreeSelectorComponent} from '../source-tree-selector/source-tree-s
     NzTypographyModule,
     NzSelectModule,
     SubmitFooterComponent,
-    SourceTreeSelectorComponent
+    SourceTreeSelectorComponent,
+    NzRadioGroupComponent,
+    NzRadioComponent
   ],
   templateUrl: './prompt-review-modal.component.html'
 })
@@ -48,20 +56,33 @@ export class PromptReviewModalComponent implements OnChanges {
   public isSourceOptionsLoading: boolean = false;
   public isSubmittingReview: boolean = false;
   public reviewSubmitError: string | null = null;
+  public openaiServerOptions: OpenAIServerDto[] = [];
+  public selectedOpenaiServer: string | null = null;
 
   public constructor(
     private readonly sourcesApiService: SourcesApiService,
-    private readonly nzMessageService: NzMessageService
+    private readonly nzMessageService: NzMessageService,
+    private readonly configApiService: ConfigApiService
   ) {
   }
 
   public get filteredModelOptions(): string[] {
+    const availableModels = this.selectedServerModels;
     const query = this.reviewModel.trim().toLowerCase();
     if (!query) {
-      return environment.models ?? [];
+      return availableModels;
     }
 
-    return (environment.models ?? []).filter((model: string) => model.toLowerCase().includes(query));
+    return availableModels.filter((model: string) => model.toLowerCase().includes(query));
+  }
+
+  public get selectedServerModels(): string[] {
+    if (!this.selectedOpenaiServer) {
+      return [];
+    }
+
+    const selectedServer = this.openaiServerOptions.find((server) => server.id === this.selectedOpenaiServer);
+    return selectedServer?.models ?? [];
   }
 
 
@@ -74,6 +95,7 @@ export class PromptReviewModalComponent implements OnChanges {
       this.selectedPromptPath
       && this.reviewModel.trim()
       && this.selectedSourceLeafKeys.length > 0
+      && this.selectedOpenaiServer
       && !this.isSubmittingReview
       && !this.isSourceOptionsLoading
     );
@@ -96,6 +118,15 @@ export class PromptReviewModalComponent implements OnChanges {
 
   public handleAnalysisModeChange(mode: AnalysisMode): void {
     this.analysisMode = mode;
+  }
+
+  public handleOpenaiServerChange(serverId: string | null): void {
+    this.selectedOpenaiServer = serverId;
+    const serverModels = this.selectedServerModels;
+
+    if (serverModels.length > 0 && !serverModels.includes(this.reviewModel.trim())) {
+      this.reviewModel = '';
+    }
   }
 
   public handleSourceKeysChange(keys: string[]): void {
@@ -132,7 +163,8 @@ export class PromptReviewModalComponent implements OnChanges {
         .analyzeSource(sourcePath, {
           model: this.reviewModel.trim(),
           prompt_path: this.selectedPromptPath!,
-          analysis_mode: this.analysisMode
+          analysis_mode: this.analysisMode,
+          openai_server: this.selectedOpenaiServer!
         })
         .pipe(catchError(() => of(null)))
     ));
@@ -167,6 +199,7 @@ export class PromptReviewModalComponent implements OnChanges {
     this.reviewSubmitError = null;
     this.reviewModel = this.defaultModel ?? '';
     this.analysisMode = 'chain_of_thought';
+    this.loadOpenaiServers();
     this.selectedSourceKeys = [];
     this.selectedSourceLeafKeys = [];
   }
@@ -179,5 +212,17 @@ export class PromptReviewModalComponent implements OnChanges {
     this.isSourceOptionsLoading = false;
     this.isSubmittingReview = false;
     this.reviewSubmitError = null;
+    this.openaiServerOptions = [];
+    this.selectedOpenaiServer = null;
+  }
+
+  private loadOpenaiServers(): void {
+    this.configApiService
+      .getOpenAIServers()
+      .pipe(catchError(() => of<OpenAIServerListResponseDto>({servers: []})))
+      .subscribe((response) => {
+        this.openaiServerOptions = response.servers;
+        this.selectedOpenaiServer = null;
+      });
   }
 }

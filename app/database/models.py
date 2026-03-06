@@ -13,6 +13,8 @@ class Submit(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     model: Mapped[str] = mapped_column(String(128), nullable=False)
+    analysis_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="chain_of_thought")
+    openai_server: Mapped[str] = mapped_column(String(128), nullable=False, default="server-1")
     source_path: Mapped[str] = mapped_column(String(512), nullable=False)
     prompt_path: Mapped[str] = mapped_column(String(512), nullable=False)
     created_by_id: Mapped[int | None] = mapped_column(ForeignKey("rater.id"), nullable=True)
@@ -118,6 +120,8 @@ class AnalysisJob(Base):
     source_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     prompt_path: Mapped[str | None] = mapped_column(String(512), nullable=True)
     model: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    analysis_mode: Mapped[str] = mapped_column(String(32), nullable=False, default="chain_of_thought")
+    openai_server: Mapped[str] = mapped_column(String(128), nullable=False, default="server-1")
     submit_id: Mapped[int | None] = mapped_column(ForeignKey("submit.id"), nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now)

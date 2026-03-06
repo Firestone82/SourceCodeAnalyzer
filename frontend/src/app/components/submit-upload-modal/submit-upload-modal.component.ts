@@ -8,9 +8,17 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {catchError, finalize, of} from 'rxjs';
 import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
-import {AnalyzeSourceResponseDto, AnalysisMode, PromptContentResponseDto, PromptNamesResponseDto} from '../../service/api/api.models';
+import {
+  AnalyzeSourceResponseDto,
+  AnalysisMode,
+  OpenAIServerDto,
+  OpenAIServerListResponseDto,
+  PromptContentResponseDto,
+  PromptNamesResponseDto
+} from '../../service/api/api.models';
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
-import {environment} from '../../../environments/environment';
+import {ConfigApiService} from '../../service/api/types/config-api.service';
+import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
 
 @Component({
   selector: 'app-submit-upload-modal',
@@ -22,7 +30,9 @@ import {environment} from '../../../environments/environment';
     NzModalModule,
     NzSelectModule,
     NzTypographyModule,
-    SubmitFooterComponent
+    SubmitFooterComponent,
+    NzRadioComponent,
+    NzRadioGroupComponent
   ],
   templateUrl: './submit-upload-modal.component.html'
 })
@@ -47,21 +57,35 @@ export class SubmitUploadModalComponent implements OnChanges {
   public isPromptOptionsLoading: boolean = false;
   public isSubmitting: boolean = false;
   public uploadErrorMessage: string | null = null;
+  public openaiServerOptions: OpenAIServerDto[] = [];
+  public selectedOpenaiServer: string | null = null;
   private promptContent: string = '';
 
   public constructor(
     private readonly promptsApiService: PromptsApiService,
-    private readonly submitsApiService: SubmitsApiService
+    private readonly submitsApiService: SubmitsApiService,
+    private readonly configApiService: ConfigApiService
   ) {
   }
 
   public get filteredModelOptions(): string[] {
+    const configuredModels = this.selectedServerModels;
+    const availableModels = configuredModels;
     const query = this.uploadModel.trim().toLowerCase();
     if (!query) {
-      return environment.models ?? [];
+      return availableModels;
     }
 
-    return (environment.models ?? []).filter((model: string) => model.toLowerCase().includes(query));
+    return availableModels.filter((model: string) => model.toLowerCase().includes(query));
+  }
+
+  public get selectedServerModels(): string[] {
+    if (!this.selectedOpenaiServer) {
+      return [];
+    }
+
+    const selectedServer = this.openaiServerOptions.find((server) => server.id === this.selectedOpenaiServer);
+    return selectedServer?.models ?? [];
   }
 
   public get sourceFileName(): string | null {
@@ -82,6 +106,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       this.uploadModel.trim()
       && this.sourceFile
       && this.promptDraft.trim()
+      && this.selectedOpenaiServer
       && !this.isPromptOptionsLoading
       && !this.isSubmitting
     );
@@ -104,6 +129,15 @@ export class SubmitUploadModalComponent implements OnChanges {
 
   public handleAnalysisModeChange(mode: AnalysisMode): void {
     this.analysisMode = mode;
+  }
+
+  public handleOpenaiServerChange(serverId: string | null): void {
+    this.selectedOpenaiServer = serverId;
+    const serverModels = this.selectedServerModels;
+
+    if (serverModels.length > 0 && !serverModels.includes(this.uploadModel.trim())) {
+      this.uploadModel = '';
+    }
   }
 
   public handlePromptSelection(promptPath: string | null): void {
@@ -182,6 +216,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       const formData = new FormData();
       formData.append('model', this.uploadModel.trim());
       formData.append('analysis_mode', this.analysisMode);
+      formData.append('openai_server', this.selectedOpenaiServer!);
 
       const normalizedSourceName = this.normalizeUploadName(this.sourceName.trim());
       const sourcePath = normalizedSourceName || this.buildSourceUploadName();
@@ -230,6 +265,7 @@ export class SubmitUploadModalComponent implements OnChanges {
     this.uploadErrorMessage = null;
     this.promptErrorMessage = null;
     this.loadPromptPaths();
+    this.loadOpenaiServers();
   }
 
   private resetForm(): void {
@@ -246,6 +282,8 @@ export class SubmitUploadModalComponent implements OnChanges {
     this.isPromptOptionsLoading = false;
     this.isSubmitting = false;
     this.uploadErrorMessage = null;
+    this.openaiServerOptions = [];
+    this.selectedOpenaiServer = null;
   }
 
   private loadPromptPaths(): void {
@@ -292,5 +330,15 @@ export class SubmitUploadModalComponent implements OnChanges {
       return name.slice('upload/'.length);
     }
     return name;
+  }
+
+  private loadOpenaiServers(): void {
+    this.configApiService
+      .getOpenAIServers()
+      .pipe(catchError(() => of<OpenAIServerListResponseDto>({servers: []})))
+      .subscribe((response) => {
+        this.openaiServerOptions = response.servers;
+        this.selectedOpenaiServer = null;
+      });
   }
 }

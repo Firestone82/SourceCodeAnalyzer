@@ -6,7 +6,6 @@ import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzTagModule} from 'ng-zorro-antd/tag';
 import {NzInputModule} from 'ng-zorro-antd/input';
 import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
-import {NzAutocompleteModule} from 'ng-zorro-antd/auto-complete';
 import {SubmitsApiService} from '../../service/api/types/submits-api.service';
 import {
   AnalyzeSourceResponseDto,
@@ -23,8 +22,8 @@ import {NzTypographyModule} from 'ng-zorro-antd/typography';
 import {AuthService} from '../../service/auth/auth.service';
 import {NzMessageService} from 'ng-zorro-antd/message';
 import {NzIconDirective} from 'ng-zorro-antd/icon';
-import {PromptsApiService} from '../../service/api/types/prompts-api.service';
 import {SourcesApiService} from '../../service/api/types/sources-api.service';
+import {NgStyle} from '@angular/common';
 
 @Component({
   selector: 'app-submits-list',
@@ -37,12 +36,12 @@ import {SourcesApiService} from '../../service/api/types/sources-api.service';
     NzTagModule,
     NzInputModule,
     NzCheckboxModule,
-    NzAutocompleteModule,
     NzCardComponent,
     NzTypographyModule,
     SubmitUploadModalComponent,
     JobCreatedModalComponent,
-    NzIconDirective
+    NzIconDirective,
+    NgStyle
   ],
   templateUrl: './submits-list.component.html',
   styleUrl: './submits-list.component.css'
@@ -74,7 +73,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   isMassPublishing: boolean = false;
   isMassDeleting: boolean = false;
   isMassReanalyzing: boolean = false;
-  availablePromptPaths: string[] = [];
   massReanalyzePromptPath: string = '';
   private readonly destroy$ = new Subject<void>();
   private readonly uploadPollingStop$ = new Subject<void>();
@@ -83,7 +81,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   public constructor(
     private readonly submitsApiService: SubmitsApiService,
     private readonly jobsApiService: JobsApiService,
-    private readonly promptsApiService: PromptsApiService,
     private readonly sourcesApiService: SourcesApiService,
     private readonly router: Router,
     private readonly authService: AuthService,
@@ -92,7 +89,6 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
   }
 
   public ngOnInit(): void {
-    this.loadPromptPaths();
     this.authService.rater$
       .pipe(takeUntil(this.destroy$))
       .subscribe((rater) => {
@@ -165,18 +161,23 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
         this.selectedSubmitIds.delete(submit.id);
       }
     }
+
+    this.updateMassReanalyzePromptDefault();
   }
 
   public toggleSubmitSelection(submitId: number, checked: boolean): void {
     if (checked) {
       this.selectedSubmitIds.add(submitId);
-      return;
+    } else {
+      this.selectedSubmitIds.delete(submitId);
     }
-    this.selectedSubmitIds.delete(submitId);
+
+    this.updateMassReanalyzePromptDefault();
   }
 
   public clearSelection(): void {
     this.selectedSubmitIds.clear();
+    this.massReanalyzePromptPath = '';
   }
 
 
@@ -190,6 +191,11 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     }
 
     return 'Not rated';
+  }
+
+
+  public analysisModeLabel(mode: string): string {
+    return mode === 'one_shot' ? 'One-shot' : 'Thinking';
   }
 
   public sourceTagColor(tag: string | null | undefined): string {
@@ -357,7 +363,9 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     const requests = selectedSubmits.map((submit) => this.sourcesApiService
       .analyzeSource(submit.source_path, {
         model: submit.model,
-        prompt_path: promptPath
+        prompt_path: promptPath || submit.prompt_path,
+        analysis_mode: submit.analysis_mode,
+        openai_server: submit.openai_server
       })
       .pipe(catchError(() => of(null))));
 
@@ -459,6 +467,7 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
       .subscribe((response: SubmitListResponseDto) => {
         this.submits = this.isRandomizedNavigation ? this.shuffleSubmits(response.items) : response.items;
         this.totalSubmits = response.total;
+        this.updateMassReanalyzePromptDefault();
       });
   }
 
@@ -475,14 +484,17 @@ export class SubmitsListComponent implements OnInit, OnDestroy {
     return shuffled;
   }
 
-  private loadPromptPaths(): void {
-    this.promptsApiService.getPromptPaths().subscribe({
-      next: (response) => {
-        this.availablePromptPaths = response.prompt_paths ?? [];
-      },
-      error: () => {
-        this.availablePromptPaths = [];
-      }
-    });
+
+  private updateMassReanalyzePromptDefault(): void {
+    const selectedSubmits = this.submits.filter((submit) => this.selectedSubmitIds.has(submit.id));
+    if (selectedSubmits.length === 0) {
+      this.massReanalyzePromptPath = '';
+      return;
+    }
+
+    if (!this.massReanalyzePromptPath.trim()) {
+      this.massReanalyzePromptPath = selectedSubmits[0].prompt_path;
+    }
   }
+
 }

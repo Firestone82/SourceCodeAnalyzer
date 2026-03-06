@@ -12,35 +12,48 @@
         <div>{{ selectedPromptPath }}</div>
       </div>
 
-      <div>
-        <label class="mb-1 block text-sm font-medium">Model</label>
-        <input
-          (ngModelChange)="handleModelChange($event)"
-          [ngModel]="reviewModel"
-          [nzAutocomplete]="modelAuto"
-          nz-input
-          placeholder="Model name"
-        />
-        <nz-autocomplete #modelAuto>
-          @for (model of filteredModelOptions; track model) {
-            <nz-auto-option [nzValue]="model">{{ model }}</nz-auto-option>
-          }
-        </nz-autocomplete>
-      </div>
+      <div class="flex flex-row gap-4">
+        <div class="w-1/4">
+          <label class="mb-1 block text-sm font-medium">OpenAI server</label>
 
+          <nz-select
+            (ngModelChange)="handleOpenaiServerChange($event)"
+            [ngModel]="selectedOpenaiServer"
+            class="w-full"
+            nzPlaceHolder="Select target server"
+          >
+            @for (server of openaiServerOptions; track server.id) {
+              <nz-option [nzLabel]="server.label" [nzValue]="server.id"></nz-option>
+            }
+          </nz-select>
+        </div>
 
-      <div>
-        <label class="mb-1 block text-sm font-medium">Analysis mode</label>
-        <nz-select
-          (ngModelChange)="handleAnalysisModeChange($event)"
-          [ngModel]="analysisMode"
-          class="w-full"
-          nzPlaceHolder="Select analysis mode"
-        >
-          @for (mode of analysisModeOptions; track mode.value) {
-            <nz-option [nzLabel]="mode.label" [nzValue]="mode.value"></nz-option>
-          }
-        </nz-select>
+        <div>
+          <label class="mb-1 block text-sm font-medium">Analysis mode</label>
+
+          <nz-radio-group [(ngModel)]="analysisMode">
+            <label nz-radio-button nzValue="one_shot">One-shot</label>
+            <label nz-radio-button nzValue="chain_of_thought">Thinking</label>
+          </nz-radio-group>
+        </div>
+
+        <div class="flex-1">
+          <label class="mb-1 block text-sm font-medium">Model</label>
+
+          <input
+            (ngModelChange)="handleModelChange($event)"
+            [disabled]="!selectedOpenaiServer"
+            [ngModel]="reviewModel"
+            [nzAutocomplete]="modelAuto"
+            nz-input
+            placeholder="Model name"
+          />
+          <nz-autocomplete #modelAuto>
+            @for (model of filteredModelOptions; track model) {
+              <nz-auto-option [nzValue]="model">{{ model }}</nz-auto-option>
+            }
+          </nz-autocomplete>
+        </div>
       </div>
 
       <div>

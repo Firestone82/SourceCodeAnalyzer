@@ -92,11 +92,14 @@ def upload_submit(
         prompt_path: str | None = Form(None),
         prompt_file: UploadFile | None = File(None),
         analysis_mode: Literal["chain_of_thought", "one_shot"] = Form("chain_of_thought"),
+        openai_server: str = Form(...),
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> AnalyzeSourceResponse:
     if not model.strip():
         raise HTTPException(status_code=400, detail="Model is required")
+    if not openai_server.strip():
+        raise HTTPException(status_code=400, detail="OpenAI server is required")
 
     analysis_queue = get_analysis_queue()
     stored_source_path = store_uploaded_source(source_file, source_path)
@@ -117,6 +120,7 @@ def upload_submit(
         current_rater.id,
         False,
         analysis_mode,
+        openai_server.strip(),
         job_timeout=1800,
     )
 
@@ -129,6 +133,8 @@ def upload_submit(
         source_path=stored_source_path,
         prompt_path=stored_prompt_path,
         model=model.strip(),
+        analysis_mode=analysis_mode,
+        openai_server=openai_server.strip(),
         created_at=now,
         updated_at=now,
     ))
@@ -140,6 +146,8 @@ def upload_submit(
         source_path=stored_source_path,
         prompt_path=stored_prompt_path,
         model=model.strip(),
+        analysis_mode=analysis_mode,
+        openai_server=openai_server.strip(),
     )
 
 
@@ -283,6 +291,8 @@ def get_submits(
                 id=submit.id,
                 model=submit.model,
                 source_path=submit.source_path,
+                analysis_mode=submit.analysis_mode,
+                openai_server=submit.openai_server,
                 prompt_path=submit.prompt_path,
                 source_tag=source_tag,
                 created_at=submit.created_at,
@@ -392,6 +402,8 @@ def get_submit(
     return SubmitResponse(
         id=submit.id,
         model=submit.model,
+        analysis_mode=submit.analysis_mode,
+        openai_server=submit.openai_server,
         source_path=submit.source_path,
         prompt_path=submit.prompt_path,
         source_tag=source_tag,

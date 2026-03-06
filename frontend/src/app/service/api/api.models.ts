@@ -125,6 +125,7 @@ export interface AnalyzeSourceRequestDto {
   prompt_path: string;
   prompt_content?: string;
   analysis_mode?: AnalysisMode;
+  openai_server: string;
 }
 
 export interface AnalyzeSourceResponseDto {
@@ -133,6 +134,8 @@ export interface AnalyzeSourceResponseDto {
   source_path: string;
   model: string;
   prompt_path: string;
+  analysis_mode: AnalysisMode;
+  openai_server: string;
 }
 
 export interface JobDto {
@@ -143,6 +146,8 @@ export interface JobDto {
   source_path: string | null;
   prompt_path: string | null;
   model: string | null;
+  analysis_mode: AnalysisMode;
+  openai_server: string;
   submit_id: number | null;
   error: string | null;
   error_log?: string | null;
@@ -170,6 +175,8 @@ export interface JobListResponseDto {
 export interface SubmitListItemDto {
   id: number;
   model: string;
+  analysis_mode: AnalysisMode;
+  openai_server: string;
   prompt_path: string;
   source_path: string;
   source_tag?: string | null;
@@ -189,6 +196,8 @@ export interface SubmitListResponseDto {
 export interface SubmitDto {
   id: number;
   model: string;
+  analysis_mode: AnalysisMode;
+  openai_server: string;
   prompt_path: string;
   source_path: string;
   source_tag?: string | null;
@@ -258,6 +267,16 @@ export interface SubmitRaterRatingDto {
   comment: string | null;
   rated_at: string | null;
   suggestions: SubmitRaterSuggestionRatingDto[];
+}
+
+export interface OpenAIServerDto {
+  id: string;
+  label: string;
+  models: string[];
+}
+
+export interface OpenAIServerListResponseDto {
+  servers: OpenAIServerDto[];
 }
 
 export interface SubmitRaterRatingsResponseDto {

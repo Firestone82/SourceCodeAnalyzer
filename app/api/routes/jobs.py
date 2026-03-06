@@ -42,6 +42,8 @@ def list_jobs(
             source_path=job.source_path,
             prompt_path=job.prompt_path,
             model=job.model,
+            analysis_mode=job.analysis_mode,
+            openai_server=job.openai_server,
             submit_id=job.submit_id,
             error=job.error,
             error_log=None,
@@ -77,6 +79,8 @@ def get_job(
         source_path=job.source_path,
         prompt_path=job.prompt_path,
         model=job.model,
+        analysis_mode=job.analysis_mode,
+        openai_server=job.openai_server,
         submit_id=job.submit_id,
         error=job.error,
         error_log=load_job_error_log(job_id),
@@ -162,6 +166,8 @@ def restart_failed_job(
         job.model,
         current_rater.id,
         False,
+        job.analysis_mode,
+        job.openai_server,
         job_timeout=1800,
     )
 
@@ -174,6 +180,8 @@ def restart_failed_job(
         source_path=job.source_path,
         prompt_path=job.prompt_path,
         model=job.model,
+        analysis_mode=job.analysis_mode,
+        openai_server=job.openai_server,
         created_at=now,
         updated_at=now,
     ))
@@ -185,4 +193,6 @@ def restart_failed_job(
         source_path=job.source_path,
         prompt_path=job.prompt_path,
         model=job.model,
+        analysis_mode=job.analysis_mode,
+        openai_server=job.openai_server,
     )

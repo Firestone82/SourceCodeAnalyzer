@@ -281,6 +281,7 @@ def analyze_source_file(
         current_rater.id,
         False,
         request.analysis_mode,
+        request.openai_server,
         job_timeout=1800,
     )
 
@@ -293,6 +294,8 @@ def analyze_source_file(
         source_path=source_path,
         prompt_path=prompt_path,
         model=request.model,
+        analysis_mode=request.analysis_mode,
+        openai_server=request.openai_server,
         created_at=now,
         updated_at=now,
     ))
@@ -304,6 +307,8 @@ def analyze_source_file(
         source_path=source_path,
         model=request.model,
         prompt_path=prompt_path,
+        analysis_mode=request.analysis_mode,
+        openai_server=request.openai_server,
     )
 
 
