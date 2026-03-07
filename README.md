@@ -174,6 +174,10 @@ DATABASE_URL=sqlite:///./dev.db
 
 # Queue
 REDIS_URL=redis://localhost:6379/0
+
+# Optional Critiquer override (AI rater); defaults to analyzer model/server when empty
+CRITIQUER_MODEL=
+CRITIQUER_OPENAI_SERVER=
 RQ_QUEUE_NAME=analysis
 
 # Analyzer servers configuration
@@ -219,12 +223,14 @@ If you already have an existing database, run this SQL once before starting the 
 
 ```bash
 sqlite3 dev.db < app/database/migrations/20260306_add_analysis_mode_and_openai_server.sql
+sqlite3 dev.db < app/database/migrations/20260307_add_ai_ratings_tables.sql
 ```
 
 For Postgres:
 
 ```bash
 psql "$DATABASE_URL" -f app/database/migrations/20260306_add_analysis_mode_and_openai_server.sql
+psql "$DATABASE_URL" -f app/database/migrations/20260307_add_ai_ratings_tables.sql
 ```
 
 ### Using Postgres instead of SQLite

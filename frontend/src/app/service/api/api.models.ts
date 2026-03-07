@@ -126,6 +126,7 @@ export interface AnalyzeSourceRequestDto {
   prompt_content?: string;
   analysis_mode?: AnalysisMode;
   openai_server: string;
+  run_critiquer?: boolean;
 }
 
 export interface AnalyzeSourceResponseDto {
@@ -136,6 +137,7 @@ export interface AnalyzeSourceResponseDto {
   prompt_path: string;
   analysis_mode: AnalysisMode;
   openai_server: string;
+  run_critiquer?: boolean;
 }
 
 export interface JobDto {
@@ -209,7 +211,8 @@ export interface SubmitDto {
 
 export interface SubmitDetailsDto {
   submit_id: number;
-  rater_id: number;
+  rating_source: 'teacher' | 'ai';
+  rater_id: number | null;
   summary: {
     id: number | null;
     explanation: string;

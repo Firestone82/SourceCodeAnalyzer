@@ -8,12 +8,13 @@ export class DashboardApiService {
   public constructor(private readonly apiClientService: ApiClientService) {
   }
 
-  public getStats(sourcePath: string | null, promptPath: string | null, model: string | null): Observable<DashboardStatsResponseDto> {
+  public getStats(sourcePath: string | null, promptPath: string | null, model: string | null, ratingSource: "teacher" | "ai" = "teacher"): Observable<DashboardStatsResponseDto> {
     return this.apiClientService.get<DashboardStatsResponseDto>('/dashboard/stats', {
       queryParams: {
         source_path: sourcePath && sourcePath.trim() ? sourcePath.trim() : null,
         prompt_path: promptPath && promptPath.trim() ? promptPath.trim() : null,
-        model: model && model.trim() ? model.trim() : null
+        model: model && model.trim() ? model.trim() : null,
+        rating_source: ratingSource
       }
     });
   }

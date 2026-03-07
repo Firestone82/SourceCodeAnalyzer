@@ -19,6 +19,7 @@ import {
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {ConfigApiService} from '../../service/api/types/config-api.service';
 import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
+import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 
 @Component({
   selector: 'app-source-review-modal',
@@ -32,7 +33,8 @@ import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
     NzTypographyModule,
     SubmitFooterComponent,
     NzRadioComponent,
-    NzRadioGroupComponent
+    NzRadioGroupComponent,
+    NzCheckboxModule
   ],
   templateUrl: './source-review-modal.component.html'
 })
@@ -60,6 +62,7 @@ export class SourceReviewModalComponent implements OnChanges {
   public selectedOpenaiServer: string | null = null;
   public isPromptOptionsLoading: boolean = false;
   public isSubmittingReview: boolean = false;
+  public runCritiquer: boolean = true;
   private promptContent: string = '';
 
   public constructor(
@@ -190,8 +193,8 @@ export class SourceReviewModalComponent implements OnChanges {
 
     const finalizeSubmission = (promptPath: string, promptContent?: string): void => {
       const requestPayload = promptContent
-        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!}
-        : {model: this.reviewModel.trim(), prompt_path: promptPath, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!};
+        ? {model: this.reviewModel.trim(), prompt_path: promptPath, prompt_content: promptContent, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!, run_critiquer: this.runCritiquer}
+        : {model: this.reviewModel.trim(), prompt_path: promptPath, analysis_mode: this.analysisMode, openai_server: this.selectedOpenaiServer!, run_critiquer: this.runCritiquer};
 
       this.sourcesApiService
         .analyzeSource(this.selectedSourcePath!, requestPayload)
@@ -227,6 +230,7 @@ export class SourceReviewModalComponent implements OnChanges {
     this.promptErrorMessage = null;
     this.reviewModel = this.defaultModel ?? '';
     this.analysisMode = 'chain_of_thought';
+    this.runCritiquer = true;
     this.loadOpenaiServers();
     if (this.defaultPromptPath) {
       this.promptPaths = [this.defaultPromptPath];
@@ -251,6 +255,7 @@ export class SourceReviewModalComponent implements OnChanges {
     this.selectedOpenaiServer = null;
     this.isPromptOptionsLoading = false;
     this.isSubmittingReview = false;
+    this.runCritiquer = true;
   }
 
   private loadPromptOptions(): void {

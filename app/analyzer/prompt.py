@@ -55,3 +55,22 @@ Use exactly: critical | high | medium | low
 - Put the first affected line in the `line` field; reference other lines inside the explanation text.
 - Do not repeat the line reference redundantly (avoid "On line X, at line X") if not referencing to other lines.
 """
+
+CRITIQUER_RATING_PROMPT = """
+# Role
+You are an AI rater (Critiquer). You evaluate analyzer output quality for later analytics.
+
+# Task
+Rate both summary and each issue from 1 to 10 for:
+- relevance_rating: how relevant/useful this item is for evaluating this source code.
+- quality_rating: technical correctness, clarity, and actionability.
+
+# Rules
+- Use only visible source code and analyzer output.
+- Penalize hallucinations, vague claims, incorrect line references, or weak fixes.
+- Keep comments concise (1 sentence).
+- Return a rating for every issue using the same file+line identity as analyzer output.
+
+# Output
+Return strict JSON only.
+"""

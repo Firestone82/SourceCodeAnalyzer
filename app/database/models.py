@@ -37,6 +37,7 @@ class Issue(Base):
 
     submit: Mapped["Submit"] = relationship(back_populates="issues")
     ratings: Mapped[list["IssueRating"]] = relationship(back_populates="issue", cascade="all, delete-orphan")
+    ai_ratings: Mapped[list["AIIssueRating"]] = relationship(back_populates="issue", cascade="all, delete-orphan")
 
 
 class Rater(Base):
@@ -99,6 +100,38 @@ class SubmitRating(Base):
 
     submit: Mapped["Submit"] = relationship()
     rater: Mapped["Rater"] = relationship(back_populates="submit_ratings")
+
+
+class AIIssueRating(Base):
+    __tablename__ = "ai_issue_rating"
+    __table_args__ = (
+        UniqueConstraint("issue_id", name="uq_ai_issue"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    issue_id: Mapped[int] = mapped_column(ForeignKey("issue.id", ondelete="CASCADE"), nullable=False)
+    relevance_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quality_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+
+    issue: Mapped["Issue"] = relationship(back_populates="ai_ratings")
+
+
+class AISubmitRating(Base):
+    __tablename__ = "ai_submit_rating"
+    __table_args__ = (
+        UniqueConstraint("submit_id", name="uq_ai_submit"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    submit_id: Mapped[int] = mapped_column(ForeignKey("submit.id", ondelete="CASCADE"), nullable=False)
+    relevance_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    quality_rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    comment: Mapped[str | None] = mapped_column(Text, nullable=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, nullable=False, default=datetime.now())
+
+    submit: Mapped["Submit"] = relationship()
 
 
 

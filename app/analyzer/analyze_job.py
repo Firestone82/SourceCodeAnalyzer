@@ -8,10 +8,12 @@ from sqlalchemy import delete, select, Sequence
 from sqlalchemy.orm import Session
 
 from app.analyzer.analyzer import Analyzer
+from app.analyzer.critiquer import Critiquer
 from app.analyzer.dto import ReviewResult
 from app.analyzer.servers import get_default_openai_server_id
 from app.database.db import SessionLocal
-from app.database.models import Submit, Issue, IssueRating, SubmitRating, AnalysisJob
+from app.database.models import Submit, Issue, IssueRating, SubmitRating, AnalysisJob, AIIssueRating, AISubmitRating
+from app.settings import settings
 from app.utils.files import find_prompt_file, save_job_error_log, find_source_files_or_extract
 
 logger = logging.getLogger(__name__)
@@ -101,9 +103,11 @@ def delete_previous_submit(
         {AnalysisJob.submit_id: None},
         synchronize_session=False,
     )
+    session.execute(delete(AISubmitRating).where(AISubmitRating.submit_id.in_(submit_identifier_list)))
     session.execute(delete(SubmitRating).where(SubmitRating.submit_id.in_(submit_identifier_list)))
 
     if len(issue_identifier_list) > 0:
+        session.execute(delete(AIIssueRating).where(AIIssueRating.issue_id.in_(issue_identifier_list)))
         session.execute(delete(IssueRating).where(IssueRating.issue_id.in_(issue_identifier_list)))
 
     session.execute(delete(Issue).where(Issue.submit_id.in_(submit_identifier_list)))
@@ -118,6 +122,7 @@ def run_submit_analysis(
         published: bool = False,
         analysis_mode: Literal["chain_of_thought", "one_shot"] = "chain_of_thought",
         openai_server: str | None = None,
+        run_critiquer: bool = True,
 ) -> None:
     session: Session = SessionLocal()
 
@@ -175,6 +180,16 @@ def run_submit_analysis(
             openai_server_id=openai_server,
         ).summarize()
 
+        critiquer_result = None
+        if run_critiquer:
+            critiquer_model = settings.critiquer_model or model
+            critiquer_server = settings.critiquer_openai_server or openai_server
+            critiquer_result = Critiquer(
+                model=critiquer_model,
+                files=submit_files,
+                openai_server_id=critiquer_server,
+            ).rate_review(review_result)
+
         submit: Submit = Submit(
             source_path=source_path,
             prompt_path=prompt_path,
@@ -188,22 +203,55 @@ def run_submit_analysis(
         session.add(submit)
         session.flush()  # To get the submit.id
 
-        session.add(Issue(
+        summary_issue = Issue(
             submit_id=submit.id,
             file=None,
             line=None,
             severity="summary",
             explanation=review_result.summary,
-        ))
+        )
+        session.add(summary_issue)
+        session.flush()
+
+        issue_rating_map: dict[tuple[str, int], tuple[int, int, str]] = {}
+
+        if critiquer_result is not None:
+            session.add(AISubmitRating(
+                submit_id=submit.id,
+                relevance_rating=critiquer_result.summary_rating.relevance_rating,
+                quality_rating=critiquer_result.summary_rating.quality_rating,
+                comment=critiquer_result.summary_rating.comment,
+            ))
+
+            issue_rating_map = {
+                (rating.file, rating.line): (
+                    rating.relevance_rating,
+                    rating.quality_rating,
+                    rating.comment,
+                )
+                for rating in critiquer_result.issue_ratings
+            }
 
         for issue in review_result.issues:
-            session.add(Issue(
+            created_issue = Issue(
                 submit_id=submit.id,
                 file=issue.file,
                 line=issue.line,
                 severity=issue.severity.value,
                 explanation=issue.explanation,
-            ))
+            )
+            session.add(created_issue)
+            session.flush()
+
+            rating_key = (issue.file, issue.line)
+            if rating_key in issue_rating_map:
+                relevance, quality, comment = issue_rating_map[rating_key]
+                session.add(AIIssueRating(
+                    issue_id=created_issue.id,
+                    relevance_rating=relevance,
+                    quality_rating=quality,
+                    comment=comment,
+                ))
 
         logger.info(
             "Model '%s' analysis with prompt '%s' completed for files at '%s'. Issues found: %d",

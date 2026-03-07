@@ -19,6 +19,7 @@ import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {SourceTreeSelectorComponent} from '../source-tree-selector/source-tree-selector.component';
 import {ConfigApiService} from '../../service/api/types/config-api.service';
 import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
+import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 
 @Component({
   selector: 'app-prompt-review-modal',
@@ -55,6 +56,7 @@ export class PromptReviewModalComponent implements OnChanges {
   public selectedSourceLeafKeys: string[] = [];
   public isSourceOptionsLoading: boolean = false;
   public isSubmittingReview: boolean = false;
+  public runCritiquer: boolean = true;
   public reviewSubmitError: string | null = null;
   public openaiServerOptions: OpenAIServerDto[] = [];
   public selectedOpenaiServer: string | null = null;
@@ -164,7 +166,8 @@ export class PromptReviewModalComponent implements OnChanges {
           model: this.reviewModel.trim(),
           prompt_path: this.selectedPromptPath!,
           analysis_mode: this.analysisMode,
-          openai_server: this.selectedOpenaiServer!
+          openai_server: this.selectedOpenaiServer!,
+          run_critiquer: this.runCritiquer
         })
         .pipe(catchError(() => of(null)))
     ));
@@ -199,6 +202,7 @@ export class PromptReviewModalComponent implements OnChanges {
     this.reviewSubmitError = null;
     this.reviewModel = this.defaultModel ?? '';
     this.analysisMode = 'chain_of_thought';
+    this.runCritiquer = true;
     this.loadOpenaiServers();
     this.selectedSourceKeys = [];
     this.selectedSourceLeafKeys = [];
@@ -214,6 +218,7 @@ export class PromptReviewModalComponent implements OnChanges {
     this.reviewSubmitError = null;
     this.openaiServerOptions = [];
     this.selectedOpenaiServer = null;
+    this.runCritiquer = true;
   }
 
   private loadOpenaiServers(): void {

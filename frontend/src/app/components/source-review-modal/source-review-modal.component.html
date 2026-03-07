@@ -12,6 +12,10 @@
         <div>{{ selectedSourcePath }}</div>
       </div>
 
+      <label class="text-sm font-medium" nz-checkbox [(ngModel)]="runCritiquer">
+        Run Critiquer (AI rating)
+      </label>
+
       <div class="flex flex-row gap-4">
         <div class="w-1/4">
           <label class="mb-1 block text-sm font-medium">OpenAI server</label>

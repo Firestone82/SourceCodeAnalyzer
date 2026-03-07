@@ -12,6 +12,7 @@ class AnalyzeRequest(BaseModel):
     prompt_content: Optional[str] = None
     analysis_mode: AnalysisMode = "chain_of_thought"
     openai_server: str = Field(min_length=1)
+    run_critiquer: bool = True
 
 
 class BatchAnalyzeRequest(BaseModel):
@@ -176,6 +177,7 @@ class AnalyzeSourceResponse(BaseModel):
     prompt_path: str
     analysis_mode: AnalysisMode = "chain_of_thought"
     openai_server: str
+    run_critiquer: bool = True
 
 
 class JobResponse(BaseModel):
@@ -277,7 +279,8 @@ class SubmitIssue(BaseModel):
 
 class SubmitIssuesResponse(BaseModel):
     submit_id: int
-    rater_id: int
+    rating_source: Literal["teacher", "ai"] = "teacher"
+    rater_id: Optional[int] = None
     summary: SubmitSummary
     issues: list[SubmitIssue]
 

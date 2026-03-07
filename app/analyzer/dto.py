@@ -126,3 +126,28 @@ class ReviewIssue:
 class ReviewResult:
     summary: str
     issues: List[ReviewIssue]
+
+
+@serde
+@dataclass
+class CritiquerIssueRating:
+    file: str
+    line: int = field(deserializer=deserialize_int)
+    relevance_rating: int = field(deserializer=deserialize_int)
+    quality_rating: int = field(deserializer=deserialize_int)
+    comment: str = ""
+
+
+@serde
+@dataclass
+class CritiquerSummaryRating:
+    relevance_rating: int = field(deserializer=deserialize_int)
+    quality_rating: int = field(deserializer=deserialize_int)
+    comment: str = ""
+
+
+@serde
+@dataclass
+class CritiquerResult:
+    summary_rating: CritiquerSummaryRating
+    issue_ratings: List[CritiquerIssueRating]

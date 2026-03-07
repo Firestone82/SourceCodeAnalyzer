@@ -264,3 +264,43 @@ REVIEW_RESULT_SCHEME: ResponseFormatJSONSchema = {
         },
     },
 }
+
+CRITIQUER_RESULT_SCHEME: ResponseFormatJSONSchema = {
+    "type": "json_schema",
+    "json_schema": {
+        "name": "CritiquerResult",
+        "strict": True,
+        "schema": {
+            "type": "object",
+            "additionalProperties": False,
+            "required": ["summary_rating", "issue_ratings"],
+            "properties": {
+                "summary_rating": {
+                    "type": "object",
+                    "additionalProperties": False,
+                    "required": ["relevance_rating", "quality_rating", "comment"],
+                    "properties": {
+                        "relevance_rating": {"type": "integer", "minimum": 1, "maximum": 10},
+                        "quality_rating": {"type": "integer", "minimum": 1, "maximum": 10},
+                        "comment": {"type": "string"},
+                    },
+                },
+                "issue_ratings": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "additionalProperties": False,
+                        "required": ["file", "line", "relevance_rating", "quality_rating", "comment"],
+                        "properties": {
+                            "file": {"type": "string"},
+                            "line": {"type": "integer", "minimum": 1},
+                            "relevance_rating": {"type": "integer", "minimum": 1, "maximum": 10},
+                            "quality_rating": {"type": "integer", "minimum": 1, "maximum": 10},
+                            "comment": {"type": "string"},
+                        },
+                    },
+                },
+            },
+        },
+    },
+}

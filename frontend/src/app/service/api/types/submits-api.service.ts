@@ -51,9 +51,9 @@ export class SubmitsApiService {
     return this.apiClientService.get<SubmitDto>(`/submits/${submitId}`);
   }
 
-  public getSubmitDetails(submitId: number): Observable<SubmitDetailsDto> {
+  public getSubmitDetails(submitId: number, ratingSource: 'teacher' | 'ai' = 'teacher'): Observable<SubmitDetailsDto> {
     return this.apiClientService
-      .get<SubmitDetailsDto>(`/submits/${submitId}/details`)
+      .get<SubmitDetailsDto>(`/submits/${submitId}/details`, {queryParams: {rating_source: ratingSource}})
       .pipe(
         map((submitDetails: SubmitDetailsDto) => {
           for (const issue of submitDetails.issues) {

@@ -282,6 +282,7 @@ def analyze_source_file(
         False,
         request.analysis_mode,
         request.openai_server,
+        request.run_critiquer,
         job_timeout=1800,
     )
 
@@ -309,6 +310,7 @@ def analyze_source_file(
         prompt_path=prompt_path,
         analysis_mode=request.analysis_mode,
         openai_server=request.openai_server,
+        run_critiquer=request.run_critiquer,
     )
 
 

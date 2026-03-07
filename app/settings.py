@@ -20,6 +20,9 @@ class Settings:
 
     cors_origins: list[str]
 
+    critiquer_model: str | None
+    critiquer_openai_server: str | None
+
     @staticmethod
     def load() -> "Settings":
         data_dir_raw: str = os.getenv("DATA_DIR", "data").strip()
@@ -34,6 +37,9 @@ class Settings:
         # Ensure OpenAI server config exists at startup so operators can edit defaults.
         ensure_openai_servers_config(data_dir)
 
+        critiquer_model_raw: str = os.getenv("CRITIQUER_MODEL", "").strip()
+        critiquer_openai_server_raw: str = os.getenv("CRITIQUER_OPENAI_SERVER", "").strip()
+
         return Settings(
             app_name=os.getenv("APP_NAME", "analyzer-backend").strip(),
             app_env=os.getenv("APP_ENV", "dev").strip(),
@@ -43,6 +49,8 @@ class Settings:
             database_url=os.getenv("DATABASE_URL", "sqlite:///./dev.db").strip(),
             redis_url=os.getenv("REDIS_URL", "redis://localhost:6379/0").strip(),
             cors_origins=cors_origins,
+            critiquer_model=critiquer_model_raw or None,
+            critiquer_openai_server=critiquer_openai_server_raw or None,
         )
 
 

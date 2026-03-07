@@ -25,6 +25,14 @@
       </nz-card>
 
       <nz-card nzTitle="Ratings" class="flex-1">
+      <div class="mb-3 flex items-center justify-end gap-3">
+        <span class="text-sm text-slate-600">Ratings source:</span>
+        <nz-radio-group [(ngModel)]="selectedRatingSource" (ngModelChange)="onRatingSourceChange($event)">
+          <label nz-radio-button nzValue="teacher">Raters</label>
+          <label nz-radio-button nzValue="ai">Critiquer</label>
+        </nz-radio-group>
+      </div>
+
         <div class="filters-grid">
           <input nz-input [(ngModel)]="sourceFilter" (ngModelChange)="onRatingFiltersChanged()" placeholder="Filter by source path">
           <input nz-input [(ngModel)]="promptFilter" (ngModelChange)="onRatingFiltersChanged()" placeholder="Filter by prompt path">
@@ -78,7 +86,7 @@
                 <td>
                   <a
                     [routerLink]="['/submits', row.submit_id]"
-                    [queryParams]="{ raterId: row.rater_id }"
+                    [queryParams]="getSubmitQueryParams(row)"
                     nz-button
                     nzSize="small"
                   >

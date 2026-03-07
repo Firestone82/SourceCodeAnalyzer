@@ -25,7 +25,7 @@ from app.api.dto import (
 )
 from app.api.security import get_current_rater, require_admin
 from app.database.db import get_database
-from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob, SourceTag, SubmitRating
+from app.database.models import Issue, Submit, Rater, IssueRating, AnalysisJob, SourceTag, SubmitRating, AIIssueRating, AISubmitRating
 from app.database.rq_queue import get_analysis_queue
 from app.utils.files import (
     PROMPTS_ROOT,
@@ -93,6 +93,7 @@ def upload_submit(
         prompt_file: UploadFile | None = File(None),
         analysis_mode: Literal["chain_of_thought", "one_shot"] = Form("chain_of_thought"),
         openai_server: str = Form(...),
+        run_critiquer: bool = Form(True),
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
 ) -> AnalyzeSourceResponse:
@@ -121,6 +122,7 @@ def upload_submit(
         False,
         analysis_mode,
         openai_server.strip(),
+        run_critiquer,
         job_timeout=1800,
     )
 
@@ -148,6 +150,7 @@ def upload_submit(
         model=model.strip(),
         analysis_mode=analysis_mode,
         openai_server=openai_server.strip(),
+        run_critiquer=run_critiquer,
     )
 
 
@@ -419,6 +422,7 @@ def get_submit_details(
         submit_id: int,
         session: Session = Depends(get_database),
         current_rater: Rater = Depends(get_current_rater),
+        rating_source: Literal["teacher", "ai"] = Query("teacher"),
 ) -> SubmitIssuesResponse:
     submit: Submit | None = session.get(Submit, submit_id)
 
@@ -428,22 +432,35 @@ def get_submit_details(
     if not submit.published and not current_rater.admin and submit.created_by_id != current_rater.id:
         raise HTTPException(status_code=404, detail="Submit not found")
 
-    rater_issues = session.execute(
-        select(Issue, IssueRating)
-        .outerjoin(
-            IssueRating,
-            and_(IssueRating.issue_id == Issue.id, IssueRating.rater_id == current_rater.id),
+    if rating_source == "ai":
+        rater_issues = session.execute(
+            select(Issue, AIIssueRating)
+            .outerjoin(AIIssueRating, AIIssueRating.issue_id == Issue.id)
+            .where(Issue.submit_id == submit_id)
+        ).all()
+
+        summary_rating: AISubmitRating | None = (
+            session.query(AISubmitRating)
+            .filter(AISubmitRating.submit_id == submit_id)
+            .one_or_none()
         )
-        .where(Issue.submit_id == submit_id)
-    ).all()
+    else:
+        rater_issues = session.execute(
+            select(Issue, IssueRating)
+            .outerjoin(
+                IssueRating,
+                and_(IssueRating.issue_id == Issue.id, IssueRating.rater_id == current_rater.id),
+            )
+            .where(Issue.submit_id == submit_id)
+        ).all()
+
+        summary_rating: SubmitRating | None = (
+            session.query(SubmitRating)
+            .filter(SubmitRating.submit_id == submit_id, SubmitRating.rater_id == current_rater.id)
+            .one_or_none()
+        )
 
     issues = []
-    summary_rating: SubmitRating | None = (
-        session.query(SubmitRating)
-        .filter(SubmitRating.submit_id == submit_id, SubmitRating.rater_id == current_rater.id)
-        .one_or_none()
-    )
-
     summary = SubmitSummary(
         id=None,
         explanation="Failed to load summary rating",
@@ -483,7 +500,8 @@ def get_submit_details(
 
     return SubmitIssuesResponse(
         submit_id=submit_id,
-        rater_id=current_rater.id,
+        rating_source=rating_source,
+        rater_id=current_rater.id if rating_source == "teacher" else None,
         summary=summary,
         issues=issues,
     )

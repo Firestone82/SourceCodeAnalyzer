@@ -30,6 +30,7 @@ import {SourceReviewModalComponent} from '../../components/source-review-modal/s
 import {JobCreatedModalComponent} from '../../components/job-created-modal/job-created-modal.component';
 import {SubmitRaterRatingsModalComponent} from '../../components/submit-rater-ratings-modal/submit-rater-ratings-modal.component';
 import {AuthService} from '../../service/auth/auth.service';
+import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
 
 @Component({
   selector: 'app-submit-detail',
@@ -51,7 +52,9 @@ import {AuthService} from '../../service/auth/auth.service';
     SourceReviewModalComponent,
     JobCreatedModalComponent,
     SubmitRaterRatingsModalComponent,
-    NzSelectModule
+    NzSelectModule,
+    NzRadioComponent,
+    NzRadioGroupComponent
   ],
   templateUrl: './submit-detail.component.html',
   styleUrl: './submit-detail.component.css'
@@ -62,7 +65,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public submitDetails: SubmitDetailsDto | null = null;
   public fileNames: string[] = [];
   public selectedFileName: string | null = null;
-  public remainingIssuesByFile: Record<string, number> = {};
+  public totalIssuesByFile: Record<string, number> = {};
   public nextUnratedSubmitId: number | null = null;
   public isReviewModalVisible: boolean = false;
   public isJobModalVisible: boolean = false;
@@ -72,6 +75,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   public isAdminRatingsLoading: boolean = false;
   public submitRatingsByRater: SubmitRaterRatingDto[] = [];
   public selectedRaterId: number | null = null;
+  public selectedRatingSource: 'teacher' | 'ai' = 'teacher';
   private pendingSelectedRaterId: number | null = null;
   private displayedIssuesCacheKey: string = '';
   private displayedIssuesCache: IssueDto[] = [];
@@ -147,6 +151,10 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
     return this.selectedRaterId !== null;
   }
 
+  public get isAiRatingsMode(): boolean {
+    return this.selectedRatingSource === 'ai';
+  }
+
   public get selectedRaterRating(): SubmitRaterRatingDto | null {
     if (this.selectedRaterId === null) {
       return null;
@@ -189,8 +197,10 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
         }
 
         const selectedRaterParam: string | null = queryParams.get('raterId');
+        const ratingSourceParam: string | null = queryParams.get('ratingSource');
         const parsedRaterId: number = Number(selectedRaterParam);
         this.pendingSelectedRaterId = Number.isFinite(parsedRaterId) && parsedRaterId > 0 ? parsedRaterId : null;
+        this.selectedRatingSource = ratingSourceParam === 'ai' ? 'ai' : 'teacher';
 
         this.loadSubmit(submitId);
       });
@@ -208,7 +218,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   public handleRate(issue: IssueDto, criterion: 'relevance' | 'quality', rating: number): void {
-    if (this.isViewingSelectedRater) {
+    if (this.isViewingSelectedRater || this.isAiRatingsMode) {
       return;
     }
 
@@ -240,7 +250,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   public handleSummaryRate(criterion: 'relevance' | 'quality', newValue: number): void {
-    if (this.isViewingSelectedRater || !this.submitDetails?.summary.id) {
+    if (this.isViewingSelectedRater || this.isAiRatingsMode || !this.submitDetails?.summary.id) {
       return;
     }
 
@@ -255,7 +265,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   public submitSummaryRating(showSuccessMessage: boolean = true): void {
-    if (this.isViewingSelectedRater || !this.submitDetails || !this.submit) {
+    if (this.isViewingSelectedRater || this.isAiRatingsMode || !this.submitDetails || !this.submit) {
       return;
     }
 
@@ -292,7 +302,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
 
   public saveIssueComment(issue: IssueDto, commentInput: string): void {
-    if (this.isViewingSelectedRater) {
+    if (this.isViewingSelectedRater || this.isAiRatingsMode) {
       return;
     }
 
@@ -319,6 +329,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
   public onSelectedRaterChange(raterId: number | null): void {
     this.selectedRaterId = raterId;
+    this.selectedRatingSource = 'teacher';
     this.displayedIssuesCacheKey = '';
     this.viewerRebuild$.next();
   }
@@ -365,7 +376,7 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
 
     forkJoin({
       submit: this.submitsApiService.getSubmit(submitId),
-      details: this.submitsApiService.getSubmitDetails(submitId)
+      details: this.submitsApiService.getSubmitDetails(submitId, this.selectedRatingSource)
     }).subscribe({
       next: ({submit, details}: { submit: SubmitDto; details: SubmitDetailsDto }) => {
         this.submit = submit;
@@ -452,25 +463,37 @@ export class SubmitDetailComponent implements OnInit, OnDestroy {
   }
 
   private recalculateRemainingIssues(): void {
-    const remaining: Record<string, number> = {};
+    const totals: Record<string, number> = {};
     if (!this.submitDetails) {
-      this.remainingIssuesByFile = remaining;
+      this.totalIssuesByFile = totals;
       return;
     }
 
     for (const issue of this.submitDetails.issues) {
-      if (!remaining[issue.file]) {
-        remaining[issue.file] = 0;
+      if (!totals[issue.file]) {
+        totals[issue.file] = 0;
       }
-      if (issue.relevance_rating === null || issue.quality_rating === null) {
-        remaining[issue.file] += 1;
-      }
+      totals[issue.file] += 1;
     }
 
-    this.remainingIssuesByFile = remaining;
+    this.totalIssuesByFile = totals;
   }
 
   private normalizeStarRating(newValue: number): number {
     return Math.max(1, Math.min(10, Math.round(Number(newValue) * 2)));
+  }
+
+  public onRatingSourceChange(source: 'teacher' | 'ai'): void {
+    this.selectedRatingSource = source;
+
+    if (source === 'ai') {
+      this.selectedRaterId = null;
+    }
+
+    const submitId = this.submit?.id ?? Number(this.activatedRoute.snapshot.paramMap.get('submitId'));
+
+    if (Number.isFinite(submitId)) {
+      this.loadSubmit(submitId);
+    }
   }
 }

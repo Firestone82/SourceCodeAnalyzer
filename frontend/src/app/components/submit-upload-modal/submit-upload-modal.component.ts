@@ -19,6 +19,7 @@ import {
 import {SubmitFooterComponent} from '../submit-footer/submit-footer.component';
 import {ConfigApiService} from '../../service/api/types/config-api.service';
 import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
+import {NzCheckboxModule} from 'ng-zorro-antd/checkbox';
 
 @Component({
   selector: 'app-submit-upload-modal',
@@ -32,7 +33,8 @@ import {NzRadioComponent, NzRadioGroupComponent} from 'ng-zorro-antd/radio';
     NzTypographyModule,
     SubmitFooterComponent,
     NzRadioComponent,
-    NzRadioGroupComponent
+    NzRadioGroupComponent,
+    NzCheckboxModule
   ],
   templateUrl: './submit-upload-modal.component.html'
 })
@@ -56,6 +58,7 @@ export class SubmitUploadModalComponent implements OnChanges {
   public sourceFile: File | null = null;
   public isPromptOptionsLoading: boolean = false;
   public isSubmitting: boolean = false;
+  public runCritiquer: boolean = true;
   public uploadErrorMessage: string | null = null;
   public openaiServerOptions: OpenAIServerDto[] = [];
   public selectedOpenaiServer: string | null = null;
@@ -217,6 +220,7 @@ export class SubmitUploadModalComponent implements OnChanges {
       formData.append('model', this.uploadModel.trim());
       formData.append('analysis_mode', this.analysisMode);
       formData.append('openai_server', this.selectedOpenaiServer!);
+      formData.append('run_critiquer', String(this.runCritiquer));
 
       const normalizedSourceName = this.normalizeUploadName(this.sourceName.trim());
       const sourcePath = normalizedSourceName || this.buildSourceUploadName();
@@ -264,6 +268,7 @@ export class SubmitUploadModalComponent implements OnChanges {
   private initializeModal(): void {
     this.uploadErrorMessage = null;
     this.promptErrorMessage = null;
+    this.runCritiquer = true;
     this.loadPromptPaths();
     this.loadOpenaiServers();
   }
@@ -282,6 +287,7 @@ export class SubmitUploadModalComponent implements OnChanges {
     this.isPromptOptionsLoading = false;
     this.isSubmitting = false;
     this.uploadErrorMessage = null;
+    this.runCritiquer = true;
     this.openaiServerOptions = [];
     this.selectedOpenaiServer = null;
   }

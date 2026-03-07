@@ -11,6 +11,7 @@ import {NzButtonModule} from 'ng-zorro-antd/button';
 import {NzSpinModule} from 'ng-zorro-antd/spin';
 import {NzProgressModule} from 'ng-zorro-antd/progress';
 import {NzIconModule} from 'ng-zorro-antd/icon';
+import {NzRadioModule} from 'ng-zorro-antd/radio';
 import {
   DashboardPromptModelStatDto,
   DashboardPromptPerformanceDto,
@@ -34,7 +35,8 @@ import {DashboardApiService} from '../../service/api/types/dashboard-api.service
     NzButtonModule,
     NzSpinModule,
     NzProgressModule,
-    NzIconModule
+    NzIconModule,
+    NzRadioModule
   ],
   templateUrl: './dashboard.component.html',
   styleUrl: './dashboard.component.css'
@@ -47,6 +49,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
   public raterFilter: string = '';
   public submitFilter: string = '';
   public ratingsPageSize: number = 10;
+  public selectedRatingSource: 'teacher' | 'ai' = 'teacher';
 
   public debouncedSourceFilter: string = '';
   public debouncedPromptFilter: string = '';
@@ -80,7 +83,7 @@ export class DashboardComponent implements OnInit, OnDestroy {
 
   public loadStats(): void {
     this.isLoading = true;
-    this.dashboardApiService.getStats(null, null, null).subscribe({
+    this.dashboardApiService.getStats(null, null, null, this.selectedRatingSource).subscribe({
       next: (response: DashboardStatsResponseDto) => {
         this.raters = response.raters;
         this.ratingEvents = response.rating_events;
@@ -93,6 +96,12 @@ export class DashboardComponent implements OnInit, OnDestroy {
         this.isLoading = false;
       }
     });
+  }
+
+
+  public onRatingSourceChange(source: 'teacher' | 'ai'): void {
+    this.selectedRatingSource = source;
+    this.loadStats();
   }
 
   public onRatingFiltersChanged(): void {
@@ -148,7 +157,16 @@ export class DashboardComponent implements OnInit, OnDestroy {
         return false;
       }
       return !submitFilter || row.submit_id.toString().includes(submitFilter);
-    }).sort((left, right) => right.rating_id - left.rating_id);
+    }).sort((left, right) => new Date(right.rated_at).getTime() - new Date(left.rated_at).getTime());
+  }
+
+
+  public getSubmitQueryParams(row: DashboardRatingEventDto): {raterId?: number; ratingSource?: 'ai'} {
+    if (this.selectedRatingSource === 'ai') {
+      return {ratingSource: 'ai'};
+    }
+
+    return {raterId: row.rater_id};
   }
 
   public get filteredSubmitIdOptions(): string[] {
