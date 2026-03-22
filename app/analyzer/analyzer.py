@@ -94,6 +94,9 @@ class Analyzer:
         logger.info("Starting analysis on %d files...", len(self.files))
         analysis_start_time = time()
 
+        self._total_input_tokens: int = 0
+        self._total_output_tokens: int = 0
+
         user_content: str = self.build_user_content()
         logger.warning(f"User content: {user_content}")
 
@@ -109,9 +112,12 @@ class Analyzer:
 
         total_elapsed_seconds: float = time() - analysis_start_time
         logger.info(
-            "Source code review completed. Total elapsed time: %.2f seconds. Issues found: %d",
+            "Source code review completed. Total elapsed time: %.2f seconds. Issues found: %d. "
+            "Total tokens — input: %d, output: %d",
             total_elapsed_seconds,
             len(review_result.issues),
+            self._total_input_tokens,
+            self._total_output_tokens,
         )
         return review_result
 
@@ -346,7 +352,14 @@ class Analyzer:
 
         elapsed_seconds: float = time() - step_start_time
         message_content: str | None = response.choices[0].message.content
-        logger.info("Step '%s' used %d completion tokens", step_name, response.usage.completion_tokens)
+        input_tokens: int = response.usage.prompt_tokens
+        output_tokens: int = response.usage.completion_tokens
+        logger.info(
+            "Step '%s' tokens — input: %d, output: %d",
+            step_name, input_tokens, output_tokens,
+        )
+        self._total_input_tokens = getattr(self, "_total_input_tokens", 0) + input_tokens
+        self._total_output_tokens = getattr(self, "_total_output_tokens", 0) + output_tokens
 
         if message_content is None:
             raise ValueError(f"{step_name} returned empty message content.")
