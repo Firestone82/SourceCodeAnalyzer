@@ -73,6 +73,12 @@ class Critiquer:
         if content is None:
             raise ValueError("Critiquer returned empty message content")
 
+        logger.info(
+            "Critiquer tokens — input: %d, output: %d",
+            response.usage.prompt_tokens,
+            response.usage.completion_tokens,
+        )
+
         result_json = json.loads(content)
         critiquer_result: CritiquerResult = from_dict(CritiquerResult, result_json)
         logger.info("Critiquer produced %d issue ratings", len(critiquer_result.issue_ratings))
